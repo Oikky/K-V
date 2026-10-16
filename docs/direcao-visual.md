@@ -76,6 +76,8 @@ Estratégia de cor: **contida** (neutros azulados + um destaque laranja + um sec
 }
 ```
 
+**Tema (decidido em 2026-10-15):** cada pessoa escolhe entre escuro e claro, e o sistema lembra. Abre no escuro. Motivo: os pesquisadores alternam o dia todo com sites brancos (Smiles, Latam, Azul), e o claro poupa a vista; o escuro é a cara da marca.
+
 Tema claro: os mesmos papéis, com fundo `#F4F7FB`, cards brancos, texto `#0B1B30`, o laranja um pouco mais escuro (`#E8740A`) pra manter o contraste.
 
 ### Tipografia

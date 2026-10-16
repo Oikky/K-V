@@ -1,0 +1,190 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Pergunta: qual o jeito mais rápido de registrar entrada de pontos?
+     Nada é salvo: o botão final só mostra o que seria gravado. ?v=A|B|C -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registrar entrada · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css">
+<style>
+  .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .form-dupla { display: grid; grid-template-columns: minmax(0, 620px) minmax(260px, 360px); gap: 18px; align-items: start; }
+  @media (max-width: 960px) { .form-dupla { grid-template-columns: 1fr; } }
+  .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grade-campos .inteiro { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grade-campos { grid-template-columns: 1fr; } }
+  .previa { position: sticky; top: 20px; display: grid; gap: 14px; }
+  .de-para { display: flex; align-items: center; gap: 12px; font: 800 24px var(--font-brand); flex-wrap: wrap; }
+  .de-para .de { color: var(--text-3); }
+  .rodape-form { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+  .oculto { display: none !important; }
+
+  /* B */
+  .passos { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .passo { display: flex; gap: 8px; align-items: center; color: var(--text-3); font-weight: 700; font-size: 14px; }
+  .passo b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 13px; }
+  .passo.on { color: var(--text); } .passo.on b { background: var(--orange); color: var(--orange-ink); }
+  .passo + .passo::before { content: ''; width: 24px; height: 1px; background: var(--line); margin-right: 4px; }
+  .tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; max-width: 980px; }
+  .tipo { text-align: left; padding: 18px; border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; display: grid; gap: 6px; }
+  .tipo:hover { border-color: var(--orange); }
+  .tipo svg { color: var(--teal-soft); width: 24px; height: 24px; }
+  .tipo .t { font-weight: 700; font-size: 16px; } .tipo .e { font-size: 13.5px; color: var(--text-2); }
+  .tipo .c { font-size: 12.5px; font-weight: 700; color: var(--text-3); }
+
+  /* C */
+  .lote td { padding: 6px 8px; }
+  .lote input, .lote select { width: 100%; height: 38px; border-radius: 10px; border: 1px solid transparent; background: var(--surface-2); padding: 0 10px; font-size: 15px; min-width: 90px; }
+  .lote input:focus, .lote select:focus { border-color: var(--orange); outline: none; }
+  .lote input.num { text-align: right; }
+  .lote tfoot td { border-top: 1px solid var(--line); padding: 14px; font-weight: 700; }
+  .aviso-lote { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: 14px; background: var(--teal-bg); color: var(--text); margin-bottom: 14px; font-size: 14px; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js"></script>
+<script src="shared/shell.js"></script>
+<script>
+const app = KVShell.montar('contas');
+const { fmt } = KV;
+const params = new URLSearchParams(location.search);
+const contasEmitem = KV.contas();
+const opcoesConta = (sel) => contasEmitem.map((c) => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${c.titular} · ${KV.programa(c.programaId).nome}</option>`).join('');
+const TIPOS = [
+  { id: 'clube', icone: 'calendar-sync', exp: 'Pontos da mensalidade do clube do programa.' },
+  { id: 'compra', icone: 'shopping-cart', exp: 'Pontos comprados direto no programa.' },
+  { id: 'transferencia', icone: 'arrow-left-right', exp: 'Pontos vindos de outro programa, como Livelo → Smiles.' },
+  { id: 'cartao', icone: 'credit-card', exp: 'Pontos gerados pelos gastos no cartão.' },
+  { id: 'bonus', icone: 'gift', exp: 'Promoção do programa, sem custo.' },
+  { id: 'estorno', icone: 'undo-2', exp: 'Pontos que voltaram de uma emissão cancelada.' },
+];
+const daqui = (meses) => { const d = new Date(KV.hoje + 'T12:00:00'); d.setMonth(d.getMonth() + meses); return d.toISOString().slice(0, 10); };
+function mostrarSalvo(alvo, obj) {
+  alvo.innerHTML = `<div class="card"><h2 style="margin-bottom:8px">O que seria salvo</h2><p class="muted" style="margin:0 0 10px;font-size:14px">Rascunho: nada foi gravado.</p><div class="json">${JSON.stringify(obj, null, 2)}</div></div>`;
+}
+
+const variantes = {
+  // A: um formulário só, com prévia ao lado
+  A() {
+    const contaId = params.get('conta') || contasEmitem[0].id;
+    app.innerHTML = `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a>
+      <div class="topo"><h1>Registrar entrada de pontos</h1></div>
+      <div class="form-dupla"><form class="card" id="f">
+        <div class="grade-campos">
+          <div class="campo inteiro"><label for="conta">Conta</label><select id="conta">${opcoesConta(contaId)}</select></div>
+          <div class="campo"><label for="tipo">Tipo</label><select id="tipo">${TIPOS.map((t) => `<option value="${t.id}">${KV.entradaTipos[t.id].nome}</option>`).join('')}</select></div>
+          <div class="campo"><label for="data">Data</label><input id="data" type="date" value="${KV.hoje}"></div>
+          <div class="campo"><label for="pontos">Pontos</label><input id="pontos" inputmode="numeric" placeholder="ex.: 2.000" value="2000"></div>
+          <div class="campo" data-so="custo"><label for="custo">Custo (R$)</label><input id="custo" inputmode="decimal" placeholder="ex.: 35,00" value="35"></div>
+          <div class="campo" data-so="transf"><label for="origem">Veio de</label><select id="origem"><option>Livelo</option><option>Smiles</option><option>Latam Pass</option><option>TudoAzul</option></select></div>
+          <div class="campo" data-so="transf"><label for="bonus">Bônus da transferência (%)</label><input id="bonus" inputmode="numeric" value="80"></div>
+          <div class="campo"><label for="vence">Vence em</label><input id="vence" type="date" value="${daqui(24)}"><span class="ajuda">Cada lote de pontos vence numa data.</span></div>
+          <div class="campo inteiro"><label for="obs">Observação (opcional)</label><textarea id="obs" placeholder="ex.: campanha de outubro"></textarea></div>
+        </div>
+        <div class="rodape-form"><a class="btn" href="contas.html">Cancelar</a><button class="btn primario" type="submit"><i data-lucide="check"></i>Registrar entrada</button></div>
+      </form><aside class="previa" id="previa"></aside></div>`;
+    const $ = (id) => app.querySelector('#' + id);
+    const atualizar = () => {
+      const c = KV.conta($('conta').value); const p = KV.programa(c.programaId);
+      const tipo = $('tipo').value; const pts = +String($('pontos').value).replace(/\D/g, '') || 0;
+      const custo = +String($('custo').value).replace(',', '.') || 0;
+      app.querySelectorAll('[data-so="custo"]').forEach((e) => e.classList.toggle('oculto', !KV.entradaTipos[tipo].temCusto));
+      app.querySelectorAll('[data-so="transf"]').forEach((e) => e.classList.toggle('oculto', tipo !== 'transferencia'));
+      const porMilha = pts && KV.entradaTipos[tipo].temCusto ? custo / pts : null;
+      $('previa').innerHTML = `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:6px">Saldo de ${c.titular.split(' ')[0]} na ${p.nome}</div>
+        <div class="de-para num"><span class="de">${fmt.pts(c.saldo)}</span><i data-lucide="arrow-right"></i><span>${fmt.pts(c.saldo + pts)}</span></div>
+        ${porMilha ? `<div class="estado" style="margin-top:14px">Esta entrada saiu a <b class="num">${fmt.milha(porMilha)}</b> por milha. O valor usado nas cotações da ${p.nome} é <b class="num">${p.valorMilha ? fmt.milha(p.valorMilha) : '—'}</b>.</div>` : ''}</div>`;
+      KVShell.icones();
+    };
+    app.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', atualizar));
+    $('f').onsubmit = (e) => { e.preventDefault(); mostrarSalvo($('previa'), { conta: $('conta').value, tipo: $('tipo').value, data: $('data').value,
+      pontos: +String($('pontos').value).replace(/\D/g, ''), custo: KV.entradaTipos[$('tipo').value].temCusto ? +$('custo').value.replace(',', '.') : 0,
+      ...( $('tipo').value === 'transferencia' ? { origem: $('origem').value, bonusPct: +$('bonus').value } : {}), vence: $('vence').value, obs: $('obs').value }); };
+    atualizar();
+  },
+
+  // B: primeiro escolhe o tipo (com explicação), depois só os campos daquele tipo
+  B() {
+    const passo = params.get('passo') || '1';
+    const tipo = params.get('tipo');
+    const ir = (q) => { Object.entries(q).forEach(([k, v]) => params.set(k, v)); history.replaceState(null, '', '?' + params); variantes.B(); KVShell.icones(); };
+    const cab = `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a>
+      <div class="topo"><h1>Registrar entrada de pontos</h1></div>
+      <div class="passos">${['De onde vieram os pontos?', 'Detalhes', 'Conferir'].map((t, i) => `<span class="passo ${+passo >= i + 1 ? 'on' : ''}"><b>${i + 1}</b>${t}</span>`).join('')}</div>`;
+    if (passo === '1') {
+      app.innerHTML = cab + `<div class="tipos">${TIPOS.map((t) => `<button class="tipo" data-t="${t.id}"><i data-lucide="${t.icone}"></i>
+        <span class="t">${KV.entradaTipos[t.id].nome}</span><span class="e">${t.exp}</span><span class="c">${KV.entradaTipos[t.id].temCusto ? 'Pede o custo em R$' : 'Sem custo'}</span></button>`).join('')}</div>`;
+      app.querySelectorAll('[data-t]').forEach((b) => b.onclick = () => ir({ passo: '2', tipo: b.dataset.t }));
+      return;
+    }
+    const temCusto = KV.entradaTipos[tipo].temCusto;
+    if (passo === '2') {
+      app.innerHTML = cab + `<form class="card" style="max-width:620px" id="f"><h2 style="margin-bottom:16px">${KV.entradaTipos[tipo].nome}</h2><div class="grade-campos">
+        <div class="campo inteiro"><label for="conta">Em qual conta entrou?</label><select id="conta">${opcoesConta(params.get('conta'))}</select></div>
+        ${tipo === 'transferencia' ? `<div class="campo"><label for="origem">Veio de</label><select id="origem"><option>Livelo</option><option>Smiles</option></select></div>
+          <div class="campo"><label for="bonus">Bônus (%)</label><input id="bonus" inputmode="numeric" value="80"></div>` : ''}
+        ${tipo === 'estorno' ? `<div class="campo inteiro"><label for="emissao">De qual emissão?</label><select id="emissao"><option>GRU → LIS · localizador XK72PQ · 12/09</option><option>BSB → GRU · localizador M3RT8A · 02/10</option></select></div>` : ''}
+        <div class="campo"><label for="pontos">Quantos pontos entraram?</label><input id="pontos" inputmode="numeric" value="${tipo === 'clube' ? '2000' : ''}" placeholder="ex.: 2.000"></div>
+        ${temCusto ? `<div class="campo"><label for="custo">Quanto custou (R$)?</label><input id="custo" inputmode="decimal" placeholder="ex.: 35,00"></div>` : ''}
+        <div class="campo"><label for="data">Quando?</label><input id="data" type="date" value="${KV.hoje}"></div>
+        <div class="campo"><label for="vence">Vencem em</label><input id="vence" type="date" value="${daqui(tipo === 'bonus' ? 12 : 24)}"></div></div>
+        <div class="rodape-form"><button type="button" class="btn" id="voltar">Trocar o tipo</button><button class="btn primario" type="submit">Conferir<i data-lucide="arrow-right"></i></button></div></form>`;
+      app.querySelector('#voltar').onclick = () => ir({ passo: '1' });
+      app.querySelector('#f').onsubmit = (e) => { e.preventDefault(); const f = new FormData(); ['conta', 'pontos', 'custo', 'data', 'vence', 'origem', 'bonus'].forEach((k) => { const el = app.querySelector('#' + k); if (el) params.set(k, el.value); }); ir({ passo: '3' }); };
+      return;
+    }
+    const c = KV.conta(params.get('conta')); const pts = +String(params.get('pontos') || 0).replace(/\D/g, '');
+    app.innerHTML = cab + `<div class="card" style="max-width:620px"><h2>Confere?</h2>
+      <p style="font-size:18px;line-height:1.5;margin:14px 0">Entraram <b class="num">${fmt.pts(pts)} pontos</b> de <b>${KV.entradaTipos[tipo].nome.toLowerCase()}</b> na conta <b>${KV.programa(c.programaId).nome}</b> de <b>${c.titular}</b>, em ${fmt.data(params.get('data'))}${temCusto && params.get('custo') ? `, custando <b class="num">${fmt.brl(+params.get('custo').replace(',', '.'))}</b>` : ''}. Vencem em ${fmt.data(params.get('vence'))}.</p>
+      <div class="de-para num"><span class="de">${fmt.pts(c.saldo)}</span><i data-lucide="arrow-right"></i><span>${fmt.pts(c.saldo + pts)}</span></div>
+      <div class="rodape-form"><button class="btn" id="editar">Corrigir</button><button class="btn primario" id="ok"><i data-lucide="check"></i>Registrar entrada</button></div></div><div id="salvo" style="max-width:620px;margin-top:14px"></div>`;
+    app.querySelector('#editar').onclick = () => ir({ passo: '2' });
+    app.querySelector('#ok').onclick = () => mostrarSalvo(app.querySelector('#salvo'), { conta: c.id, tipo, pontos: pts, custo: +(params.get('custo') || '0').replace(',', '.'), data: params.get('data'), vence: params.get('vence') });
+  },
+
+  // C: várias entradas de uma vez, como planilha (ex.: todos os clubes do mês)
+  C() {
+    let linhas = [{ conta: contasEmitem[0].id, tipo: 'cartao', pontos: '', custo: '', vence: daqui(24) }];
+    const desenhar = () => {
+      const total = linhas.reduce((s, l) => s + (+String(l.pontos).replace(/\D/g, '') || 0), 0);
+      const custo = linhas.reduce((s, l) => s + (+String(l.custo).replace(',', '.') || 0), 0);
+      app.innerHTML = `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a>
+        <div class="topo"><div><h1>Registrar entradas</h1><div class="muted">Várias de uma vez. Tab pula de campo; Enter na última coluna cria outra linha.</div></div>
+        <div class="acoes"><button class="btn" id="clubes"><i data-lucide="calendar-sync"></i>Puxar os clubes do mês</button></div></div>
+        ${linhas.length > 3 ? `<div class="aviso-lote"><i data-lucide="info"></i>${linhas.filter((l) => l.tipo === 'clube').length} clubes puxados com o valor de sempre. Confira os pontos e o custo de cada um antes de registrar.</div>` : ''}
+        <div class="tabela-wrap"><table class="lote"><thead><tr><th>Conta</th><th>Tipo</th><th class="dir">Pontos</th><th class="dir">Custo (R$)</th><th>Vence em</th><th></th></tr></thead>
+        <tbody>${linhas.map((l, i) => `<tr>
+          <td style="min-width:240px"><select data-i="${i}" data-k="conta">${opcoesConta(l.conta)}</select></td>
+          <td style="min-width:170px"><select data-i="${i}" data-k="tipo">${TIPOS.map((t) => `<option value="${t.id}" ${t.id === l.tipo ? 'selected' : ''}>${KV.entradaTipos[t.id].nome}</option>`).join('')}</select></td>
+          <td><input class="num" data-i="${i}" data-k="pontos" value="${l.pontos}" inputmode="numeric" placeholder="0"></td>
+          <td><input class="num" data-i="${i}" data-k="custo" value="${l.custo}" inputmode="decimal" placeholder="${KV.entradaTipos[l.tipo].temCusto ? '0,00' : 'sem custo'}" ${KV.entradaTipos[l.tipo].temCusto ? '' : 'disabled'}></td>
+          <td><input data-i="${i}" data-k="vence" type="date" value="${l.vence}"></td>
+          <td><button class="btn icone" data-tirar="${i}" aria-label="Tirar linha"><i data-lucide="x"></i></button></td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="2"><button class="btn" id="mais"><i data-lucide="plus"></i>Linha</button></td><td class="dir num">${fmt.pts(total)} pts</td><td class="dir num">${fmt.brl(custo)}</td><td colspan="2"></td></tr></tfoot></table></div>
+        <div class="rodape-form" style="justify-content:flex-start"><button class="btn primario" id="ok"><i data-lucide="check"></i>Registrar ${linhas.length} entrada${linhas.length > 1 ? 's' : ''}</button></div>
+        <div id="salvo" style="margin-top:14px"></div>`;
+      app.querySelectorAll('[data-k]').forEach((el) => el.addEventListener('change', () => { linhas[el.dataset.i][el.dataset.k] = el.value; if (el.dataset.k === 'tipo') desenhar(); }));
+      app.querySelectorAll('[data-k]').forEach((el) => el.addEventListener('input', () => { linhas[el.dataset.i][el.dataset.k] = el.value; }));
+      app.querySelectorAll('[data-k="vence"]').forEach((el) => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); linhas.push({ ...linhas[linhas.length - 1], pontos: '', custo: '' }); desenhar(); } }));
+      app.querySelectorAll('[data-tirar]').forEach((b) => b.onclick = () => { linhas.splice(+b.dataset.tirar, 1); if (!linhas.length) linhas.push({ conta: contasEmitem[0].id, tipo: 'cartao', pontos: '', custo: '', vence: daqui(24) }); desenhar(); });
+      app.querySelector('#mais').onclick = () => { linhas.push({ conta: contasEmitem[0].id, tipo: 'cartao', pontos: '', custo: '', vence: daqui(24) }); desenhar(); };
+      app.querySelector('#clubes').onclick = () => {
+        linhas = contasEmitem.filter((c) => c.clube).map((c) => ({ conta: c.id, tipo: 'clube', pontos: String(c.clube), custo: (c.clube * 0.0175).toFixed(2).replace('.', ','), vence: daqui(24) }));
+        desenhar();
+      };
+      app.querySelector('#ok').onclick = () => mostrarSalvo(app.querySelector('#salvo'), linhas.map((l) => ({ ...l, pontos: +String(l.pontos).replace(/\D/g, '') || 0 })));
+      KVShell.icones();
+    };
+    desenhar();
+  },
+};
+
+KVShell.variacoes([
+  { k: 'A', nome: 'Formulário com prévia' },
+  { k: 'B', nome: 'Passo a passo por tipo' },
+  { k: 'C', nome: 'Várias de uma vez (planilha)' },
+], (k) => variantes[k]());
+</script>
+</body>
+</html>

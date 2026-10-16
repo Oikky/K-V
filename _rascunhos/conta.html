@@ -1,0 +1,185 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Pergunta: como mostrar tudo de UMA conta de pontos
+     (saldo, entradas/saídas, beneficiários, vencimentos)? ?id=c1..cN escolhe a conta, ?v=A|B|C a variação. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conta · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css">
+<style>
+  .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .voltar:hover { color: var(--text); }
+  .trocar { height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 14px; max-width: 280px; }
+  .saldo-grande { font: 800 44px/1 var(--font-brand); letter-spacing: -0.03em; }
+  .saldo-grande small { font: 600 16px var(--font); color: var(--text-2); letter-spacing: 0; margin-left: 6px; }
+  .mov { display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 14px; padding: 12px 0; border-top: 1px solid var(--line); align-items: baseline; }
+  .mov .d { color: var(--text-3); font-size: 13px; }
+  .mov .q { font-weight: 700; text-align: right; }
+  .mov .q.mais { color: var(--ok); }
+  .mov .x { grid-column: 2 / -1; font-size: 13px; color: var(--text-2); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .lado { display: grid; gap: 14px; align-content: start; }
+  .lado h2 { margin-bottom: 4px; display: flex; justify-content: space-between; align-items: baseline; }
+  .lado h2 small { font: 600 13px var(--font); color: var(--text-2); }
+  .ben { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .ben .l { color: var(--text-3); font-size: 12.5px; text-align: right; }
+  .regra { font-size: 13px; color: var(--text-2); margin: 6px 0 10px; }
+  .dados { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; }
+  .dados dt { color: var(--text-2); } .dados dd { margin: 0; font-weight: 600; text-align: right; }
+
+  /* A */
+  .extrato { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+  @media (max-width: 1000px) { .extrato { grid-template-columns: 1fr; } }
+
+  /* B */
+  .fatos { display: flex; gap: 28px; flex-wrap: wrap; margin: 6px 0 22px; }
+  .fatos div { font-size: 13px; color: var(--text-2); } .fatos b { display: block; font-size: 20px; color: var(--text); }
+  .abas { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
+  .aba { padding: 12px 16px; border: 0; background: none; cursor: pointer; font-weight: 700; color: var(--text-2); border-bottom: 2px solid transparent; white-space: nowrap; }
+  .aba[aria-selected="true"] { color: var(--text); border-color: var(--orange); }
+
+  /* C */
+  .painel { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+  .painel > .card { grid-column: span 6; }
+  .painel > .card.largo { grid-column: span 12; }
+  .painel > .card.terco { grid-column: span 4; }
+  .painel > .card.doisT { grid-column: span 8; }
+  @media (max-width: 900px) { .painel > .card, .painel > .card.terco, .painel > .card.doisT { grid-column: span 12; } }
+  .vagas-grade { display: grid; grid-template-columns: repeat(auto-fill, 30px); gap: 8px; margin: 14px 0 10px; }
+  .vaga { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .vaga.usada { border: 0; background: var(--teal); color: #fff; }
+  .comparar { display: grid; gap: 10px; margin-top: 14px; }
+  .comparar .l { display: grid; grid-template-columns: 120px 1fr auto; gap: 10px; align-items: center; font-size: 14px; }
+  .linha-tempo { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; align-items: end; height: 150px; margin-top: 16px; }
+  .linha-tempo .m { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; font-size: 11.5px; color: var(--text-3); }
+  .linha-tempo .m i { width: 100%; max-width: 34px; border-radius: 8px 8px 3px 3px; background: var(--surface-3); min-height: 3px; }
+  .linha-tempo .m.perto i { background: var(--warn); }
+  .linha-tempo .m .q { color: var(--text-2); font-weight: 700; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js"></script>
+<script src="shared/shell.js"></script>
+<script>
+const app = KVShell.montar('contas');
+const { fmt } = KV;
+const params = new URLSearchParams(location.search);
+const c = KV.conta(params.get('id'));
+const p = KV.programa(c.programaId);
+const b = KV.beneficiarios(c);
+const v = KV.vencendo(c);
+const custo = KV.custoReal(c);
+const movs = [...c.movimentos].reverse();
+
+function descricao(m) {
+  if (m.tipo === 'clube') return `Clube ${fmt.pts(m.pontos)}`;
+  if (m.tipo === 'transferencia' && m.lado === 'entrada') return `Transferência da ${m.origem}${m.bonusPct ? `, bônus de ${m.bonusPct}%` : ''}`;
+  if (m.tipo === 'transferencia') return `Transferência para ${m.destino}`;
+  if (m.tipo === 'emissao') return `Emissão ${m.rota}`;
+  if (m.tipo === 'ajuste') return `Ajuste: ${m.obs}`;
+  return (m.lado === 'entrada' ? KV.entradaTipos : KV.saidaTipos)[m.tipo].nome;
+}
+function detalhe(m) {
+  if (m.tipo === 'emissao') return `${m.passageiros.map((x) => x.nome).join(', ')} · ${m.localizador}`;
+  if (m.custo) return `Custo ${fmt.brl(m.custo)}`;
+  if (m.lado === 'entrada') return `Vence em ${fmt.data(m.vence)}`;
+  return '';
+}
+function linhaMov(m) {
+  const mais = m.lado === 'entrada';
+  return `<div class="mov"><span class="d num">${fmt.dataCurta(m.data)}</span><span><b>${descricao(m)}</b></span>
+    <span class="q num ${mais ? 'mais' : ''}">${mais ? '+' : '−'}${fmt.pts(m.pontos)}</span>
+    <span class="x"><span>${detalhe(m)}</span><span class="num faint">saldo ${fmt.pts(m.saldoDepois)}</span></span></div>`;
+}
+function topo() {
+  return `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a>
+    <div class="topo"><div><h1>${c.titular}</h1><div class="muted"><span class="prog" data-p="${c.programaId}">${p.nome}</span>${c.categoria ? ` · categoria ${c.categoria}` : ''}${c.clube ? ` · clube de ${fmt.pts(c.clube)}/mês` : ''}</div></div>
+    <div class="acoes"><select class="trocar" aria-label="Ver outra conta" onchange="location='?id='+this.value+'&v='+(new URLSearchParams(location.search).get('v')||'A')">
+      ${KV.contas().map((x) => `<option value="${x.id}" ${x === c ? 'selected' : ''}>${x.titular} · ${KV.programa(x.programaId).nome}</option>`).join('')}</select>
+      <a class="btn" href="#"><i data-lucide="minus"></i>Saída</a><a class="btn primario" href="entrada.html?conta=${c.id}"><i data-lucide="plus"></i>Entrada</a></div></div>`;
+}
+function blocoBenef(lim = 99) {
+  if (!b) return `<div class="card"><h2>Beneficiários</h2><p class="muted">A Livelo não emite passagem, só transfere. Não tem limite de beneficiários.</p></div>`;
+  return `<div class="card"><h2>Beneficiários <small class="num" style="${b.livres === 0 ? 'color:var(--danger)' : b.livres <= 2 ? 'color:var(--warn)' : ''}">${b.usados} de ${b.limite} · ${b.livres} livre${b.livres === 1 ? '' : 's'}</small></h2>
+    <div class="regra">${b.regra}. O titular não conta.</div>
+    ${b.lista.slice(0, lim).map((x) => `<div class="ben"><span>${x.nome}<br><span class="faint num" style="font-size:12.5px">${x.cpf}</span></span>
+      <span class="l">${x.liberaEm ? `libera em<br><span class="num">${fmt.data(x.liberaEm)}</span>` : 'só por troca manual'}</span></div>`).join('') || '<p class="faint">Ninguém voou com esta conta ainda.</p>'}
+    ${b.lista.length > lim ? `<p class="faint" style="margin:8px 0 0">e mais ${b.lista.length - lim}</p>` : ''}</div>`;
+}
+function blocoVenc() {
+  return `<div class="card"><h2>Vencimentos <small>próximos lotes</small></h2>
+    ${c.lotes.slice(0, 5).map((l) => { const d = KV.diasAte(l.vence); return `<div class="ben"><span>${fmt.pts(l.resta)} pts<br><span class="faint" style="font-size:12.5px">${l.origem} de ${fmt.data(l.data)}</span></span>
+      <span class="l" style="${d <= 60 ? 'color:var(--warn);font-weight:700' : ''}">${fmt.data(l.vence)}<br>${d <= 60 ? `em ${d} dias` : ''}</span></div>`; }).join('')}</div>`;
+}
+function blocoDados() {
+  return `<div class="card"><h2>Valor da milha</h2><dl class="dados" style="margin:12px 0 0">
+    <dt>Usado na cotação</dt><dd class="num">${p.valorMilha ? fmt.milha(p.valorMilha) : '—'}</dd>
+    <dt>Custo real desta conta</dt><dd class="num">${custo ? fmt.milha(custo) : '—'}</dd>
+    <dt>Saldo vale</dt><dd class="num">${p.valorMilha ? fmt.brl(KV.valorEmReais(c)) : '—'}</dd></dl></div>`;
+}
+
+const variantes = {
+  // A: extrato bancário + coluna lateral
+  A() {
+    app.innerHTML = topo() + `<div class="extrato">
+      <section class="card"><div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div><div class="muted" style="font-size:13px">Saldo</div><div class="saldo-grande num">${fmt.pts(c.saldo)}<small>pts</small></div></div>
+        ${v.pontos ? `<span class="chip warn"><i data-lucide="hourglass"></i>${fmt.pts(v.pontos)} vencem em ${KV.diasAte(v.primeiro)} dias</span>` : ''}</div>
+        <h2 style="margin:18px 0 4px">Extrato</h2>${movs.map(linhaMov).join('')}</section>
+      <aside class="lado">${blocoBenef(8)}${blocoVenc()}${blocoDados()}</aside></div>`;
+  },
+
+  // B: fatos em linha + abas
+  B() {
+    const aba = params.get('aba') || 'mov';
+    const abas = [['mov', 'Movimentações'], ['ben', 'Beneficiários'], ['ven', 'Vencimentos'], ['dad', 'Valor da milha']];
+    const conteudo = {
+      mov: `<div class="tabela-wrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Detalhe</th><th class="dir">Pontos</th><th class="dir">Saldo</th></tr></thead><tbody>
+        ${movs.map((m) => `<tr><td class="num muted">${fmt.data(m.data)}</td><td><b>${descricao(m)}</b></td><td class="muted">${detalhe(m)}</td>
+        <td class="dir num" style="font-weight:700;${m.lado === 'entrada' ? 'color:var(--ok)' : ''}">${m.lado === 'entrada' ? '+' : '−'}${fmt.pts(m.pontos)}</td><td class="dir num muted">${fmt.pts(m.saldoDepois)}</td></tr>`).join('')}</tbody></table></div>`,
+      ben: blocoBenef(), ven: `<div class="tabela-wrap"><table><thead><tr><th>Lote</th><th>Entrou em</th><th class="dir">Restam</th><th>Vence</th></tr></thead><tbody>
+        ${c.lotes.map((l) => `<tr><td>${l.origem}</td><td class="num muted">${fmt.data(l.data)}</td><td class="dir num"><b>${fmt.pts(l.resta)}</b></td>
+        <td class="num" style="${KV.diasAte(l.vence) <= 60 ? 'color:var(--warn);font-weight:700' : ''}">${fmt.data(l.vence)}</td></tr>`).join('')}</tbody></table></div>`,
+      dad: blocoDados(),
+    };
+    app.innerHTML = topo() + `<div class="fatos">
+      <div>Saldo<b class="num">${fmt.pts(c.saldo)} pts</b></div>
+      <div>Vale<b class="num">${p.valorMilha ? fmt.brl(KV.valorEmReais(c)) : '—'}</b></div>
+      <div>Beneficiários<b class="num" style="${b && b.livres === 0 ? 'color:var(--danger)' : ''}">${b ? `${b.usados}/${b.limite}` : '—'}</b></div>
+      <div>Vence em 60 dias<b class="num" style="${v.pontos ? 'color:var(--warn)' : ''}">${v.pontos ? fmt.pts(v.pontos) + ' pts' : 'nada'}</b></div></div>
+      <div class="abas" role="tablist">${abas.map(([id, nome]) => `<button class="aba" role="tab" aria-selected="${aba === id}" data-aba="${id}">${nome}</button>`).join('')}</div>
+      ${conteudo[aba]}`;
+    app.querySelectorAll('[data-aba]').forEach((bt) => bt.onclick = () => { params.set('aba', bt.dataset.aba); history.replaceState(null, '', '?' + params); variantes.B(); KVShell.icones(); });
+  },
+
+  // C: painel visual (vagas como bolinhas, vencimentos numa linha do tempo)
+  C() {
+    const meses = Array.from({ length: 12 }, (_, i) => { const d = new Date(KV.hoje + 'T12:00:00'); d.setMonth(d.getMonth() + i); return d; });
+    const porMes = meses.map((d) => c.lotes.filter((l) => { const x = new Date(l.vence + 'T12:00:00'); return x.getMonth() === d.getMonth() && x.getFullYear() === d.getFullYear(); }).reduce((s, l) => s + l.resta, 0));
+    const max = Math.max(1, ...porMes);
+    const maxMilha = Math.max(p.valorMilha || 0, custo || 0, 0.001);
+    app.innerHTML = topo() + `<div class="painel">
+      <div class="card terco"><div class="muted" style="font-size:13px">Saldo</div><div class="saldo-grande num" style="margin:6px 0 8px">${fmt.pts(c.saldo)}<small>pts</small></div>
+        <div class="muted num">vale ${p.valorMilha ? fmt.brl(KV.valorEmReais(c)) : '—'}</div>
+        <div class="comparar">
+          <div class="l"><span class="muted">Valor da milha</span><div class="barra"><i style="width:${(p.valorMilha || 0) / maxMilha * 100}%;background:var(--orange)"></i></div><b class="num">${p.valorMilha ? fmt.milha(p.valorMilha) : '—'}</b></div>
+          <div class="l"><span class="muted">Custo real</span><div class="barra"><i style="width:${(custo || 0) / maxMilha * 100}%"></i></div><b class="num">${custo ? fmt.milha(custo) : '—'}</b></div></div></div>
+      <div class="card doisT"><h2>Beneficiários</h2>
+        ${b ? `<div class="vagas-grade">${Array.from({ length: b.limite }, (_, i) => { const x = b.lista[i]; return `<span class="vaga ${x ? 'usada' : ''}" title="${x ? x.nome : 'vaga livre'}">${x ? fmt.iniciais(x.nome) : ''}</span>`; }).join('')}</div>
+          <div class="muted num" style="font-size:14px"><b style="color:${b.livres === 0 ? 'var(--danger)' : b.livres <= 2 ? 'var(--warn)' : 'var(--text)'}">${b.livres} vaga${b.livres === 1 ? '' : 's'} livre${b.livres === 1 ? '' : 's'}</b> de ${b.limite}. ${b.regra}.</div>`
+        : '<p class="muted">A Livelo não emite passagem, só transfere.</p>'}</div>
+      <div class="card largo"><h2>Quando os pontos vencem</h2><div class="muted" style="font-size:13px">Próximos 12 meses. Em amarelo, o que vence em até 60 dias.</div>
+        <div class="linha-tempo">${meses.map((d, i) => `<div class="m ${i < 2 && porMes[i] ? 'perto' : ''}"><span class="q num">${porMes[i] ? Math.round(porMes[i] / 1000) + 'k' : ''}</span><i style="height:${porMes[i] / max * 100}%"></i>${fmt.mesAno(d.toISOString().slice(0, 10))}</div>`).join('')}</div></div>
+      <div class="card largo"><h2 style="display:flex;justify-content:space-between">Últimas movimentações <a href="?id=${c.id}&v=A" class="muted" style="font:600 14px var(--font)">ver extrato</a></h2>${movs.slice(0, 6).map(linhaMov).join('')}</div>
+    </div>`;
+  },
+};
+
+KVShell.variacoes([
+  { k: 'A', nome: 'Extrato + coluna lateral' },
+  { k: 'B', nome: 'Abas' },
+  { k: 'C', nome: 'Painel visual' },
+], (k) => variantes[k]());
+</script>
+</body>
+</html>
