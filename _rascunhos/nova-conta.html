@@ -1,11 +1,10 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 4. Pergunta: como cadastrar uma conta de pontos nova?
-     Nada é salvo. ?v=A|B|C -->
+<!-- RASCUNHO DESCARTÁVEL, rodada 5. Nova conta: escolhido o formulário único (A) na rodada 4. Nada é salvo. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nova conta · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=6">
+<link rel="stylesheet" href="shared/base.css?r=7">
 <style>
   .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grade-campos .inteiro { grid-column: 1 / -1; }
@@ -42,8 +41,9 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=6"></script>
-<script src="shared/shell.js?r=6"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/shell.js?r=7"></script>
+<script src="shared/combo.js?r=7"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -168,12 +168,8 @@ const variantes = {
   },
 };
 
-KVShell.variacoes([
-  { k: 'A', nome: 'Formulário único' },
-  { k: 'B', nome: 'Começa pela pessoa' },
-  { k: 'C', nome: 'Janela rápida' },
-], (k) => { const d = document.querySelector('dialog.janela'); if (d && d.open && k !== 'C') d.close(); variantes[k](); });
-KVShell.aoVoltar(() => { if ((KVShell.param('v') || 'A') === 'B') { variantes.B(); KVShell.icones(); } });
+// escolhida na rodada 4: formulário único (A)
+variantes.A(); KVShell.icones();
 </script>
 </body>
 </html>

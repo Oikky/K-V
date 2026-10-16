@@ -1,137 +1,235 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 4. Pergunta: como o dono ajusta valor da milha e regras de beneficiário de cada programa?
-     Nada é salvo. ?v=A|B|C -->
+<!-- RASCUNHO DESCARTÁVEL, rodada 5. Configurações dos programas, todas baseadas na "C" da rodada 4 (valor da milha com exemplo).
+     O valor pode ser digitado ou arrastado. Os níveis da Azul abrem numa janela. Nada é salvo. ?v=A|B|C -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Programas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=6">
+<link rel="stylesheet" href="shared/base.css?r=7">
 <style>
-  .edit { width: 120px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); padding: 0 10px; text-align: right; font-size: 15px; }
-  .edit.larga { width: 100%; min-width: 220px; text-align: left; }
-  .edit:focus { border-color: var(--orange); outline: none; }
-  .mudou { color: var(--orange); font-weight: 700; font-size: 12.5px; }
-  .rodape-form { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
-  .barra-salvar { position: sticky; bottom: 84px; margin-top: 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 18px; background: var(--surface-2); box-shadow: var(--shadow-pop); flex-wrap: wrap; }
+  .valor-in { width: 100%; font: 800 30px var(--font-brand); letter-spacing: -0.02em; background: transparent; border: 1px solid transparent; border-radius: 12px; padding: 4px 8px; margin-left: -8px; color: var(--text); min-width: 0; }
+  .campo .valor-in { height: auto; font: 800 30px var(--font-brand); background: transparent; border-color: transparent; padding: 4px 8px; }
+  .valor-in:hover { border-color: var(--line); }
+  .campo .valor-in:focus, .valor-in:focus { border-color: var(--orange); outline: none; background: var(--surface-2); }
+  .valor-wrap { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+  .valor-wrap .rs { font: 800 30px var(--font-brand); color: var(--text-3); }
+  .regua { position: relative; padding-top: 4px; }
+  .regua input[type=range] { width: 100%; accent-color: var(--orange); height: 28px; margin: 0; }
+  .regua .marca { position: absolute; top: 2px; width: 2px; height: 30px; background: var(--teal-soft); border-radius: 2px; pointer-events: none; }
+  .regua .escala { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); }
+  .exemplo { font-size: 14px; color: var(--text-2); padding: 12px 14px; border-radius: 14px; background: var(--surface-2); line-height: 1.8; }
+  .exemplo b { color: var(--text); }
+  .exemplo input { width: 92px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-1); text-align: right; padding: 0 8px; font-size: 16px; font-weight: 700; }
+  .margem { font-size: 13px; color: var(--text-2); }
+  .margem b.pos { color: var(--ok); } .margem b.neg { color: var(--danger); }
+  .regras { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; flex-wrap: wrap; }
+  .regras .t { color: var(--text-2); }
+  .regras .t b { color: var(--text); }
+  .dica-digitar { font-size: 12.5px; color: var(--text-3); }
+  .barra-salvar { position: sticky; bottom: 20px; margin-top: 18px; display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 18px; background: var(--surface-3); box-shadow: var(--shadow-pop); flex-wrap: wrap; z-index: 5; }
+  @media (max-width: 760px) { .barra-salvar { bottom: 132px; } }
+
+  /* A */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
+  .cards .card { display: grid; gap: 14px; align-content: start; min-width: 0; }
 
   /* B */
-  .cards-prog { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
-  .cp { background: var(--surface-1); border-radius: var(--r-card); padding: 20px; display: grid; gap: 14px; align-content: start; }
-  .cp .linha { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
-  .cp .explica { font-size: 14px; color: var(--text-2); line-height: 1.5; padding: 12px 14px; background: var(--surface-2); border-radius: 14px; }
-  .hist { font-size: 13px; color: var(--text-3); display: grid; gap: 4px; }
-  .hist div { display: flex; justify-content: space-between; }
+  .painel-um { max-width: 640px; display: grid; gap: 18px; }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper .btn.icone { width: 52px; height: 52px; flex: none; }
+  .stepper .valor-wrap { flex: 1; justify-content: center; background: var(--surface-2); border-radius: 16px; padding: 6px 10px; }
+  .stepper .valor-in { text-align: center; margin: 0; font-size: 30px; }
+  .stepper .rs { font-size: 22px; }
+  .linha-regra { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .linha-regra { grid-template-columns: 1fr; } }
 
   /* C */
-  .sim { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-bottom: 30px; }
-  .sim .card { display: grid; gap: 12px; }
-  .valor-grande { font: 800 32px var(--font-brand); letter-spacing: -0.02em; }
-  input[type=range] { width: 100%; accent-color: var(--orange); }
-  .escala { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); margin-top: -6px; }
-  .exemplo { font-size: 14px; color: var(--text-2); padding: 12px 14px; border-radius: 14px; background: var(--surface-2); }
-  .exemplo b { color: var(--text); }
+  .lista-prog { max-width: 720px; background: var(--surface-1); border-radius: var(--r-card); overflow: hidden; }
+  .item-prog { border-top: 1px solid var(--line); }
+  .item-prog:first-child { border-top: 0; }
+  .item-prog summary { list-style: none; display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 16px 18px; cursor: pointer; min-height: 64px; }
+  .item-prog summary::-webkit-details-marker { display: none; }
+  .item-prog summary .val { font: 800 19px var(--font-brand); }
+  .item-prog summary .chev { transition: rotate .2s; color: var(--text-3); }
+  .item-prog[open] summary .chev { rotate: 180deg; }
+  .item-prog .dentro { padding: 0 18px 18px; display: grid; gap: 14px; }
+  .item-prog summary .sub { display: block; font-size: 12.5px; color: var(--text-3); font-weight: 500; margin-top: 2px; }
+
+  .niveis { width: 100%; }
+  .niveis td input { width: 80px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); text-align: right; padding: 0 10px; font-size: 16px; }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=6"></script>
-<script src="shared/shell.js?r=6"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/shell.js?r=7"></script>
+<script src="shared/combo.js?r=7"></script>
 <script>
 const app = KVShell.montar('config');
 const { fmt } = KV;
 const progs = KV.programas.filter((p) => p.id !== 'livelo');
-const valores = Object.fromEntries(progs.map((p) => [p.id, { valorMilha: p.valorMilha, limite: p.limite, regra: p.regra }]));
-const REGRAS = { ano: 'Zera em 1º de janeiro', janela: 'Cada CPF libera 12 meses após a emissão', manual: 'Troca manual (com carência)' };
-const explicar = (id) => {
-  const v = valores[id];
-  if (v.regra === 'ano') return `Até <b>${v.limite} pessoas diferentes</b> por ano podem voar com cada conta. Em 1º de janeiro a contagem zera.`;
-  if (v.regra === 'janela') return `Até <b>${v.limite} pessoas diferentes</b> nos últimos 12 meses. Cada pessoa libera a vaga 12 meses depois da emissão dela.`;
-  return `Até <b>${v.limite}</b> pessoas na categoria básica (o limite sobe com a categoria). A lista não zera: pra trocar alguém é preciso esperar 30 dias.`;
-};
-const lerMilha = (s) => +String(s).replace(',', '.');
-const mostraMilha = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-function salvo(alvo, obj) { alvo.innerHTML = `<div class="card" style="margin-top:14px"><h2 style="margin-bottom:8px">O que seria salvo</h2><div class="json">${JSON.stringify(obj, null, 2)}</div></div>`; }
+const REGRAS = { ano: 'Zera em 1º de janeiro', janela: 'Cada CPF libera 12 meses após a emissão', manual: 'Troca manual, com 30 dias de carência' };
+const MIN = 0.010, MAX = 0.035;
+const original = Object.fromEntries(progs.map((p) => [p.id, { valorMilha: p.valorMilha, limite: p.limite, regra: p.regra }]));
+const valores = JSON.parse(JSON.stringify(original));
+const niveis = { ...KV.categoriasAzul };
+const exemploMilhas = { smiles: 60000, latam: 45000, azul: 70000 };
+const mostra = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+// aceita "0,016", "0.016" ou "16" (milheiro: R$ 16 por mil milhas)
+const lerValor = (t) => { const n = +String(t).trim().replace(/^r\$\s*/i, '').replace(',', '.'); if (!isFinite(n) || n <= 0) return null; return n >= 1 ? n / 1000 : n; };
+const custo = (id) => KV.custoRealPrograma(id);
+const pos = (v) => Math.max(0, Math.min(100, (v - MIN) / (MAX - MIN) * 100));
+
+function margem(id) {
+  const c = custo(id); if (!c) return '';
+  const d = valores[id].valorMilha - c; const pct = d / c * 100;
+  return `<div class="margem">Custo real médio R$ ${mostra(c)} · <b class="${d >= 0 ? 'pos' : 'neg'}">${d >= 0 ? '+' : '−'}R$ ${mostra(Math.abs(d))} (${d >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(0)}%)</b></div>`;
+}
+function exemplo(id) {
+  return `<div class="exemplo">Uma emissão de <input inputmode="numeric" data-milhas="${id}" value="${fmt.pts(exemploMilhas[id])}" aria-label="Milhas do exemplo"> milhas custa
+    <b class="num" data-custo-ex="${id}">${fmt.brl(exemploMilhas[id] * valores[id].valorMilha)}</b> + taxa.</div>`;
+}
+function campoValor(id) {
+  return `<div class="valor-wrap"><span class="rs">R$</span><input class="valor-in num" data-valor="${id}" inputmode="decimal" value="${mostra(valores[id].valorMilha)}" aria-label="Valor da milha ${KV.programa(id).nome}"></div>`;
+}
+function regua(id) {
+  const c = custo(id);
+  return `<div class="regua"><input type="range" min="${MIN}" max="${MAX}" step="0.0001" value="${valores[id].valorMilha}" data-regua="${id}" aria-label="Arrastar valor da milha ${KV.programa(id).nome}">
+    ${c ? `<span class="marca" style="left:calc(${pos(c)}% - 1px)" title="custo real"></span>` : ''}
+    <div class="escala"><span>R$ 0,0100</span>${c ? '<span style="color:var(--teal-soft)">┃ custo real</span>' : ''}<span>R$ 0,0350</span></div></div>`;
+}
+const textoRegra = (id) => `<b>${valores[id].limite} CPFs</b>${id === 'azul' ? ' no nível básico' : ''} · ${REGRAS[valores[id].regra]}`;
+
+// liga campo digitado ↔ régua ↔ exemplo ↔ margem, sem redesenhar a tela (o foco não pula)
+function ligar(raiz, aoMudar) {
+  const atualizarTudo = (id, deOnde) => {
+    document.querySelectorAll(`[data-valor="${id}"]`).forEach((e) => { if (e !== deOnde) e.value = mostra(valores[id].valorMilha); });
+    document.querySelectorAll(`[data-regua="${id}"]`).forEach((e) => { if (e !== deOnde) e.value = valores[id].valorMilha; });
+    document.querySelectorAll(`[data-custo-ex="${id}"]`).forEach((e) => e.textContent = fmt.brl(exemploMilhas[id] * valores[id].valorMilha));
+    document.querySelectorAll(`[data-margem="${id}"]`).forEach((e) => e.innerHTML = margem(id));
+    document.querySelectorAll(`[data-resumo-valor="${id}"]`).forEach((e) => e.textContent = 'R$ ' + mostra(valores[id].valorMilha));
+    aoMudar && aoMudar();
+  };
+  raiz.querySelectorAll('[data-valor]').forEach((e) => {
+    e.addEventListener('input', () => { const v = lerValor(e.value); if (v) { valores[e.dataset.valor].valorMilha = v; atualizarTudo(e.dataset.valor, e); } });
+    e.addEventListener('blur', () => { e.value = mostra(valores[e.dataset.valor].valorMilha); });
+    e.addEventListener('focus', () => e.select());
+    e.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') e.blur(); });
+  });
+  raiz.querySelectorAll('[data-regua]').forEach((e) => e.addEventListener('input', () => { valores[e.dataset.regua].valorMilha = +(+e.value).toFixed(4); atualizarTudo(e.dataset.regua, e); }));
+  raiz.querySelectorAll('[data-milhas]').forEach((e) => e.addEventListener('input', () => { exemploMilhas[e.dataset.milhas] = +e.value.replace(/\D/g, '') || 0; atualizarTudo(e.dataset.milhas, e); }));
+  raiz.querySelectorAll('[data-passo]').forEach((b) => b.onclick = () => { const id = b.dataset.id; valores[id].valorMilha = Math.max(0.0001, +(valores[id].valorMilha + +b.dataset.passo).toFixed(4)); atualizarTudo(id); });
+  raiz.querySelectorAll('[data-niveis]').forEach((b) => b.onclick = () => { KVShell.irPara({ janela: 'niveis' }); sincJanela(); });
+  raiz.querySelectorAll('[data-regras]').forEach((b) => b.onclick = () => { KVShell.irPara({ janela: 'regras', prog: b.dataset.regras }); sincJanela(); });
+  raiz.querySelectorAll('[data-limite]').forEach((e) => e.addEventListener('input', () => { valores[e.dataset.limite].limite = +e.value || 0; aoMudar && aoMudar(); }));
+  raiz.querySelectorAll('[data-regra]').forEach((e) => e.addEventListener('change', () => { valores[e.dataset.regra].regra = e.value; aoMudar && aoMudar(); }));
+}
+
+// barra de salvar: aparece quando algo mudou
+function barraSalvar() {
+  const mudou = progs.filter((p) => JSON.stringify(valores[p.id]) !== JSON.stringify(original[p.id])).length + (JSON.stringify(niveis) !== JSON.stringify(KV.categoriasAzul) ? 1 : 0);
+  let barra = app.querySelector('.barra-salvar');
+  if (!mudou) { if (barra) barra.remove(); return; }
+  if (!barra) {
+    app.insertAdjacentHTML('beforeend', `<div class="barra-salvar"><span data-n></span><span style="display:flex;gap:8px"><button class="btn" data-desfazer>Desfazer</button><button class="btn primario" data-salvar><i data-lucide="check"></i>Salvar</button></span></div><div id="salvo"></div>`);
+    barra = app.querySelector('.barra-salvar'); KVShell.icones();
+    barra.querySelector('[data-desfazer]').onclick = () => { Object.assign(valores, JSON.parse(JSON.stringify(original))); Object.assign(niveis, KV.categoriasAzul); render(); };
+    barra.querySelector('[data-salvar]').onclick = () => { app.querySelector('#salvo').innerHTML = `<div class="card" style="margin-top:14px"><h2 style="margin-bottom:8px">O que seria salvo</h2><div class="json">${JSON.stringify({ programas: valores, niveisAzul: niveis }, null, 2)}</div></div>`; };
+  }
+  barra.querySelector('[data-n]').innerHTML = `<b>${mudou} ${mudou > 1 ? 'mudanças' : 'mudança'}</b> <span class="muted">· as cotações novas usam os valores novos</span>`;
+}
+
+// janela: níveis da Azul, ou regras de beneficiário de um programa
+const dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg);
+const fecharJanela = () => KVShell.desfazer({ janela: 1, prog: 1 }, sincJanela);
+dlg.addEventListener('cancel', (e) => { e.preventDefault(); fecharJanela(); });
+dlg.addEventListener('click', (e) => { if (e.target === dlg) fecharJanela(); });
+function sincJanela() {
+  const j = KVShell.param('janela');
+  if (j === 'niveis') {
+    dlg.innerHTML = `<header><div style="flex:1"><h2>Níveis da TudoAzul</h2><div class="sub">Quanto mais alto o nível da conta, mais CPFs ela aceita</div></div><button class="btn icone" data-x aria-label="Fechar"><i data-lucide="x"></i></button></header>
+      <div class="corpo"><table class="niveis"><thead><tr><th>Nível</th><th class="dir">Limite de CPFs</th></tr></thead><tbody>
+        ${Object.entries(niveis).map(([k, v]) => `<tr><td><b>${k}</b></td><td class="dir"><input inputmode="numeric" data-nivel="${k}" value="${v}" aria-label="Limite ${k}"></td></tr>`).join('')}</tbody></table>
+        <p class="faint" style="font-size:13px">A troca de CPF na Azul é manual e tem 30 dias de carência.</p></div>
+      <footer><span class="faint" style="font-size:13px">Voltar ou Esc fecha</span><button class="btn primario" data-x><i data-lucide="check"></i>Pronto</button></footer>`;
+    dlg.querySelectorAll('[data-nivel]').forEach((e) => e.addEventListener('input', () => { niveis[e.dataset.nivel] = +e.value || 0; barraSalvar(); }));
+  } else if (j === 'regras') {
+    const id = KVShell.param('prog');
+    dlg.innerHTML = `<header><div style="flex:1"><h2>Beneficiários · ${KV.programa(id).nome}</h2><div class="sub">Quantas pessoas podem voar com cada conta</div></div><button class="btn icone" data-x aria-label="Fechar"><i data-lucide="x"></i></button></header>
+      <div class="corpo" style="display:grid;gap:14px;padding-bottom:16px">
+        <div class="campo"><label for="lim">Limite de CPFs por conta${id === 'azul' ? ' (nível básico)' : ''}</label><input id="lim" inputmode="numeric" data-limite="${id}" value="${valores[id].limite}"></div>
+        <div class="campo"><label for="reg">Como as vagas voltam</label><select id="reg" data-regra="${id}">${Object.entries(REGRAS).map(([k, t]) => `<option value="${k}" ${k === valores[id].regra ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        ${id === 'azul' ? '<button class="btn" data-niveis-dentro style="justify-self:start"><i data-lucide="layers"></i>Ver os níveis da Azul</button>' : ''}</div>
+      <footer><span class="faint" style="font-size:13px">Voltar ou Esc fecha</span><button class="btn primario" data-x><i data-lucide="check"></i>Pronto</button></footer>`;
+    ligar(dlg, () => { barraSalvar(); document.querySelectorAll(`[data-texto-regra="${id}"]`).forEach((e) => e.innerHTML = textoRegra(id)); });
+    const nd = dlg.querySelector('[data-niveis-dentro]'); if (nd) nd.onclick = () => { KVShell.irPara({ janela: 'niveis', prog: null }); sincJanela(); };
+  }
+  dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fecharJanela);
+  if (j === 'niveis' || j === 'regras') { if (!dlg.open) dlg.showModal(); KVShell.icones(); } else if (dlg.open) dlg.close();
+}
+
 const topo = (sub) => `<div class="topo"><div><h1>Programas</h1><div class="muted">${sub}</div></div></div>`;
-
 const variantes = {
-  // A: tabela editável, tudo numa tela
+  // A: um cartão por programa, com o valor grande (digitável) e a régua embaixo
   A() {
-    app.innerHTML = topo('Valor da milha e regras de beneficiário. A Livelo não aparece: não emite, só transfere.') + `
-      <div class="tabela-wrap"><table>
-        <thead><tr><th>Programa</th><th class="dir">Valor da milha</th><th class="dir">Custo real (média)</th><th class="dir">Limite de CPFs</th><th>Renovação das vagas</th></tr></thead>
-        <tbody>${progs.map((p) => { const cr = KV.custoRealPrograma(p.id); return `<tr>
-          <td><span class="prog" data-p="${p.id}">${p.nome}</span></td>
-          <td class="dir"><input class="edit num" data-id="${p.id}" data-k="valorMilha" value="${mostraMilha(p.valorMilha)}" aria-label="Valor da milha ${p.nome}"></td>
-          <td class="dir num muted">${cr ? 'R$ ' + mostraMilha(cr) : '—'}</td>
-          <td class="dir"><input class="edit num" style="width:80px" data-id="${p.id}" data-k="limite" value="${p.limite}" aria-label="Limite ${p.nome}"></td>
-          <td><select class="edit larga" data-id="${p.id}" data-k="regra" aria-label="Renovação ${p.nome}">${Object.entries(REGRAS).map(([k, t]) => `<option value="${k}" ${k === p.regra ? 'selected' : ''}>${t}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody></table></div>
-      <h2 style="margin:28px 0 10px">Categorias da Azul</h2>
-      <div class="tabela-wrap" style="max-width:520px"><table><thead><tr><th>Categoria</th><th class="dir">Limite de CPFs</th></tr></thead>
-        <tbody>${Object.entries(KV.categoriasAzul).map(([k, v]) => `<tr><td>${k}</td><td class="dir"><input class="edit num" style="width:80px" value="${v}" aria-label="Limite ${k}"></td></tr>`).join('')}</tbody></table></div>
-      <div class="barra-salvar" id="barra" hidden><span id="resumo"></span><span style="display:flex;gap:8px"><button class="btn" id="desf">Desfazer</button><button class="btn primario" id="ok"><i data-lucide="check"></i>Salvar mudanças</button></span></div>
-      <div id="salvo"></div>`;
-    const mud = {};
-    const atual = () => { const n = Object.keys(mud).length; app.querySelector('#barra').hidden = !n;
-      app.querySelector('#resumo').innerHTML = `<b>${n} mudança${n === 1 ? '' : 's'}</b> <span class="muted">· as cotações novas passam a usar os valores novos</span>`; };
-    app.querySelectorAll('[data-k]').forEach((e) => e.addEventListener('input', () => { mud[e.dataset.id + '.' + e.dataset.k] = e.value; atual(); }));
-    app.querySelector('#desf').onclick = () => variantes.A();
-    app.querySelector('#ok').onclick = () => salvo(app.querySelector('#salvo'), mud);
+    app.innerHTML = topo('Digite o valor da milha ou arraste a régua. A Livelo não aparece: não emite, só transfere.') + `<div class="cards">${progs.map((p) => `<section class="card">
+      <span class="prog" data-p="${p.id}" style="font-size:17px">${p.nome}</span>
+      <div><div class="faint" style="font-size:13px">Valor da milha</div>${campoValor(p.id)}<div data-margem="${p.id}">${margem(p.id)}</div></div>
+      ${regua(p.id)}${exemplo(p.id)}
+      <div class="regras"><span class="t" data-texto-regra="${p.id}">${textoRegra(p.id)}</span>
+        <span style="display:flex;gap:8px;flex-wrap:wrap">${p.id === 'azul' ? '<button class="btn" data-niveis><i data-lucide="layers"></i>Níveis</button>' : ''}<button class="btn" data-regras="${p.id}">Editar</button></span></div>
+    </section>`).join('')}</div>
+    <p class="dica-digitar" style="margin-top:12px">Dica: dá pra digitar o milheiro direto (16 vira R$ 0,0160).</p>`;
+    ligar(app, barraSalvar);
   },
 
-  // B: um cartão por programa, com a regra explicada em português e o histórico do valor
+  // B: um programa por vez, com botões − e + pra ajuste fino (bom no celular)
   B() {
-    app.innerHTML = topo('Cada programa com a regra explicada em palavras.') + `<div class="cards-prog">${progs.map((p) => `<section class="cp" data-card="${p.id}">
-      <div style="display:flex;justify-content:space-between;align-items:center"><span class="prog" data-p="${p.id}" style="font-size:18px">${p.nome}</span><span class="mudou" hidden>alterado</span></div>
-      <div class="linha"><div class="campo"><label>Valor da milha (R$)</label><span class="ajuda">Custo real médio: ${KV.custoRealPrograma(p.id) ? 'R$ ' + mostraMilha(KV.custoRealPrograma(p.id)) : '—'}</span></div>
-        <input class="edit num" data-k="valorMilha" value="${mostraMilha(p.valorMilha)}" aria-label="Valor da milha"></div>
-      <div class="linha"><div class="campo"><label>Limite de CPFs por conta</label></div><input class="edit num" style="width:80px" data-k="limite" value="${p.limite}" aria-label="Limite"></div>
-      <div class="campo"><label>Como as vagas voltam</label><select class="edit larga" data-k="regra">${Object.entries(REGRAS).map(([k, t]) => `<option value="${k}" ${k === p.regra ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      <div class="explica" data-explica>${explicar(p.id)}</div>
-      <div class="hist"><b style="color:var(--text-2)">Histórico do valor da milha</b>
-        <div><span>desde 01/08/2026</span><span class="num">R$ ${mostraMilha(p.valorMilha)}</span></div>
-        <div><span>01/03/2026 a 31/07/2026</span><span class="num">R$ ${mostraMilha(p.valorMilha + 0.001)}</span></div></div>
-      <button class="btn primario" data-salvar hidden style="justify-self:start"><i data-lucide="check"></i>Salvar ${p.nome}</button>
-      <div data-res></div></section>`).join('')}</div>`;
-    app.querySelectorAll('[data-card]').forEach((card) => {
-      const id = card.dataset.card;
-      card.querySelectorAll('[data-k]').forEach((e) => e.addEventListener('input', () => {
-        valores[id][e.dataset.k] = e.dataset.k === 'valorMilha' ? lerMilha(e.value) : e.dataset.k === 'limite' ? +e.value : e.value;
-        card.querySelector('[data-explica]').innerHTML = explicar(id);
-        card.querySelector('.mudou').hidden = false; card.querySelector('[data-salvar]').hidden = false;
-      }));
-      card.querySelector('[data-salvar]').onclick = () => salvo(card.querySelector('[data-res]'), { programa: id, ...valores[id] });
-    });
+    const id = KVShell.param('aba') || 'smiles';
+    app.innerHTML = topo('Um programa por vez. Use − e + pro ajuste fino, ou toque no valor e digite.') + `
+      <div class="seg" role="tablist" aria-label="Programa" style="margin-bottom:18px">${progs.map((p) => `<button role="tab" data-aba="${p.id}" aria-pressed="${p.id === id}">${p.nome}</button>`).join('')}</div>
+      <section class="card painel-um">
+        <div><div class="faint" style="font-size:13px;margin-bottom:8px">Valor da milha · ${KV.programa(id).nome}</div>
+          <div class="stepper"><button class="btn icone" data-passo="-0.0005" data-id="${id}" aria-label="Diminuir"><i data-lucide="minus"></i></button>
+            ${campoValor(id)}<button class="btn icone" data-passo="0.0005" data-id="${id}" aria-label="Aumentar"><i data-lucide="plus"></i></button></div>
+          <div data-margem="${id}" style="text-align:center;margin-top:8px">${margem(id)}</div></div>
+        ${regua(id)}${exemplo(id)}
+        <h3 style="margin-top:6px">Beneficiários</h3>
+        <div class="linha-regra"><div class="campo"><label for="lim">Limite de CPFs${id === 'azul' ? ' (nível básico)' : ''}</label><input id="lim" inputmode="numeric" data-limite="${id}" value="${valores[id].limite}"></div>
+          <div class="campo"><label for="reg">Como as vagas voltam</label><select id="reg" data-regra="${id}">${Object.entries(REGRAS).map(([k, t]) => `<option value="${k}" ${k === valores[id].regra ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>
+        ${id === 'azul' ? '<button class="btn" data-niveis style="justify-self:start"><i data-lucide="layers"></i>Ver os níveis da Azul</button>' : ''}
+      </section>`;
+    app.querySelectorAll('[data-aba]').forEach((b) => b.onclick = () => { if (b.dataset.aba !== id) { KVShell.irPara({ aba: b.dataset.aba }); render(); } });
+    ligar(app, barraSalvar);
   },
 
-  // C: foco no valor da milha, com exemplo de quanto custa uma emissão; regras embaixo
+  // C: lista compacta, como os ajustes do celular; toca pra abrir os detalhes
   C() {
-    app.innerHTML = topo('Mexa no valor da milha e veja na hora quanto custa uma emissão típica.') + `<div class="sim">${progs.map((p) => `<section class="card" data-sim="${p.id}">
-        <span class="prog" data-p="${p.id}" style="font-size:17px">${p.nome}</span>
-        <div><div class="faint" style="font-size:13px">Valor da milha</div><div class="valor-grande num" data-v>R$ ${mostraMilha(p.valorMilha)}</div></div>
-        <input type="range" min="0.010" max="0.035" step="0.0005" value="${p.valorMilha}" aria-label="Valor da milha ${p.nome}">
-        <div class="escala"><span>R$ 0,0100</span><span>custo real ${KV.custoRealPrograma(p.id) ? 'R$ ' + mostraMilha(KV.custoRealPrograma(p.id)) : '—'}</span><span>R$ 0,0350</span></div>
-        <div class="exemplo" data-ex></div></section>`).join('')}</div>
-      <h2 style="margin-bottom:10px">Beneficiários</h2>
-      <div class="tabela-wrap"><table><thead><tr><th>Programa</th><th class="dir">Limite</th><th>Como as vagas voltam</th></tr></thead>
-        <tbody>${progs.map((p) => `<tr><td><span class="prog" data-p="${p.id}">${p.nome}</span></td><td class="dir"><input class="edit num" style="width:80px" value="${p.limite}" aria-label="Limite ${p.nome}"></td>
-          <td><select class="edit larga">${Object.entries(REGRAS).map(([k, t]) => `<option ${k === p.regra ? 'selected' : ''}>${t}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
-      <div class="rodape-form" style="margin-top:18px"><button class="btn primario" id="ok"><i data-lucide="check"></i>Salvar</button></div><div id="salvo"></div>`;
-    const MILHAS = { smiles: 60000, latam: 45000, azul: 70000 };
-    app.querySelectorAll('[data-sim]').forEach((card) => {
-      const id = card.dataset.sim; const r = card.querySelector('input[type=range]');
-      const at = () => { const v = +r.value; valores[id].valorMilha = v; card.querySelector('[data-v]').textContent = 'R$ ' + mostraMilha(v);
-        card.querySelector('[data-ex]').innerHTML = `Uma emissão de <b class="num">${fmt.pts(MILHAS[id])} milhas</b> custa <b class="num">${fmt.brl(MILHAS[id] * v)}</b> + taxa.`; };
-      r.oninput = at; at();
+    const aberto = KVShell.param('aberto');
+    app.innerHTML = topo('Toque num programa pra ajustar. O valor dá pra digitar ou arrastar.') + `<div class="lista-prog">${progs.map((p) => `<details class="item-prog" data-item="${p.id}" ${aberto === p.id ? 'open' : ''}>
+      <summary><span><span class="prog" data-p="${p.id}">${p.nome}</span><span class="sub" data-texto-regra="${p.id}">${textoRegra(p.id)}</span></span>
+        <span class="val num" data-resumo-valor="${p.id}">R$ ${mostra(valores[p.id].valorMilha)}</span><i class="chev" data-lucide="chevron-down"></i></summary>
+      <div class="dentro"><div class="campo"><label>Valor da milha</label>${campoValor(p.id)}<div data-margem="${p.id}">${margem(p.id)}</div></div>
+        ${regua(p.id)}${exemplo(p.id)}
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-regras="${p.id}"><i data-lucide="users"></i>Regras de beneficiário</button>${p.id === 'azul' ? '<button class="btn" data-niveis><i data-lucide="layers"></i>Níveis</button>' : ''}</div></div>
+    </details>`).join('')}</div>`;
+    // abrir/fechar um item vira passo do histórico (o voltar fecha)
+    app.querySelectorAll('[data-item]').forEach((d) => d.querySelector('summary').onclick = (e) => {
+      e.preventDefault(); const id = d.dataset.item;
+      if (d.open) KVShell.desfazer({ aberto: 1 }, render); else { KVShell.irPara({ aberto: id }); render(); }
     });
-    app.querySelector('#ok').onclick = () => salvo(app.querySelector('#salvo'), valores);
+    ligar(app, barraSalvar);
   },
 };
 
+let atual = 'A';
+function render() { variantes[atual](); barraSalvar(); KVShell.icones(); sincJanela(); }
 KVShell.variacoes([
-  { k: 'A', nome: 'Tabela editável' },
-  { k: 'B', nome: 'Cartão por programa' },
-  { k: 'C', nome: 'Valor da milha com exemplo' },
-], (k) => variantes[k]());
+  { k: 'A', nome: 'Cartões com valor e régua' },
+  { k: 'B', nome: 'Um programa por vez (− e +)' },
+  { k: 'C', nome: 'Lista compacta que abre' },
+], (k) => { atual = k; render(); });
+KVShell.aoVoltar(render);
 </script>
 </body>
 </html>

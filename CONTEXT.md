@@ -208,3 +208,14 @@ Registro das escolhas feitas nos rascunhos (as variações descartadas ficam na 
 - **Detalhe da conta:** extrato com coluna lateral. Os beneficiários aparecem como **bolinhas** (uma por vaga; cheia = usada). Clicar nelas abre a lista de pessoas e o cadastro manual de beneficiário.
 - **Registrar entrada:** o padrão é **uma entrada por vez** (formulário com prévia do saldo), com a opção de **várias de uma vez** (planilha com "puxar os clubes do mês").
 
+**Rodada 4: fechando a gestão de contas (2026-10-16)**
+- **Registrar saída:** **uma forma por tipo** (abas). A transferência mostra "sai de → chega em" com o bônus; a expiração lista os lotes vencendo de todas as contas; no ajuste, digita-se o saldo que aparece no site do programa e o sistema calcula a diferença. Motivo: cada tipo de saída tem um jeito próprio de pensar.
+- **Nova conta:** **formulário único**, com titular existente ou novo.
+- **Configurações dos programas:** a base é o **valor da milha com exemplo** ("uma emissão de 60.000 milhas custa R$ 960 + taxa"). O valor também pode ser **digitado**, não só arrastado, porque a diferença é milimétrica. Os níveis da Azul abrem numa janela. Novas versões dessa base foram pra rodada 5.
+- **Lista de contas:** os filtros viram **listas de seleção**. Na tabela, clicar no nome da coluna ordena como no Windows: 1º clique do maior pro menor, 2º do menor pro maior, 3º desliga.
+
+**Regras gerais de tela (2026-10-16)**
+- **Celular é prioridade:** o dono usa o sistema principalmente no **celular**; os pesquisadores, no **computador**. O celular precisa estar impecável.
+- **Lista longa vira busca:** toda seleção com muitas opções deixa digitar, e o que se escreve filtra as opções antes de escolher.
+- **Voltar desfaz o último passo:** ver `PRODUCT.md`.
+

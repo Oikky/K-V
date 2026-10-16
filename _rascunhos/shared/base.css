@@ -111,6 +111,21 @@ svg.lucide { width: 18px; height: 18px; stroke-width: 1.9; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
+/* ---------- seleção com busca (combo.js) ---------- */
+.combo { position: relative; min-width: 0; }
+.combo-in { width: 100%; height: 44px; border-radius: var(--r-field); border: 1px solid var(--line); background: var(--surface-2); padding: 0 40px 0 14px; font-size: 16px; text-overflow: ellipsis; }
+.combo-in:focus { border-color: var(--orange); outline: none; }
+.combo-seta { position: absolute; right: 12px; top: 22px; translate: 0 -50%; width: 18px; height: 18px; fill: none; stroke: var(--text-3); stroke-width: 2; pointer-events: none; transition: rotate .15s; }
+.combo.aberto .combo-seta { rotate: 180deg; }
+.combo-lista { position: fixed; z-index: 60; margin: 0; max-width: calc(100vw - 16px); padding: 6px; list-style: none; max-height: min(320px, 50dvh); overflow-y: auto; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--line); box-shadow: var(--shadow-pop); overscroll-behavior: contain; }
+.combo-lista li { padding: 11px 12px; border-radius: 10px; cursor: pointer; font-size: 15px; }
+.combo-lista li.ativo { background: var(--surface-3); }
+.combo-lista li[aria-selected="true"] { font-weight: 700; color: var(--orange); }
+.combo-lista li[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.combo-lista li.vazio { color: var(--text-3); cursor: default; }
+.combo-lista mark { background: var(--orange-soft); color: inherit; border-radius: 3px; }
+td .combo-in { height: 38px; border-radius: 10px; border-color: transparent; font-size: 15px; }
+
 /* ---------- janela (popup) ---------- */
 .janela { border: 0; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: min(760px, calc(100dvh - 48px)); border-radius: 24px; background: var(--surface-1); color: var(--text); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden; }
 .janela:not([open]) { display: none; }

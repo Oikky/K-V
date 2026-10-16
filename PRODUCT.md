@@ -63,4 +63,4 @@ Não é um CRM genérico. O centro é a gestão de milhas de terceiros: o sistem
 
 ## Accessibility & Inclusion
 
-Uso de muitas horas por dia, no desktop, ao lado das abas de pesquisa. Também precisa funcionar no celular (o dono atende pelo WhatsApp). Respeitar "reduzir movimento".
+O **dono usa principalmente o celular** (atende pelo WhatsApp), e o celular precisa estar impecável. Os **pesquisadores usam o computador**, muitas horas por dia, ao lado das abas de pesquisa. Toda lista longa deixa digitar pra filtrar antes de escolher. Respeitar "reduzir movimento".

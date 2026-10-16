@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 4. Pergunta: como registrar saída de pontos (transferência, expiração, ajuste)?
-     A emissão não entra aqui: ela nasce no atendimento. Nada é salvo. ?v=A|B|C -->
+<!-- RASCUNHO DESCARTÁVEL, rodada 5. Saída de pontos: escolhida a forma por tipo (B) na rodada 4.
+     A emissão não entra aqui: ela nasce no atendimento. Nada é salvo. ?tipo=transferencia|expiracao|ajuste -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Registrar saída · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=6">
+<link rel="stylesheet" href="shared/base.css?r=7">
 <style>
   .form-dupla { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; max-width: 1020px; }
   @media (max-width: 960px) { .form-dupla { grid-template-columns: 1fr; } }
@@ -26,6 +26,7 @@
   .grande { font: 800 30px var(--font-brand); letter-spacing: -0.02em; }
   @media (max-width: 760px) { .ponte { grid-template-columns: 1fr; } .ponte .meio { transform: rotate(90deg); } }
   .tipo-tabs { margin-bottom: 18px; }
+  @media (max-width: 560px) { .tipo-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; } .tipo-tabs button { justify-content: center; padding: 0 6px; } .tipo-tabs svg { display: none; } }
   .exp-linha { display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
   .exp-linha:first-child { border-top: 0; }
   @media (max-width: 640px) { .exp-linha { grid-template-columns: auto 1fr; } .exp-linha .btn { grid-column: 1 / -1; justify-self: start; } }
@@ -39,8 +40,9 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=6"></script>
-<script src="shared/shell.js?r=6"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/shell.js?r=7"></script>
+<script src="shared/combo.js?r=7"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -69,7 +71,7 @@ function previaLotes(c, pts) {
 const variantes = {
   // A: o mesmo formulário da entrada (escolhido na rodada 1), com prévia dos lotes que saem
   A() {
-    app.innerHTML = `<a class="voltar" href="conta.html"><i data-lucide="arrow-left"></i>Voltar</a>
+    app.innerHTML = `<a class="voltar" href="${KVShell.param('conta') ? 'conta.html?id=' + KVShell.param('conta') : 'contas.html'}"><i data-lucide="arrow-left"></i>Voltar</a>
       <div class="topo"><h1>Registrar saída de pontos</h1></div>
       <div class="form-dupla"><form class="card" id="f"><div class="grade-campos">
         <div class="campo inteiro"><label for="conta">Conta</label><select id="conta">${opcoesConta(KVShell.param('conta') || contas[0].id)}</select></div>
@@ -102,13 +104,13 @@ const variantes = {
   // B: cada tipo com a forma que faz sentido pra ele (abas que entram no histórico)
   B() {
     const tipo = KVShell.param('tipo') || 'transferencia';
-    const cab = `<a class="voltar" href="conta.html"><i data-lucide="arrow-left"></i>Voltar</a>
+    const cab = `<a class="voltar" href="${KVShell.param('conta') ? 'conta.html?id=' + KVShell.param('conta') : 'contas.html'}"><i data-lucide="arrow-left"></i>Voltar</a>
       <div class="topo"><h1>Registrar saída de pontos</h1></div>
       <div class="seg tipo-tabs" role="group" aria-label="Tipo de saída">${TIPOS.map((t) => `<button data-t="${t.id}" aria-pressed="${t.id === tipo}"><i data-lucide="${t.icone}"></i>${t.nome}</button>`).join('')}</div>
       <p class="muted" style="margin:-6px 0 18px">${TIPOS.find((t) => t.id === tipo).exp}</p>`;
     if (tipo === 'transferencia') {
       app.innerHTML = cab + `<div class="ponte">
-        <div class="lado-p"><h3>Sai de</h3><div class="campo"><label for="orig">Conta</label><select id="orig">${opcoesConta(contas.find((c) => c.programaId === 'livelo').id)}</select></div>
+        <div class="lado-p"><h3>Sai de</h3><div class="campo"><label for="orig">Conta</label><select id="orig">${opcoesConta(KVShell.param('conta') || contas.find((c) => c.programaId === 'livelo').id)}</select></div>
           <div class="campo"><label for="pts">Pontos</label><input id="pts" inputmode="numeric" value="30000"></div><div class="muted num" id="saldoO"></div></div>
         <div class="meio"><i data-lucide="arrow-right"></i></div>
         <div class="lado-p"><h3>Chega em</h3><div class="campo"><label for="dest">Conta</label><select id="dest"></select></div>
@@ -134,7 +136,7 @@ const variantes = {
       app.querySelectorAll('[data-exp]').forEach((b) => b.onclick = () => { const { c, l } = lotes[+b.dataset.exp]; salvo(app.querySelector('#salvo'), { conta: c.id, tipo: 'expiracao', pontos: l.resta, lote: l }); });
     } else {
       app.innerHTML = cab + `<div class="card" style="max-width:620px"><div class="grade-campos">
-        <div class="campo inteiro"><label for="conta">Conta</label><select id="conta">${opcoesConta(contas[0].id)}</select></div>
+        <div class="campo inteiro"><label for="conta">Conta</label><select id="conta">${opcoesConta(KVShell.param('conta') || contas[0].id)}</select></div>
         <div class="campo"><label>Saldo no sistema</label><div class="grande num" id="sist" style="font-size:22px;padding-top:8px"></div></div>
         <div class="campo"><label for="real">Saldo no site do programa hoje</label><input id="real" inputmode="numeric" placeholder="digite o que aparece lá"></div>
         <div class="campo inteiro"><div class="aviso info" id="dif">Digite o saldo que aparece no site e o sistema calcula o ajuste.</div></div>
@@ -185,12 +187,9 @@ const variantes = {
   },
 };
 
-KVShell.variacoes([
-  { k: 'A', nome: 'Formulário com prévia dos lotes' },
-  { k: 'B', nome: 'Uma forma por tipo' },
-  { k: 'C', nome: 'Janela em cima da conta' },
-], (k) => { const d = document.querySelector('dialog.janela'); if (d && d.open && k !== 'C') d.close(); variantes[k](); });
-KVShell.aoVoltar(() => { const k = KVShell.param('v') || 'A'; if (k === 'B') { variantes.B(); KVShell.icones(); } });
+// escolhida na rodada 4: uma forma por tipo (B)
+variantes.B(); KVShell.icones();
+KVShell.aoVoltar(() => { variantes.B(); KVShell.icones(); });
 </script>
 </body>
 </html>

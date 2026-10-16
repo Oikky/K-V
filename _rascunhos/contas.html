@@ -1,19 +1,21 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 2. Escolhido na rodada 1: "Por titular" como vista principal,
-     "Tabela por conta" como secundária. Sem valor em R$ (o dono não precisa). As variações da rodada 1
-     estão na branch rascunhos/rodada-1. -->
+<!-- RASCUNHO DESCARTÁVEL, rodada 5. Lista de contas: "Por titular" (padrão) ou "Tabela".
+     Filtros em lista de seleção; na tabela, clicar no nome da coluna ordena: 1º clique maior→menor, 2º menor→maior, 3º desliga.
+     Sem valor em R$. Rodadas anteriores na branch rascunhos/rodada-1. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=6">
+<link rel="stylesheet" href="shared/base.css?r=7">
 <style>
-  .filtros { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-  .seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
-  .seg button { height: 34px; padding: 0 14px; border-radius: var(--r-pill); border: 0; background: none; cursor: pointer; font-weight: 700; color: var(--text-2); display: inline-flex; gap: 6px; align-items: center; }
-  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
-  .ordem { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2); }
-  .ordem select { height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 14px; font-weight: 600; color: var(--text); }
+  .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .sel { position: relative; display: inline-flex; align-items: center; }
+  .sel select { appearance: none; height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 38px 0 16px; font-weight: 600; font-size: 15px; color: var(--text); cursor: pointer; max-width: 100%; }
+  .sel select:focus-visible { outline: 2px solid var(--orange); }
+  .sel::after { content: ''; position: absolute; right: 16px; width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); rotate: 45deg; translate: 0 -2px; pointer-events: none; }
+  .sel.ativo select { border-color: var(--orange); background: var(--orange-soft); }
+  .so-cel { display: none; }
+  .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
   .grade-tit { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
   .tit { background: var(--surface-1); border-radius: var(--r-card); padding: 18px 18px 8px; }
@@ -21,31 +23,70 @@
   .av { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; flex: none; }
   .tit header .tot { margin-left: auto; text-align: right; font-size: 13px; color: var(--text-2); }
   .tit header .tot b { display: block; font: 800 17px var(--font-brand); color: var(--text); }
-  .linha-conta { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--line); text-decoration: none; }
+  .linha-conta { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; }
   .linha-conta:hover { color: var(--orange); }
   .linha-conta .s { text-align: right; font-weight: 700; }
-  .linha-conta .det { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--text-2); }
+  .linha-conta .det { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--text-2); flex-wrap: wrap; }
   .linha-conta .det .barra { flex: 1; max-width: 120px; }
+
+  /* cabeçalho que ordena, como no Windows */
+  th.ord { padding: 0; }
+  th.ord button { all: unset; box-sizing: border-box; width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 12px 14px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
+  th.ord.dir button { justify-content: flex-end; }
+  th.ord button:hover { color: var(--text); }
+  th.ord button:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; border-radius: 8px; }
+  th.ord[aria-sort] button { color: var(--orange); }
+  th.ord .seta { width: 14px; height: 14px; opacity: 0; }
+  th.ord button:hover .seta { opacity: .5; }
+  th.ord[aria-sort] .seta { opacity: 1; }
+
+  /* no celular, a tabela vira lista de cartões e a ordenação vira uma lista de seleção */
+  @media (max-width: 760px) {
+    .so-cel { display: inline-flex; }
+    .grade-tit { grid-template-columns: 1fr; }
+    .filtros .busca-wrap { flex: 1 1 100%; } .busca { width: 100%; }
+    .filtros .sel, .filtros .so-cel { flex: 1 1 calc(50% - 5px); } .filtros .sel select { width: 100%; }
+    .tabela-cel table, .tabela-cel tbody { display: block; }
+    .tabela-cel thead { display: none; }
+    .tabela-cel { background: none; overflow: visible; }
+    .tabela-cel tr { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; background: var(--surface-1); border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; }
+    .tabela-cel tr.clicavel:hover td { background: none; }
+    .tabela-cel td { border: 0; padding: 0; white-space: normal; }
+    .tabela-cel td[data-c="titular"] { grid-column: 1; }
+    .tabela-cel td[data-c="saldo"] { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 18px; }
+    .tabela-cel td[data-c="programa"] { grid-column: 1; font-size: 14px; }
+    .tabela-cel td[data-c="vence"], .tabela-cel td[data-c="ben"], .tabela-cel td[data-c="clube"] { grid-column: 1 / -1; font-size: 13px; color: var(--text-2); }
+    .tabela-cel td[data-c="clube"]:empty, .tabela-cel td.nada { display: none; }
+    .tabela-cel td[data-rot]::before { content: attr(data-rot); color: var(--text-3); font-size: 12px; margin-right: 6px; }
+  }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=6"></script>
-<script src="shared/shell.js?r=6"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/shell.js?r=7"></script>
+<script src="shared/combo.js?r=7"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
 const contas = KV.contas();
 const P = (id) => KV.programa(id);
-const params = new URLSearchParams(location.search);
 const estado = { busca: '' };
+const COLUNAS = [
+  { id: 'titular', nome: 'Titular', valor: (c) => c.titular, texto: true },
+  { id: 'programa', nome: 'Programa', valor: (c) => P(c.programaId).nome, texto: true },
+  { id: 'saldo', nome: 'Saldo', valor: (c) => c.saldo, dir: true },
+  { id: 'vence', nome: 'Vence em 60 dias', valor: (c) => KV.vencendo(c).pontos },
+  { id: 'ben', nome: 'Beneficiários', valor: (c) => { const b = KV.beneficiarios(c); return b ? b.usados / b.limite : -1; } },
+  { id: 'clube', nome: 'Clube', valor: (c) => c.clube || 0 },
+];
 function lerUrl() {
   estado.vista = KVShell.param('vista') || 'titular';
   estado.ordem = KVShell.param('ordem') || 'pontos';
   estado.prog = KVShell.param('prog') || 'todos';
-  estado.soAlerta = KVShell.param('aviso') === '1';
+  estado.situacao = KVShell.param('situacao') || 'todas';
+  estado.col = KVShell.param('col'); estado.dir = KVShell.param('dir');
 }
-
 function vagas(c, comBarra = true) {
   const b = KV.beneficiarios(c);
   if (!b) return '<span class="faint">só transfere</span>';
@@ -56,59 +97,75 @@ function venc(c) {
   const v = KV.vencendo(c);
   return v.pontos ? `<span class="chip warn"><i data-lucide="hourglass"></i>${fmt.pts(v.pontos)} em ${KV.diasAte(v.primeiro)}d</span>` : '';
 }
+const passo = (mud) => { KVShell.irPara(mud); lerUrl(); desenhar(); };
+
+// 1º clique: maior→menor; 2º: menor→maior; 3º: desliga
+function cliqueColuna(id) {
+  if (estado.col !== id) passo({ col: id, dir: 'desc' });
+  else if (estado.dir === 'desc') passo({ dir: 'asc' });
+  else passo({ col: null, dir: null });
+}
+function ordenar(lista) {
+  const col = COLUNAS.find((c) => c.id === estado.col);
+  if (!col) return lista.sort((a, b) => b.saldo - a.saldo);
+  const s = estado.dir === 'asc' ? 1 : -1;
+  return lista.sort((a, b) => { const x = col.valor(a), y = col.valor(b); return (col.texto ? String(x).localeCompare(String(y), 'pt-BR') : x - y) * s; });
+}
+const sel = (id, rotulo, opcoes, atual, padrao) => `<label class="sel ${atual !== padrao ? 'ativo' : ''}"><span class="escondido">${rotulo}</span>
+  <select id="${id}" data-combo="nao">${opcoes.map(([v, t]) => `<option value="${v}" ${v === atual ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
 
 function desenhar() {
-  const titulares = KV.titulares.map((t) => {
-    const cs = contas.filter((c) => c.titular === t);
-    return { nome: t, contas: cs, pontos: cs.reduce((s, c) => s + c.saldo, 0) };
-  });
+  const titulares = KV.titulares.map((t) => { const cs = contas.filter((c) => c.titular === t); return { nome: t, contas: cs, pontos: cs.reduce((s, c) => s + c.saldo, 0) }; });
   const comAviso = new Set(KV.alertas().map((a) => a.conta));
+  const tabela = estado.vista === 'tabela';
   app.innerHTML = `<div class="topo"><div><h1>Contas de pontos</h1><div class="muted">${titulares.length} titulares · ${contas.length} contas</div></div>
-      <div class="acoes"><a class="btn" href="entrada.html"><i data-lucide="plus"></i>Registrar entrada</a>
+      <div class="acoes"><a class="btn" href="entrada.html"><i data-lucide="plus"></i>Entrada</a>
       <a class="btn primario" href="nova-conta.html"><i data-lucide="wallet"></i>Nova conta</a></div></div>
     <div class="filtros">
       <div class="seg" role="group" aria-label="Como ver">
-        <button data-vista="titular" aria-pressed="${estado.vista === 'titular'}"><i data-lucide="users"></i>Por titular</button>
-        <button data-vista="tabela" aria-pressed="${estado.vista === 'tabela'}"><i data-lucide="table"></i>Tabela</button></div>
-      ${estado.vista === 'titular' ? `<label class="ordem">Ordenar por <select id="ordem">
-        <option value="pontos" ${estado.ordem === 'pontos' ? 'selected' : ''}>Mais pontos primeiro</option>
-        <option value="programas" ${estado.ordem === 'programas' ? 'selected' : ''}>Mais programas primeiro</option></select></label>`
-      : `<div class="pilulas" role="group" aria-label="Programa">${[{ id: 'todos', nome: 'Todos' }, ...KV.programas].map((p) => `<button class="pilula" data-prog="${p.id}" aria-pressed="${estado.prog === p.id}">${p.nome}
-          <span class="cont">${p.id === 'todos' ? contas.length : contas.filter((c) => c.programaId === p.id).length}</span></button>`).join('')}
-        <button class="pilula" data-alerta aria-pressed="${estado.soAlerta}"><i data-lucide="triangle-alert"></i>Com aviso <span class="cont">${comAviso.size}</span></button></div>`}
-      <div class="busca-wrap"><i data-lucide="search"></i><input class="busca" placeholder="Buscar titular" value="${estado.busca}"></div>
+        <button data-vista="titular" aria-pressed="${!tabela}"><i data-lucide="users"></i>Por titular</button>
+        <button data-vista="tabela" aria-pressed="${tabela}"><i data-lucide="table"></i>Tabela</button></div>
+      ${!tabela ? sel('ordem', 'Ordenar', [['pontos', 'Mais pontos primeiro'], ['programas', 'Mais programas primeiro']], estado.ordem, 'pontos')
+      : sel('prog', 'Programa', [['todos', `Programa: todos`], ...KV.programas.map((p) => [p.id, `${p.nome} (${contas.filter((c) => c.programaId === p.id).length})`])], estado.prog, 'todos')
+        + sel('situacao', 'Situação', [['todas', 'Situação: todas'], ['aviso', `Só com aviso (${comAviso.size})`], ['semvaga', 'Sem vaga de beneficiário'], ['vencendo', 'Com pontos vencendo']], estado.situacao, 'todas')
+        + `<span class="so-cel">${sel('ordcel', 'Ordenar', [['', 'Ordem padrão'], ...COLUNAS.flatMap((c) => [[c.id + ':desc', `${c.nome} ↓ maior primeiro`], [c.id + ':asc', `${c.nome} ↑ menor primeiro`]])], estado.col ? estado.col + ':' + estado.dir : '', '')}</span>`}
+      <div class="busca-wrap"><i data-lucide="search"></i><input class="busca" placeholder="Buscar titular" value="${estado.busca}" aria-label="Buscar titular"></div>
     </div><div id="lista"></div>`;
 
   const busca = (t) => !estado.busca || t.toLowerCase().includes(estado.busca.toLowerCase());
   const lista = app.querySelector('#lista');
-  if (estado.vista === 'titular') {
-    const ordenados = titulares.filter((t) => busca(t.nome)).sort((a, b) => estado.ordem === 'programas'
-      ? (b.contas.length - a.contas.length) || (b.pontos - a.pontos)
-      : b.pontos - a.pontos);
+  if (!tabela) {
+    const ordenados = titulares.filter((t) => busca(t.nome)).sort((a, b) => estado.ordem === 'programas' ? (b.contas.length - a.contas.length) || (b.pontos - a.pontos) : b.pontos - a.pontos);
     lista.innerHTML = `<div class="grade-tit">${ordenados.map((t) => `<section class="tit">
       <header><div class="av">${fmt.iniciais(t.nome)}</div><div><h3>${t.nome}</h3><div class="faint" style="font-size:13px">${t.contas.length} programa${t.contas.length > 1 ? 's' : ''}</div></div>
         <div class="tot">no total<b class="num">${fmt.pts(t.pontos)}</b></div></header>
       ${t.contas.sort((a, b) => b.saldo - a.saldo).map((c) => `<a class="linha-conta" href="conta.html?id=${c.id}"><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span>
-        <span class="s num">${fmt.pts(c.saldo)} pts</span>
-        <span class="det">${KV.beneficiarios(c) ? 'Vagas ' + vagas(c) : vagas(c)} ${venc(c)}</span></a>`).join('')}
+        <span class="s num">${fmt.pts(c.saldo)} pts</span><span class="det">${KV.beneficiarios(c) ? 'Vagas ' + vagas(c) : vagas(c)} ${venc(c)}</span></a>`).join('')}
     </section>`).join('') || '<p class="muted">Nenhum titular com esse nome.</p>'}</div>`;
   } else {
-    const linhas = contas.filter((c) => (estado.prog === 'todos' || c.programaId === estado.prog) && busca(c.titular) && (!estado.soAlerta || comAviso.has(c))).sort((a, b) => b.saldo - a.saldo);
-    lista.innerHTML = `<div class="tabela-wrap"><table>
-      <thead><tr><th>Titular</th><th>Programa</th><th class="dir">Saldo</th><th>Vence em 60 dias</th><th>Beneficiários</th><th>Clube</th></tr></thead>
+    const passa = (c) => (estado.prog === 'todos' || c.programaId === estado.prog) && busca(c.titular) && (
+      estado.situacao === 'todas' || (estado.situacao === 'aviso' && comAviso.has(c)) ||
+      (estado.situacao === 'semvaga' && KV.beneficiarios(c) && KV.beneficiarios(c).livres === 0) || (estado.situacao === 'vencendo' && KV.vencendo(c).pontos > 0));
+    const linhas = ordenar(contas.filter(passa));
+    const th = (c) => { const ativo = estado.col === c.id; const sort = ativo ? (estado.dir === 'asc' ? 'ascending' : 'descending') : null;
+      return `<th class="ord ${c.dir ? 'dir' : ''}" ${sort ? `aria-sort="${sort}"` : ''}><button data-col="${c.id}" title="Clique pra ordenar">${c.nome}<i class="seta" data-lucide="${ativo && estado.dir === 'asc' ? 'arrow-up' : 'arrow-down'}"></i></button></th>`; };
+    lista.innerHTML = `<div class="tabela-wrap tabela-cel"><table>
+      <thead><tr>${COLUNAS.map(th).join('')}</tr></thead>
       <tbody>${linhas.map((c) => `<tr class="clicavel" onclick="location='conta.html?id=${c.id}'">
-        <td><b>${c.titular}</b></td><td><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span></td>
-        <td class="dir num"><b>${fmt.pts(c.saldo)}</b></td><td>${venc(c) || '<span class="faint">—</span>'}</td>
-        <td><div style="display:flex;gap:10px;align-items:center">${vagas(c)}</div></td>
-        <td class="muted num">${c.clube ? fmt.pts(c.clube) + '/mês' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody></table></div>`;
+        <td data-c="titular"><b>${c.titular}</b></td><td data-c="programa"><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span></td>
+        <td data-c="saldo" class="dir num"><b>${fmt.pts(c.saldo)}</b></td>
+        <td data-c="vence" class="${KV.vencendo(c).pontos ? '' : 'nada'}" data-rot="Vence:">${venc(c) || '<span class="faint">—</span>'}</td>
+        <td data-c="ben" data-rot="Vagas:"><div style="display:inline-flex;gap:10px;align-items:center">${vagas(c)}</div></td>
+        <td data-c="clube" class="muted num" ${c.clube ? 'data-rot="Clube:"' : ''}>${c.clube ? fmt.pts(c.clube) + '/mês' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody></table></div>`;
   }
 
-  // cada troca vira um passo: o voltar do celular/mouse desfaz a última
-  const passo = (mud) => { KVShell.irPara(mud); lerUrl(); desenhar(); };
   app.querySelectorAll('[data-vista]').forEach((b) => b.onclick = () => { if (b.dataset.vista !== estado.vista) passo({ vista: b.dataset.vista }); });
-  const ord = app.querySelector('#ordem'); if (ord) ord.onchange = () => passo({ ordem: ord.value });
-  app.querySelectorAll('[data-prog]').forEach((b) => b.onclick = () => { if (b.dataset.prog !== estado.prog) passo({ prog: b.dataset.prog === 'todos' ? null : b.dataset.prog }); });
-  const al = app.querySelector('[data-alerta]'); if (al) al.onclick = () => passo({ aviso: estado.soAlerta ? null : '1' });
+  app.querySelectorAll('[data-col]').forEach((b) => b.onclick = () => cliqueColuna(b.dataset.col));
+  const on = (id, fn) => { const e = app.querySelector('#' + id); if (e) e.onchange = () => fn(e.value); };
+  on('ordem', (v) => passo({ ordem: v }));
+  on('prog', (v) => passo({ prog: v === 'todos' ? null : v }));
+  on('situacao', (v) => passo({ situacao: v === 'todas' ? null : v }));
+  on('ordcel', (v) => { const [col, dir] = v ? v.split(':') : [null, null]; passo({ col, dir }); });
   const bu = app.querySelector('.busca'); bu.oninput = (e) => { estado.busca = e.target.value; const pos = e.target.selectionStart; desenhar(); const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos); };
   KVShell.icones();
 }
