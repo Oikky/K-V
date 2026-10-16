@@ -37,6 +37,7 @@ Não é um CRM genérico. O centro é a gestão de milhas de terceiros: o sistem
 - O sistema avisa, mas não bloqueia, nas regras de negócio (limite de beneficiários, lista de conferência).
 - IA só depois do sistema completo, pra automatizar processos manuais que já existem.
 - Dúvidas de negócio em aberto: `PERGUNTAS-PRO-DONO.md`.
+- O sistema precisa ser **instalável pela web** (app que se baixa do navegador, no celular e no computador). Continua custo zero.
 
 ## Brand Commitments
 
@@ -58,6 +59,7 @@ Não é um CRM genérico. O centro é a gestão de milhas de terceiros: o sistem
 2. **Avisar, não travar.** O dono sai do padrão com frequência; o sistema lembra e alerta, mas não bloqueia.
 3. **Cada papel vê o seu.** O pesquisador vê só os dados do voo e o próprio ponto; dinheiro e contas ficam com o dono.
 4. **Registro rápido.** Lançar uma opção de voo é a tarefa mais repetida e precisa ser a mais rápida.
+5. **Voltar desfaz o último passo.** O voltar do celular e o botão de voltar do mouse voltam pra aba, vista, filtro ou janela anterior. Abrir uma janela, trocar de vista ou de aba conta como um passo; nunca joga a pessoa pra fora do sistema.
 
 ## Accessibility & Inclusion
 

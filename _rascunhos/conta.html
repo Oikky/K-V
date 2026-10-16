@@ -1,12 +1,13 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 2. Escolhido na rodada 1: extrato + coluna lateral (A), com o bloco de
+<!-- RASCUNHO DESCARTÁVEL, rodada 3. Beneficiários abrem numa janela, com o cadastro dentro dela;
+     o voltar do celular/mouse fecha a janela ou volta um passo. Base vinda da rodada 2: Escolhido na rodada 1: extrato + coluna lateral (A), com o bloco de
      beneficiários em bolinhas do painel visual (C). Clicar nas bolinhas abre a lista e o cadastro manual.
      Sem valor em R$. Variações da rodada 1 na branch rascunhos/rodada-1. ?id=c1..cN escolhe a conta. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conta · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=4">
+<link rel="stylesheet" href="shared/base.css?r=5">
 <style>
   .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
   .voltar:hover { color: var(--text); }
@@ -38,18 +39,30 @@
   .vaga.manual { border: 0; background: var(--teal-soft); color: var(--bg); }
   .vagas-resumo { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
   .regra { font-size: 13px; color: var(--text-3); margin-top: 8px; }
-  .aberto { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 6px; }
-  .novo-ben { display: grid; gap: 10px; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--surface-2); }
-  .novo-ben .campo input { background: var(--surface-1); }
+  .janela { border: 0; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: min(720px, calc(100dvh - 48px)); border-radius: 24px; background: var(--surface-1); color: var(--text); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden; }
+  .janela:not([open]) { display: none; }
+  .janela::backdrop { background: rgb(1 8 18 / .62); }
+  .janela header { display: flex; align-items: center; gap: 10px; padding: 18px 18px 12px 22px; }
+  .janela header .sub { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .janela .corpo { padding: 0 22px 8px; overflow-y: auto; }
+  .janela footer { padding: 14px 22px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .novo-ben { display: grid; gap: 14px; padding: 4px 22px 8px; }
   .tag-manual { font-size: 11px; font-weight: 700; color: var(--teal-soft); margin-left: 6px; }
-  .aviso { padding: 10px 12px; border-radius: 12px; font-size: 13.5px; }
+  .aviso { padding: 10px 12px; border-radius: 12px; font-size: 13.5px; margin-bottom: 10px; }
   .aviso.danger { background: var(--danger-bg); color: var(--danger); } .aviso.ok { background: var(--ok-bg); color: var(--ok); }
+  @media (max-width: 760px) {
+    .janela { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: 24px 24px 0 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .janela[open] { animation: sobe .22s cubic-bezier(.2, .8, .2, 1); }
+    @keyframes sobe { from { opacity: 0; transform: translateY(16px); } }
+  }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=4"></script>
-<script src="shared/shell.js?r=4"></script>
+<script src="shared/dados.js?r=5"></script>
+<script src="shared/shell.js?r=5"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -57,7 +70,6 @@ const params = new URLSearchParams(location.search);
 const c = KV.conta(params.get('id'));
 const p = KV.programa(c.programaId);
 const custo = KV.custoReal(c);
-let benAberto = params.get('ben') === '1';
 let mensagem = '';
 let extratoTodo = false;
 
@@ -79,30 +91,84 @@ const linhaMov = (m) => `<div class="mov"><span class="d num">${fmt.dataCurta(m.
   <span class="q num ${m.lado === 'entrada' ? 'mais' : ''}">${m.lado === 'entrada' ? '+' : '−'}${fmt.pts(m.pontos)}</span>
   <span class="x"><span>${detalhe(m)}</span><span class="num faint">saldo ${fmt.pts(m.saldoDepois)}</span></span></div>`;
 
+function bolinhas(b) {
+  // da mais antiga pra mais nova: quem passou do limite é sempre quem entrou por último
+  const ordem = [...b.lista].sort((x, y) => x.ultima.localeCompare(y.ultima));
+  return `<div class="vagas-grade">${Array.from({ length: Math.max(b.limite, b.lista.length) }, (_, i) => { const x = ordem[i];
+    return `<span class="vaga ${x ? (x.manual ? 'manual' : 'usada') : ''} ${i >= b.limite ? 'estourou' : ''}" title="${x ? x.nome : 'vaga livre'}${i >= b.limite ? ' (acima do limite)' : ''}">${x ? fmt.iniciais(x.nome) : ''}</span>`; }).join('')}</div>`;
+}
+function resumoVagas(b) {
+  const cor = b.livres === 0 ? 'var(--danger)' : b.livres <= 2 ? 'var(--warn)' : 'var(--text)';
+  return `<b style="color:${cor}">${b.livres} vaga${b.livres === 1 ? '' : 's'} livre${b.livres === 1 ? '' : 's'}</b>`;
+}
 function blocoBenef() {
   const b = KV.beneficiarios(c);
   if (!b) return `<div class="card"><h2>Beneficiários</h2><p class="muted" style="margin:6px 0 0">A Livelo não emite passagem, só transfere. Não tem limite de beneficiários.</p></div>`;
-  const cor = b.livres === 0 ? 'var(--danger)' : b.livres <= 2 ? 'var(--warn)' : 'var(--text)';
   return `<div class="card"><h2>Beneficiários <small class="num">${b.usados} de ${b.limite}</small></h2>
-    <button class="vagas-btn" id="abrir" aria-expanded="${benAberto}" aria-controls="lista-ben">
-      <div class="vagas-grade">${Array.from({ length: Math.max(b.limite, b.lista.length) }, (_, i) => { const x = b.lista[i];
-        return `<span class="vaga ${x ? (x.manual ? 'manual' : 'usada') : ''} ${i >= b.limite ? 'estourou' : ''}" title="${x ? x.nome : 'vaga livre'}${i >= b.limite ? ' (acima do limite)' : ''}">${x ? fmt.iniciais(x.nome) : ''}</span>`; }).join('')}</div>
-      <div class="vagas-resumo"><b style="color:${cor}">${b.livres} vaga${b.livres === 1 ? '' : 's'} livre${b.livres === 1 ? '' : 's'}</b>
-        <span style="display:inline-flex;gap:4px;align-items:center">${benAberto ? 'Fechar' : 'Ver pessoas'}<i data-lucide="${benAberto ? 'chevron-up' : 'chevron-down'}"></i></span></div>
-    </button>
-    <div class="regra">${b.regra}. O titular não conta.</div>
-    ${benAberto ? `<div class="aberto" id="lista-ben">
-      ${b.lista.map((x) => `<div class="ben"><span>${x.nome}${x.manual ? '<span class="tag-manual">registrado à mão</span>' : ''}<br><span class="faint num" style="font-size:12.5px">${x.cpf}</span></span>
-        <span class="l">${x.liberaEm ? `libera em<br><span class="num">${fmt.data(x.liberaEm)}</span>` : 'só por troca manual'}</span></div>`).join('') || '<p class="faint">Ninguém voou com esta conta ainda.</p>'}
-      ${mensagem}
-      <form class="novo-ben" id="novo"><h3>Adicionar beneficiário</h3>
-        <div class="campo"><label for="bnome">Nome</label><input id="bnome" required placeholder="Nome completo"></div>
-        <div class="campo"><label for="bcpf">CPF</label><input id="bcpf" required inputmode="numeric" placeholder="000.000.000-00"></div>
-        <div class="campo"><label for="bdata">Desde quando</label><input id="bdata" type="date" value="${KV.hoje}"><span class="ajuda">Data da emissão ou do cadastro no programa. Define quando a vaga volta.</span></div>
-        <button class="btn primario" type="submit" style="justify-self:start"><i data-lucide="user-plus"></i>Adicionar</button>
-      </form></div>` : ''}
-  </div>`;
+    <button class="vagas-btn" id="abrir" aria-haspopup="dialog">${bolinhas(b)}
+      <div class="vagas-resumo">${resumoVagas(b)}<span style="display:inline-flex;gap:4px;align-items:center">Ver pessoas<i data-lucide="chevron-right"></i></span></div></button>
+    <div class="regra">${b.regra}. O titular não conta.</div></div>`;
 }
+
+// janela de beneficiários: ?ben=lista mostra as pessoas; ?ben=novo mostra o cadastro (na mesma janela)
+const janela = document.createElement('dialog');
+janela.className = 'janela';
+janela.setAttribute('aria-labelledby', 'jt');
+document.body.append(janela);
+janela.addEventListener('cancel', (e) => { e.preventDefault(); KVShell.param('ben') === 'novo' ? history.back() : fecharJanela(); }); // Esc
+janela.addEventListener('click', (e) => { if (e.target === janela) fecharJanela(); }); // clique fora
+function fecharJanela() {
+  // se estava no cadastro, sai dos dois passos (cadastro e lista) de uma vez
+  if (KVShell.param('ben') === 'novo' && history.state && history.state.kv) { history.go(-2); return; }
+  KVShell.desfazer({ ben: 1 }, sincronizar);
+}
+
+function desenharJanela(modo) {
+  const b = KV.beneficiarios(c);
+  if (modo === 'novo') {
+    janela.innerHTML = `<header><button class="btn icone" data-voltar aria-label="Voltar pra lista"><i data-lucide="arrow-left"></i></button>
+        <div style="flex:1"><h2 id="jt">Adicionar beneficiário</h2><div class="sub">${c.titular} · ${p.nome}</div></div></header>
+      <form class="novo-ben" id="novo">
+        ${b.livres === 0 ? `<div class="aviso danger">A conta está sem vaga (${b.usados}/${b.limite}). Dá pra registrar mesmo assim, mas vai passar do limite.</div>` : ''}
+        <div class="campo"><label for="bnome">Nome</label><input id="bnome" required placeholder="Nome completo" autocomplete="off"></div>
+        <div class="campo"><label for="bcpf">CPF</label><input id="bcpf" required inputmode="numeric" placeholder="000.000.000-00" autocomplete="off"></div>
+        <div class="campo"><label for="bdata">Desde quando</label><input id="bdata" type="date" value="${KV.hoje}"><span class="ajuda">Data da emissão ou do cadastro no programa. Define quando a vaga volta.</span></div>
+      </form>
+      <footer><button class="btn" data-voltar>Voltar pra lista</button><button class="btn primario" type="submit" form="novo"><i data-lucide="user-plus"></i>Adicionar</button></footer>`;
+    janela.querySelectorAll('[data-voltar]').forEach((x) => x.onclick = () => history.back());
+    janela.querySelector('#novo').onsubmit = (e) => {
+      e.preventDefault();
+      const novo = { nome: janela.querySelector('#bnome').value.trim(), cpf: janela.querySelector('#bcpf').value.trim(), data: janela.querySelector('#bdata').value };
+      const semVaga = KV.beneficiarios(c).livres === 0;
+      KV.adicionarBeneficiario(c.id, novo);
+      mensagem = semVaga ? `<div class="aviso danger">${novo.nome} entrou acima do limite. O sistema avisa, mas não bloqueia.</div>`
+        : `<div class="aviso ok">${novo.nome} entrou como beneficiário. Rascunho: só na memória, some ao recarregar.</div>`;
+      history.back(); // volta pra lista, que já mostra a pessoa nova
+    };
+    setTimeout(() => janela.querySelector('#bnome').focus(), 30);
+  } else {
+    janela.innerHTML = `<header><div style="flex:1"><h2 id="jt">Beneficiários</h2><div class="sub">${c.titular} · ${p.nome} · ${b.usados} de ${b.limite}</div></div>
+        <button class="btn icone" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></header>
+      <div class="corpo">${mensagem}${bolinhas(b)}<div class="vagas-resumo" style="margin-bottom:6px">${resumoVagas(b)}</div>
+        <div class="regra" style="margin-bottom:10px">${b.regra}. O titular não conta.</div>
+        ${b.lista.map((x) => `<div class="ben"><span>${x.nome}${x.manual ? '<span class="tag-manual">registrado à mão</span>' : ''}<br><span class="faint num" style="font-size:12.5px">${x.cpf}</span></span>
+          <span class="l">${x.liberaEm ? `libera em<br><span class="num">${fmt.data(x.liberaEm)}</span>` : 'só por troca manual'}</span></div>`).join('') || '<p class="faint">Ninguém voou com esta conta ainda.</p>'}</div>
+      <footer><span class="faint" style="font-size:13px">O voltar do celular ou do mouse fecha</span><button class="btn primario" data-novo><i data-lucide="user-plus"></i>Adicionar beneficiário</button></footer>`;
+    janela.querySelector('[data-fechar]').onclick = fecharJanela;
+    janela.querySelector('[data-novo]').onclick = () => { mensagem = ''; KVShell.irPara({ ben: 'novo' }); sincronizar(); };
+  }
+  KVShell.icones();
+}
+
+// a URL manda: desenha a página e abre/fecha a janela conforme ?ben= e ?extrato=
+function sincronizar() {
+  extratoTodo = KVShell.param('extrato') === 'todo';
+  desenhar();
+  const modo = KVShell.param('ben');
+  if (modo === 'lista' || modo === 'novo') { desenharJanela(modo); if (!janela.open) janela.showModal(); }
+  else if (janela.open) { janela.close(); mensagem = ''; }
+}
+KVShell.aoVoltar(sincronizar);
 
 function desenhar() {
   const v = KV.vencendo(c);
@@ -128,24 +194,12 @@ function desenhar() {
       </aside></div>`;
 
   const abrir = app.querySelector('#abrir');
-  if (abrir) abrir.onclick = () => { benAberto = !benAberto; mensagem = ''; params.set('ben', benAberto ? '1' : '0'); history.replaceState(null, '', '?' + params); desenhar(); };
-  const todo = app.querySelector('#todo'); if (todo) todo.onclick = () => { extratoTodo = !extratoTodo; desenhar(); };
-  const form = app.querySelector('#novo');
-  if (form) form.onsubmit = (e) => {
-    e.preventDefault();
-    const antes = KV.beneficiarios(c);
-    const novo = { nome: app.querySelector('#bnome').value.trim(), cpf: app.querySelector('#bcpf').value.trim(), data: app.querySelector('#bdata').value };
-    if (antes.livres === 0) {
-      mensagem = `<div class="aviso danger" style="margin-top:12px">A conta está sem vaga (${antes.usados}/${antes.limite}). Mesmo assim registrei ${novo.nome}, porque o sistema avisa mas não bloqueia.</div>`;
-    } else {
-      mensagem = `<div class="aviso ok" style="margin-top:12px">${novo.nome} entrou como beneficiário. Rascunho: só na memória, some ao recarregar.</div>`;
-    }
-    KV.adicionarBeneficiario(c.id, novo);
-    desenhar();
-  };
+  if (abrir) abrir.onclick = () => { mensagem = ''; KVShell.irPara({ ben: 'lista' }); sincronizar(); };
+  const todo = app.querySelector('#todo');
+  if (todo) todo.onclick = () => { if (extratoTodo) KVShell.desfazer({ extrato: 1 }, sincronizar); else { KVShell.irPara({ extrato: 'todo' }); sincronizar(); } };
   KVShell.icones();
 }
-desenhar();
+sincronizar();
 </script>
 </body>
 </html>

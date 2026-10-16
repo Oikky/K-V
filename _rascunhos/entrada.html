@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Registrar entrada · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=4">
+<link rel="stylesheet" href="shared/base.css?r=5">
 <style>
   .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
   .form-dupla { display: grid; grid-template-columns: minmax(0, 620px) minmax(260px, 360px); gap: 18px; align-items: start; }
@@ -46,8 +46,8 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=4"></script>
-<script src="shared/shell.js?r=4"></script>
+<script src="shared/dados.js?r=5"></script>
+<script src="shared/shell.js?r=5"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -193,13 +193,14 @@ function poeAlternancia() {
   acoes.insertAdjacentHTML('afterbegin', `<div class="seg" role="group" aria-label="Jeito de registrar">
     <button data-modo="uma" aria-pressed="${modo === 'uma'}"><i data-lucide="file-plus"></i>Uma entrada</button>
     <button data-modo="varias" aria-pressed="${modo === 'varias'}"><i data-lucide="sheet"></i>Várias de uma vez</button></div>`);
-  acoes.querySelectorAll('[data-modo]').forEach((b) => b.onclick = () => { params.set('modo', b.dataset.modo); history.replaceState(null, '', '?' + params); render(); });
+  acoes.querySelectorAll('[data-modo]').forEach((b) => b.onclick = () => { if (b.dataset.modo !== modo) { KVShell.irPara({ modo: b.dataset.modo === 'uma' ? null : 'varias' }); render(); } });
   KVShell.icones();
 }
 function render() {
   if (modoAtual() === 'varias') variantes.C(); else { variantes.A(); poeAlternancia(); }
 }
 render();
+KVShell.aoVoltar(render);
 </script>
 </body>
 </html>

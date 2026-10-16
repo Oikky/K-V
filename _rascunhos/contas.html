@@ -6,7 +6,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=4">
+<link rel="stylesheet" href="shared/base.css?r=5">
 <style>
   .filtros { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
@@ -30,15 +30,21 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=4"></script>
-<script src="shared/shell.js?r=4"></script>
+<script src="shared/dados.js?r=5"></script>
+<script src="shared/shell.js?r=5"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
 const contas = KV.contas();
 const P = (id) => KV.programa(id);
 const params = new URLSearchParams(location.search);
-const estado = { vista: params.get('vista') || 'titular', ordem: params.get('ordem') || 'pontos', prog: 'todos', busca: '', soAlerta: false };
+const estado = { busca: '' };
+function lerUrl() {
+  estado.vista = KVShell.param('vista') || 'titular';
+  estado.ordem = KVShell.param('ordem') || 'pontos';
+  estado.prog = KVShell.param('prog') || 'todos';
+  estado.soAlerta = KVShell.param('aviso') === '1';
+}
 
 function vagas(c, comBarra = true) {
   const b = KV.beneficiarios(c);
@@ -50,7 +56,6 @@ function venc(c) {
   const v = KV.vencendo(c);
   return v.pontos ? `<span class="chip warn"><i data-lucide="hourglass"></i>${fmt.pts(v.pontos)} em ${KV.diasAte(v.primeiro)}d</span>` : '';
 }
-const salvarUrl = () => { params.set('vista', estado.vista); params.set('ordem', estado.ordem); history.replaceState(null, '', '?' + params); };
 
 function desenhar() {
   const titulares = KV.titulares.map((t) => {
@@ -98,14 +103,18 @@ function desenhar() {
         <td class="muted num">${c.clube ? fmt.pts(c.clube) + '/mês' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody></table></div>`;
   }
 
-  app.querySelectorAll('[data-vista]').forEach((b) => b.onclick = () => { estado.vista = b.dataset.vista; salvarUrl(); desenhar(); });
-  const ord = app.querySelector('#ordem'); if (ord) ord.onchange = () => { estado.ordem = ord.value; salvarUrl(); desenhar(); };
-  app.querySelectorAll('[data-prog]').forEach((b) => b.onclick = () => { estado.prog = b.dataset.prog; desenhar(); });
-  const al = app.querySelector('[data-alerta]'); if (al) al.onclick = () => { estado.soAlerta = !estado.soAlerta; desenhar(); };
+  // cada troca vira um passo: o voltar do celular/mouse desfaz a última
+  const passo = (mud) => { KVShell.irPara(mud); lerUrl(); desenhar(); };
+  app.querySelectorAll('[data-vista]').forEach((b) => b.onclick = () => { if (b.dataset.vista !== estado.vista) passo({ vista: b.dataset.vista }); });
+  const ord = app.querySelector('#ordem'); if (ord) ord.onchange = () => passo({ ordem: ord.value });
+  app.querySelectorAll('[data-prog]').forEach((b) => b.onclick = () => { if (b.dataset.prog !== estado.prog) passo({ prog: b.dataset.prog === 'todos' ? null : b.dataset.prog }); });
+  const al = app.querySelector('[data-alerta]'); if (al) al.onclick = () => passo({ aviso: estado.soAlerta ? null : '1' });
   const bu = app.querySelector('.busca'); bu.oninput = (e) => { estado.busca = e.target.value; const pos = e.target.selectionStart; desenhar(); const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos); };
   KVShell.icones();
 }
+lerUrl();
 desenhar();
+KVShell.aoVoltar(() => { lerUrl(); desenhar(); });
 </script>
 </body>
 </html>

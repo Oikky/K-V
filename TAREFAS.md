@@ -13,6 +13,8 @@ O que está combinado fazer, em ordem de etapa do projeto.
 ## Etapa 3: Rascunhos e sistema
 - [ ] **Recibo:** estudar o layout do modelo atual (https://oikky.github.io/recibo-kv/) e adaptar pro sistema novo, com melhorias. O recibo é gerado a partir da emissão e salvo em PDF pelo navegador.
 - [ ] **Próximos voos:** lista no painel do dono com os lembretes de revisão, check-in e dia do voo (substitui o Google Agenda por enquanto).
+- [ ] **Instalável pela web (PWA):** manifesto, ícones a partir da logo, service worker pra abrir sem internet e o botão "instalar" do navegador, no celular e no computador. Sem loja de aplicativo e sem custo.
+- [ ] **Voltar = passo anterior:** em todas as telas, o voltar do celular e do mouse desfaz o último passo (aba, vista, filtro, janela). Já funciona nos rascunhos de contas.
 - [ ] Tela de entrada: espaço reservado pra animação da logo (não animar; a animação vai ser guiada depois).
 
 ## Futuro (só depois do sistema todo montado)

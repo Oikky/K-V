@@ -66,5 +66,25 @@
     desenhar();
   }
 
-  window.KVShell = { montar, variacoes, icones: () => window.lucide && lucide.createIcons() };
+  // Navegação: toda troca de vista, aba, modo ou janela vira um passo no histórico.
+  // Assim o voltar do celular e o botão de voltar do mouse desfazem o último passo, em vez de sair da página.
+  function irPara(mudancas) {
+    const p = new URLSearchParams(location.search);
+    Object.entries(mudancas).forEach(([k, v]) => (v == null ? p.delete(k) : p.set(k, v)));
+    history.pushState({ kv: true }, '', '?' + p);
+  }
+  // fecha um passo: se ele foi aberto aqui, volta no histórico; se a página já abriu nele, só tira da URL
+  function desfazer(mudancas, depois) {
+    if (history.state && history.state.kv) history.back();
+    else {
+      const p = new URLSearchParams(location.search);
+      Object.keys(mudancas).forEach((k) => p.delete(k));
+      history.replaceState(null, '', '?' + p);
+      depois();
+    }
+  }
+  const aoVoltar = (fn) => addEventListener('popstate', fn);
+  const param = (k) => new URLSearchParams(location.search).get(k);
+
+  window.KVShell = { montar, variacoes, irPara, desfazer, aoVoltar, param, icones: () => window.lucide && lucide.createIcons() };
 })();
