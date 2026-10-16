@@ -52,6 +52,8 @@ _Evitar_: lead, cliente (antes do fechamento)
 CPF que já voou com os pontos de uma conta. Depois que o CPF vira beneficiário, ele pode voar com aquela conta quantas vezes quiser. Um passageiro novo ocupa uma vaga; um que já é beneficiário não ocupa.
 _Evitar_: passageiro (passageiro é quem voa numa emissão; beneficiário é o vínculo do CPF com a conta)
 
+Também pode ser registrado à mão na conta (ex.: CPF que já tinha voado antes do sistema, ou cadastrado direto no programa). Nesse caso, a data informada define quando a vaga volta.
+
 **Limite de beneficiários**:
 Quantos CPFs diferentes podem ser beneficiários de uma conta. Quem define é o programa (Smiles, Latam etc.); na Azul, também depende da categoria da conta. O risco é emitir pra um CPF novo numa conta que já está no limite. O sistema avisa, sem bloquear (provisório, ver `PERGUNTAS-PRO-DONO.md`).
 
@@ -195,4 +197,14 @@ Soma dos preços de venda dos orçamentos fechados no mês.
 
 **Folha**:
 Quanto a K&V paga aos pesquisadores no período, pelas horas cronometradas.
+
+## Decisões das telas
+
+Registro das escolhas feitas nos rascunhos (as variações descartadas ficam na branch `rascunhos/rodada-1`).
+
+**Rodada 1: gestão de contas (2026-10-16)**
+- **Lista de contas:** a vista principal é **por titular** (um bloco por pessoa, com as contas dela dentro), e a **tabela por conta** fica como vista secundária. Por padrão, ordena de quem tem mais pontos pra quem tem menos, com a opção de ordenar por quem tem mais programas. Motivo: o dono pensa nas pessoas, não em contas soltas.
+- **Valor em R$ do saldo:** não aparece. Motivo: não é informação relevante pro dono.
+- **Detalhe da conta:** extrato com coluna lateral. Os beneficiários aparecem como **bolinhas** (uma por vaga; cheia = usada). Clicar nelas abre a lista de pessoas e o cadastro manual de beneficiário.
+- **Registrar entrada:** o padrão é **uma entrada por vez** (formulário com prévia do saldo), com a opção de **várias de uma vez** (planilha com "puxar os clubes do mês").
 

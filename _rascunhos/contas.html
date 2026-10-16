@@ -1,20 +1,20 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL. Pergunta: como o dono enxerga todas as contas de pontos?
-     Quatro variações na mesma página, trocadas por ?v=A|B|C|D ou pelas setas. -->
+<!-- RASCUNHO DESCARTÁVEL, rodada 2. Escolhido na rodada 1: "Por titular" como vista principal,
+     "Tabela por conta" como secundária. Sem valor em R$ (o dono não precisa). As variações da rodada 1
+     estão na branch rascunhos/rodada-1. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css">
+<link rel="stylesheet" href="shared/base.css?r=4">
 <style>
-  .resumo { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-  .resumo .item { flex: 1 1 180px; padding: 14px 18px; border-radius: 16px; background: var(--surface-1); }
-  .resumo .item .v { font: 800 22px var(--font-brand); letter-spacing: -0.02em; margin-top: 4px; }
-  .resumo .item .r { font-size: 13px; color: var(--text-2); }
-  @media (max-width: 760px) { .resumo { display: grid; grid-template-columns: 1fr 1fr; } .resumo .item .v { font-size: 19px; } }
-  .filtros { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .filtros { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
+  .seg button { height: 34px; padding: 0 14px; border-radius: var(--r-pill); border: 0; background: none; cursor: pointer; font-weight: 700; color: var(--text-2); display: inline-flex; gap: 6px; align-items: center; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+  .ordem { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2); }
+  .ordem select { height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 14px; font-weight: 600; color: var(--text); }
 
-  /* B */
   .grade-tit { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
   .tit { background: var(--surface-1); border-radius: var(--r-card); padding: 18px 18px 8px; }
   .tit header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -26,173 +26,86 @@
   .linha-conta .s { text-align: right; font-weight: 700; }
   .linha-conta .det { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--text-2); }
   .linha-conta .det .barra { flex: 1; max-width: 120px; }
-
-  /* C */
-  .atencao { display: grid; gap: 8px; margin-bottom: 28px; }
-  .alerta { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 12px 16px; border-radius: 16px; background: var(--surface-1); text-decoration: none; }
-  .alerta:hover { background: var(--surface-2); }
-  .alerta .ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; }
-  .alerta.vencendo .ico { background: var(--warn-bg); color: var(--warn); }
-  .alerta.limite .ico { background: var(--danger-bg); color: var(--danger); }
-  .alerta.quase .ico { background: var(--orange-soft); color: var(--orange); }
-  .alerta .t { font-weight: 700; } .alerta .q { font-size: 13.5px; color: var(--text-2); }
-  .colunas { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px; overflow-x: auto; }
-  .col h2 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-  .col h2 small { font: 600 13px var(--font); color: var(--text-2); }
-  .mini { display: block; padding: 12px 14px; border-radius: 14px; background: var(--surface-1); margin-bottom: 8px; text-decoration: none; }
-  .mini:hover { background: var(--surface-2); }
-  .mini .n { font-weight: 700; font-size: 14px; } .mini .s { font: 800 18px var(--font-brand); margin: 2px 0 6px; }
-  .mini .rod { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--text-2); }
-  .mini .rod .barra { flex: 1; }
-  @media (max-width: 760px) { .colunas { grid-template-columns: 1fr; } }
-
-  /* D */
-  .matriz td.cel { min-width: 150px; }
-  .matriz td.cel a { display: block; padding: 8px 10px; border-radius: 12px; text-decoration: none; background: rgb(26 139 166 / var(--a)); }
-  .matriz td.cel a:hover { outline: 2px solid var(--teal); }
-  .matriz td.cel .s { font-weight: 700; } .matriz td.cel .v { font-size: 12.5px; color: var(--text-2); display: flex; gap: 6px; align-items: center; }
-  .matriz td.vazio { color: var(--text-3); font-size: 13px; }
-  .matriz td { vertical-align: middle; }
-  .legenda { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-2); margin-top: 12px; }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js"></script>
-<script src="shared/shell.js"></script>
+<script src="shared/dados.js?r=4"></script>
+<script src="shared/shell.js?r=4"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
 const contas = KV.contas();
 const P = (id) => KV.programa(id);
-const estado = { prog: 'todos', busca: '', soAlerta: false };
+const params = new URLSearchParams(location.search);
+const estado = { vista: params.get('vista') || 'titular', ordem: params.get('ordem') || 'pontos', prog: 'todos', busca: '', soAlerta: false };
 
 function vagas(c, comBarra = true) {
   const b = KV.beneficiarios(c);
-  if (!b) return '<span class="faint">não se aplica</span>';
-  const pct = b.usados / b.limite * 100;
+  if (!b) return '<span class="faint">só transfere</span>';
   const cls = b.livres === 0 ? 'danger' : b.livres <= 2 ? 'warn' : '';
-  return `<span class="num ${cls ? '' : 'muted'}" style="${cls ? `color:var(--${cls})` : ''}">${b.usados}/${b.limite}</span>${comBarra ? `<div class="barra ${cls}"><i style="width:${pct}%"></i></div>` : ''}`;
+  return `<span class="num" style="${cls ? `color:var(--${cls})` : 'color:var(--text-2)'}">${b.usados}/${b.limite}</span>${comBarra ? `<div class="barra ${cls}"><i style="width:${b.usados / b.limite * 100}%"></i></div>` : ''}`;
 }
 function venc(c) {
   const v = KV.vencendo(c);
-  return v.pontos ? `<span class="chip warn"><i data-lucide="hourglass"></i>${fmt.pts(v.pontos)} em ${KV.diasAte(v.primeiro)}d</span>` : '<span class="faint">—</span>';
+  return v.pontos ? `<span class="chip warn"><i data-lucide="hourglass"></i>${fmt.pts(v.pontos)} em ${KV.diasAte(v.primeiro)}d</span>` : '';
 }
-function filtradas() {
-  return contas.filter((c) =>
-    (estado.prog === 'todos' || c.programaId === estado.prog) &&
-    (!estado.busca || c.titular.toLowerCase().includes(estado.busca.toLowerCase())) &&
-    (!estado.soAlerta || KV.alertas().some((a) => a.conta === c)));
-}
-function cabecalho(sub) {
-  return `<div class="topo"><div><h1>Contas de pontos</h1><div class="muted">${sub}</div></div>
-    <div class="acoes"><a class="btn" href="entrada.html"><i data-lucide="plus"></i>Registrar entrada</a>
-    <button class="btn primario"><i data-lucide="wallet"></i>Nova conta</button></div></div>`;
-}
-function resumoProgramas() {
-  return `<div class="resumo">${KV.programas.map((p) => {
-    const cs = contas.filter((c) => c.programaId === p.id);
-    const pts = cs.reduce((s, c) => s + c.saldo, 0);
-    return `<div class="item"><span class="prog" data-p="${p.id}">${p.nome}</span>
-      <div class="v num">${fmt.pts(pts)}</div><div class="r num">${cs.length} contas${p.valorMilha ? ' · vale ' + fmt.brl(pts * p.valorMilha) : ''}</div></div>`;
-  }).join('')}</div>`;
-}
-function barraFiltros() {
-  return `<div class="filtros"><div class="pilulas" role="group" aria-label="Programa">
-    ${[{ id: 'todos', nome: 'Todos' }, ...KV.programas].map((p) => `<button class="pilula" data-prog="${p.id}" aria-pressed="${estado.prog === p.id}">${p.nome}
-      <span class="cont">${p.id === 'todos' ? contas.length : contas.filter((c) => c.programaId === p.id).length}</span></button>`).join('')}
-    <button class="pilula" data-alerta aria-pressed="${estado.soAlerta}"><i data-lucide="triangle-alert"></i>Com aviso <span class="cont">${new Set(KV.alertas().map((a) => a.conta)).size}</span></button></div>
-    <div class="busca-wrap"><i data-lucide="search"></i><input class="busca" placeholder="Buscar titular" value="${estado.busca}"></div></div>`;
-}
-function ligarFiltros(redesenhar) {
-  app.querySelectorAll('[data-prog]').forEach((b) => b.onclick = () => { estado.prog = b.dataset.prog; redesenhar(); });
-  const al = app.querySelector('[data-alerta]'); if (al) al.onclick = () => { estado.soAlerta = !estado.soAlerta; redesenhar(); };
-  const bu = app.querySelector('.busca'); if (bu) bu.oninput = (e) => { estado.busca = e.target.value; const pos = e.target.selectionStart; redesenhar(); const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos); };
-}
+const salvarUrl = () => { params.set('vista', estado.vista); params.set('ordem', estado.ordem); history.replaceState(null, '', '?' + params); };
 
-const variantes = {
-  // A: tabela densa, uma linha por conta
-  A() {
-    const lista = filtradas().sort((a, b) => b.saldo - a.saldo);
-    app.innerHTML = cabecalho(`${contas.length} contas de ${KV.titulares.length} titulares`) + resumoProgramas() + barraFiltros() + `
-      <div class="tabela-wrap"><table>
-        <thead><tr><th>Titular</th><th>Programa</th><th class="dir">Saldo</th><th class="dir">Vale</th><th>Vence em 60 dias</th><th>Beneficiários</th><th>Clube</th></tr></thead>
-        <tbody>${lista.map((c) => `<tr class="clicavel" onclick="location='conta.html?id=${c.id}'">
-          <td><b>${c.titular}</b></td><td><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span></td>
-          <td class="dir num"><b>${fmt.pts(c.saldo)}</b></td><td class="dir num muted">${P(c.programaId).valorMilha ? fmt.brl(KV.valorEmReais(c)) : '—'}</td>
-          <td>${venc(c)}</td><td><div style="display:flex;gap:10px;align-items:center">${vagas(c)}</div></td>
-          <td class="muted num">${c.clube ? fmt.pts(c.clube) + '/mês' : '—'}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody>
-      </table></div>`;
-    ligarFiltros(variantes.A);
-  },
+function desenhar() {
+  const titulares = KV.titulares.map((t) => {
+    const cs = contas.filter((c) => c.titular === t);
+    return { nome: t, contas: cs, pontos: cs.reduce((s, c) => s + c.saldo, 0) };
+  });
+  const comAviso = new Set(KV.alertas().map((a) => a.conta));
+  app.innerHTML = `<div class="topo"><div><h1>Contas de pontos</h1><div class="muted">${titulares.length} titulares · ${contas.length} contas</div></div>
+      <div class="acoes"><a class="btn" href="entrada.html"><i data-lucide="plus"></i>Registrar entrada</a>
+      <button class="btn primario"><i data-lucide="wallet"></i>Nova conta</button></div></div>
+    <div class="filtros">
+      <div class="seg" role="group" aria-label="Como ver">
+        <button data-vista="titular" aria-pressed="${estado.vista === 'titular'}"><i data-lucide="users"></i>Por titular</button>
+        <button data-vista="tabela" aria-pressed="${estado.vista === 'tabela'}"><i data-lucide="table"></i>Tabela</button></div>
+      ${estado.vista === 'titular' ? `<label class="ordem">Ordenar por <select id="ordem">
+        <option value="pontos" ${estado.ordem === 'pontos' ? 'selected' : ''}>Mais pontos primeiro</option>
+        <option value="programas" ${estado.ordem === 'programas' ? 'selected' : ''}>Mais programas primeiro</option></select></label>`
+      : `<div class="pilulas" role="group" aria-label="Programa">${[{ id: 'todos', nome: 'Todos' }, ...KV.programas].map((p) => `<button class="pilula" data-prog="${p.id}" aria-pressed="${estado.prog === p.id}">${p.nome}
+          <span class="cont">${p.id === 'todos' ? contas.length : contas.filter((c) => c.programaId === p.id).length}</span></button>`).join('')}
+        <button class="pilula" data-alerta aria-pressed="${estado.soAlerta}"><i data-lucide="triangle-alert"></i>Com aviso <span class="cont">${comAviso.size}</span></button></div>`}
+      <div class="busca-wrap"><i data-lucide="search"></i><input class="busca" placeholder="Buscar titular" value="${estado.busca}"></div>
+    </div><div id="lista"></div>`;
 
-  // B: um bloco por titular, com as contas dele dentro
-  B() {
-    const tits = KV.titulares.filter((t) => !estado.busca || t.toLowerCase().includes(estado.busca.toLowerCase()));
-    app.innerHTML = cabecalho(`${KV.titulares.length} titulares · ${contas.length} contas`) +
-      `<div class="filtros"><div class="busca-wrap"><i data-lucide="search"></i><input class="busca" placeholder="Buscar titular" value="${estado.busca}"></div></div>
-      <div class="grade-tit">${tits.map((t) => {
-        const cs = contas.filter((c) => c.titular === t);
-        const total = cs.reduce((s, c) => s + KV.valorEmReais(c), 0);
-        return `<section class="tit"><header><div class="av">${fmt.iniciais(t)}</div><div><h3>${t}</h3><div class="faint" style="font-size:13px">${cs.length} conta${cs.length > 1 ? 's' : ''}</div></div>
-          <div class="tot">vale<b class="num">${fmt.brl(total)}</b></div></header>
-          ${cs.map((c) => `<a class="linha-conta" href="conta.html?id=${c.id}"><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span>
-            <span class="s num">${fmt.pts(c.saldo)} pts</span>
-            <span class="det">${KV.beneficiarios(c) ? 'Vagas ' + vagas(c) : '<span class="faint">só transfere</span>'} ${KV.vencendo(c).pontos ? venc(c) : ''}</span></a>`).join('')}
-        </section>`;
-      }).join('')}</div>`;
-    ligarFiltros(variantes.B);
-  },
+  const busca = (t) => !estado.busca || t.toLowerCase().includes(estado.busca.toLowerCase());
+  const lista = app.querySelector('#lista');
+  if (estado.vista === 'titular') {
+    const ordenados = titulares.filter((t) => busca(t.nome)).sort((a, b) => estado.ordem === 'programas'
+      ? (b.contas.length - a.contas.length) || (b.pontos - a.pontos)
+      : b.pontos - a.pontos);
+    lista.innerHTML = `<div class="grade-tit">${ordenados.map((t) => `<section class="tit">
+      <header><div class="av">${fmt.iniciais(t.nome)}</div><div><h3>${t.nome}</h3><div class="faint" style="font-size:13px">${t.contas.length} programa${t.contas.length > 1 ? 's' : ''}</div></div>
+        <div class="tot">no total<b class="num">${fmt.pts(t.pontos)}</b></div></header>
+      ${t.contas.sort((a, b) => b.saldo - a.saldo).map((c) => `<a class="linha-conta" href="conta.html?id=${c.id}"><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span>
+        <span class="s num">${fmt.pts(c.saldo)} pts</span>
+        <span class="det">${KV.beneficiarios(c) ? 'Vagas ' + vagas(c) : vagas(c)} ${venc(c)}</span></a>`).join('')}
+    </section>`).join('') || '<p class="muted">Nenhum titular com esse nome.</p>'}</div>`;
+  } else {
+    const linhas = contas.filter((c) => (estado.prog === 'todos' || c.programaId === estado.prog) && busca(c.titular) && (!estado.soAlerta || comAviso.has(c))).sort((a, b) => b.saldo - a.saldo);
+    lista.innerHTML = `<div class="tabela-wrap"><table>
+      <thead><tr><th>Titular</th><th>Programa</th><th class="dir">Saldo</th><th>Vence em 60 dias</th><th>Beneficiários</th><th>Clube</th></tr></thead>
+      <tbody>${linhas.map((c) => `<tr class="clicavel" onclick="location='conta.html?id=${c.id}'">
+        <td><b>${c.titular}</b></td><td><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span></td>
+        <td class="dir num"><b>${fmt.pts(c.saldo)}</b></td><td>${venc(c) || '<span class="faint">—</span>'}</td>
+        <td><div style="display:flex;gap:10px;align-items:center">${vagas(c)}</div></td>
+        <td class="muted num">${c.clube ? fmt.pts(c.clube) + '/mês' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody></table></div>`;
+  }
 
-  // C: o que precisa de atenção primeiro, depois as contas por programa
-  C() {
-    const al = KV.alertas();
-    const ico = { vencendo: 'hourglass', limite: 'user-x', quase: 'users' };
-    app.innerHTML = cabecalho(`${al.length} avisos em ${new Set(al.map((a) => a.conta)).size} contas`) +
-      `<h2 style="margin-bottom:12px">Precisa de atenção</h2>
-      <div class="atencao">${al.slice(0, 6).map((a) => `<a class="alerta ${a.tipo}" href="conta.html?id=${a.conta.id}">
-        <span class="ico"><i data-lucide="${ico[a.tipo]}"></i></span>
-        <span><span class="t">${a.texto}</span><br><span class="q">${a.conta.titular} · ${P(a.conta.programaId).nome}</span></span>
-        <i data-lucide="chevron-right"></i></a>`).join('')}
-        ${al.length > 6 ? `<button class="btn" style="justify-self:start">Ver os outros ${al.length - 6} avisos</button>` : ''}</div>
-      <div class="colunas">${KV.programas.map((p) => {
-        const cs = contas.filter((c) => c.programaId === p.id).sort((a, b) => b.saldo - a.saldo);
-        return `<div class="col"><h2>${p.nome}<small class="num">${fmt.pts(cs.reduce((s, c) => s + c.saldo, 0))} pts</small></h2>
-          ${cs.map((c) => `<a class="mini" href="conta.html?id=${c.id}"><div class="n">${c.titular}</div><div class="s num">${fmt.pts(c.saldo)}</div>
-            <div class="rod">${KV.beneficiarios(c) ? vagas(c) : '<span class="faint">só transfere</span>'}</div></a>`).join('')}</div>`;
-      }).join('')}</div>`;
-  },
-
-  // D: matriz titular × programa, tipo planilha
-  D() {
-    const max = Math.max(...contas.map((c) => c.saldo));
-    app.innerHTML = cabecalho('Cada linha é um titular; cada coluna, um programa') + `
-      <div class="tabela-wrap"><table class="matriz">
-        <thead><tr><th>Titular</th>${KV.programas.map((p) => `<th><span class="prog" data-p="${p.id}">${p.nome}</span></th>`).join('')}<th class="dir">Vale no total</th></tr></thead>
-        <tbody>${KV.titulares.map((t) => {
-          const cs = contas.filter((c) => c.titular === t);
-          return `<tr><td><b>${t}</b></td>${KV.programas.map((p) => {
-            const c = cs.find((x) => x.programaId === p.id);
-            if (!c) return '<td class="vazio">sem conta</td>';
-            const b = KV.beneficiarios(c); const v = KV.vencendo(c);
-            return `<td class="cel"><a href="conta.html?id=${c.id}" style="--a:${(0.08 + c.saldo / max * 0.5).toFixed(2)}">
-              <div class="s num">${fmt.pts(c.saldo)}</div>
-              <div class="v num">${b ? `<span style="${b.livres === 0 ? 'color:var(--danger)' : b.livres <= 2 ? 'color:var(--warn)' : ''}">${b.usados}/${b.limite} vagas</span>` : 'só transfere'}
-              ${v.pontos ? `<i data-lucide="hourglass" style="color:var(--warn);width:14px" aria-label="pontos vencendo"></i>` : ''}</div></a></td>`;
-          }).join('')}<td class="dir num"><b>${fmt.brl(cs.reduce((s, c) => s + KV.valorEmReais(c), 0))}</b></td></tr>`;
-        }).join('')}</tbody></table></div>
-      <div class="legenda"><span>Quanto mais forte o azul, maior o saldo.</span><span><i data-lucide="hourglass" style="color:var(--warn);width:14px;vertical-align:-2px"></i> pontos vencendo em 60 dias</span><span style="color:var(--danger)">vermelho: sem vaga</span><span style="color:var(--warn)">amarelo: até 2 vagas</span></div>`;
-  },
-};
-
-KVShell.variacoes([
-  { k: 'A', nome: 'Tabela por conta' },
-  { k: 'B', nome: 'Por titular' },
-  { k: 'C', nome: 'Avisos primeiro' },
-  { k: 'D', nome: 'Matriz titular × programa' },
-], (k) => { variantes[k](); KVShell.icones(); });
-// redesenhos internos (filtros) também precisam dos ícones
-new MutationObserver(() => { if (app.querySelector('i[data-lucide]')) KVShell.icones(); }).observe(app, { childList: true });
+  app.querySelectorAll('[data-vista]').forEach((b) => b.onclick = () => { estado.vista = b.dataset.vista; salvarUrl(); desenhar(); });
+  const ord = app.querySelector('#ordem'); if (ord) ord.onchange = () => { estado.ordem = ord.value; salvarUrl(); desenhar(); };
+  app.querySelectorAll('[data-prog]').forEach((b) => b.onclick = () => { estado.prog = b.dataset.prog; desenhar(); });
+  const al = app.querySelector('[data-alerta]'); if (al) al.onclick = () => { estado.soAlerta = !estado.soAlerta; desenhar(); };
+  const bu = app.querySelector('.busca'); bu.oninput = (e) => { estado.busca = e.target.value; const pos = e.target.selectionStart; desenhar(); const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos); };
+  KVShell.icones();
+}
+desenhar();
 </script>
 </body>
 </html>

@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL. Pergunta: qual o jeito mais rápido de registrar entrada de pontos?
-     Nada é salvo: o botão final só mostra o que seria gravado. ?v=A|B|C -->
+<!-- RASCUNHO DESCARTÁVEL, rodada 2. Escolhido na rodada 1: formulário com prévia (A) como padrão, com a
+     opção de trocar pra "várias de uma vez" (C). Nada é salvo. ?modo=uma|varias -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Registrar entrada · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css">
+<link rel="stylesheet" href="shared/base.css?r=4">
 <style>
   .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
   .form-dupla { display: grid; grid-template-columns: minmax(0, 620px) minmax(260px, 360px); gap: 18px; align-items: start; }
@@ -18,6 +18,9 @@
   .de-para .de { color: var(--text-3); }
   .rodape-form { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
   .oculto { display: none !important; }
+  .seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
+  .seg button { height: 34px; padding: 0 14px; border-radius: var(--r-pill); border: 0; background: none; cursor: pointer; font-weight: 700; color: var(--text-2); display: inline-flex; gap: 6px; align-items: center; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
 
   /* B */
   .passos { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
@@ -43,8 +46,8 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js"></script>
-<script src="shared/shell.js"></script>
+<script src="shared/dados.js?r=4"></script>
+<script src="shared/shell.js?r=4"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -174,17 +177,29 @@ const variantes = {
         desenhar();
       };
       app.querySelector('#ok').onclick = () => mostrarSalvo(app.querySelector('#salvo'), linhas.map((l) => ({ ...l, pontos: +String(l.pontos).replace(/\D/g, '') || 0 })));
-      KVShell.icones();
+      poeAlternancia();
     };
     desenhar();
   },
 };
 
-KVShell.variacoes([
-  { k: 'A', nome: 'Formulário com prévia' },
-  { k: 'B', nome: 'Passo a passo por tipo' },
-  { k: 'C', nome: 'Várias de uma vez (planilha)' },
-], (k) => variantes[k]());
+// alternância entre os dois jeitos de registrar (padrão: uma entrada)
+const modoAtual = () => (new URLSearchParams(location.search).get('modo') === 'varias' ? 'varias' : 'uma');
+function poeAlternancia() {
+  const modo = modoAtual();
+  const topo = app.querySelector('.topo');
+  let acoes = topo.querySelector('.acoes');
+  if (!acoes) { acoes = document.createElement('div'); acoes.className = 'acoes'; topo.append(acoes); }
+  acoes.insertAdjacentHTML('afterbegin', `<div class="seg" role="group" aria-label="Jeito de registrar">
+    <button data-modo="uma" aria-pressed="${modo === 'uma'}"><i data-lucide="file-plus"></i>Uma entrada</button>
+    <button data-modo="varias" aria-pressed="${modo === 'varias'}"><i data-lucide="sheet"></i>Várias de uma vez</button></div>`);
+  acoes.querySelectorAll('[data-modo]').forEach((b) => b.onclick = () => { params.set('modo', b.dataset.modo); history.replaceState(null, '', '?' + params); render(); });
+  KVShell.icones();
+}
+function render() {
+  if (modoAtual() === 'varias') variantes.C(); else { variantes.A(); poeAlternancia(); }
+}
+render();
 </script>
 </body>
 </html>

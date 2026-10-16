@@ -122,6 +122,18 @@
       // aplica em ordem: saída só acontece se tiver saldo; pontos consumidos dos lotes que vencem antes
       let saldo = 0;
       const lotes = [];
+      // antes de uma emissão sem saldo suficiente, entra uma transferência da Livelo (como acontece de verdade)
+      for (let i = 0, corrente = 0; i < mov.length; i++) {
+        const m = mov[i];
+        if (m.lado === 'entrada') corrente += m.pontos;
+        else if (m.tipo === 'emissao' && m.pontos > corrente) {
+          const falta = Math.ceil((m.pontos - corrente) / 1000) * 1000 + int(1, 10) * 1000;
+          mov.splice(i, 0, { tipo: 'transferencia', lado: 'entrada', data: addDias(m.data, -1), pontos: falta, origem: 'Livelo', bonusPct: 0,
+            custo: +(falta * 0.0155).toFixed(2), vence: iso(addDias(m.data, 729)) });
+          corrente += falta; i++; corrente -= m.pontos;
+        } else corrente -= m.pontos;
+      }
+      mov.sort((a, b) => a.data - b.data);
       mov.forEach((m) => {
         if (m.lado === 'entrada') {
           saldo += m.pontos;
@@ -158,6 +170,10 @@
         const atual = porCpf.get(pas.cpf);
         if (!atual || atual.ultima < m.data) porCpf.set(pas.cpf, { ...pas, primeira: atual ? atual.primeira : m.data, ultima: m.data });
       });
+    });
+    // beneficiários registrados à mão (ex.: CPF já usado fora do sistema ou cadastrado direto no programa)
+    (conta.manuais || []).forEach((b) => {
+      if (!porCpf.has(b.cpf)) porCpf.set(b.cpf, { nome: b.nome, cpf: b.cpf, primeira: b.data, ultima: b.data, manual: true });
     });
     let lista = [...porCpf.values()];
     lista.forEach((b) => {
@@ -214,6 +230,7 @@
     conta: (id) => contas.find((c) => c.id === id) || [...contas].sort((a, b) =>
       ((beneficiarios(b) || { usados: 0 }).usados + (vencendo(b).pontos ? 10 : 0)) - ((beneficiarios(a) || { usados: 0 }).usados + (vencendo(a).pontos ? 10 : 0)))[0],
     programa, beneficiarios, vencendo, custoReal, alertas, diasAte, fmt,
+    adicionarBeneficiario: (contaId, b) => { const c = contas.find((x) => x.id === contaId); (c.manuais = c.manuais || []).push(b); return c; },
     valorEmReais: (c) => c.saldo * programa(c.programaId).valorMilha,
   };
 })();
