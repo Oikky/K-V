@@ -1,0 +1,179 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL, rodada 4. Pergunta: como cadastrar uma conta de pontos nova?
+     Nada é salvo. ?v=A|B|C -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova conta · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=6">
+<style>
+  .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grade-campos .inteiro { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grade-campos { grid-template-columns: 1fr; } }
+  .rodape-form { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+  .oculto { display: none !important; }
+  fieldset { border: 0; padding: 0; margin: 0; display: contents; }
+  .secao { grid-column: 1 / -1; font-weight: 700; color: var(--text-2); font-size: 13px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .secao:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .liga { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+  .liga input { width: 20px; height: 20px; accent-color: var(--orange); }
+
+  /* B */
+  .passos { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .passo { display: flex; gap: 8px; align-items: center; color: var(--text-3); font-weight: 700; font-size: 14px; }
+  .passo b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 13px; }
+  .passo.on { color: var(--text); } .passo.on b { background: var(--orange); color: var(--orange-ink); }
+  .passo + .passo::before { content: ''; width: 24px; height: 1px; background: var(--line); margin-right: 4px; }
+  .lista-tit { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; max-width: 1100px; }
+  .op-tit { text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; }
+  .op-tit:hover { border-color: var(--orange); }
+  .op-tit .progs { grid-column: 2; display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+  .op-tit.novo { border-style: dashed; }
+  .av { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; grid-row: span 2; }
+  .progs-escolha { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; max-width: 900px; }
+  .op-prog { text-align: left; padding: 18px; border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; display: grid; gap: 6px; }
+  .op-prog:hover:not(:disabled) { border-color: var(--orange); }
+  .op-prog:disabled { opacity: .45; cursor: not-allowed; }
+  .op-prog .r { font-size: 13px; color: var(--text-2); }
+
+  /* C */
+  .fundo { opacity: .45; pointer-events: none; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=6"></script>
+<script src="shared/shell.js?r=6"></script>
+<script>
+const app = KVShell.montar('contas');
+const { fmt } = KV;
+const contas = KV.contas();
+const daqui = (meses) => { const d = new Date(KV.hoje + 'T12:00:00'); d.setMonth(d.getMonth() + meses); return d.toISOString().slice(0, 10); };
+const progsDe = (t) => contas.filter((c) => c.titular === t).map((c) => c.programaId);
+function salvo(alvo, obj) {
+  alvo.innerHTML = `<div class="card"><h2 style="margin-bottom:8px">O que seria salvo</h2><p class="muted" style="margin:0 0 10px;font-size:14px">Rascunho: nada foi gravado.</p><div class="json">${JSON.stringify(obj, null, 2)}</div></div>`;
+}
+// campos que dependem do programa (categoria só na Azul, clube não existe na Livelo)
+function camposPrograma(prog) {
+  return `${prog === 'azul' ? `<div class="campo"><label for="cat">Categoria na Azul</label><select id="cat">${Object.entries(KV.categoriasAzul).map(([k, v]) => `<option value="${k}">${k} (${v} beneficiários)</option>`).join('')}</select></div>` : ''}
+    <div class="campo"><label for="numero">Número de fidelidade</label><input id="numero" inputmode="numeric" placeholder="opcional"></div>
+    ${prog !== 'livelo' ? `<div class="secao">Clube</div>
+      <label class="liga inteiro"><input type="checkbox" id="temclube"> Esta conta assina clube</label>
+      <div class="campo" data-clube><label for="plano">Pontos por mês</label><select id="plano"><option>1000</option><option selected>2000</option><option>3000</option><option>5000</option></select></div>
+      <div class="campo" data-clube><label for="mensal">Mensalidade (R$)</label><input id="mensal" inputmode="decimal" placeholder="ex.: 35,00"></div>` : ''}
+    <div class="secao">Saldo de hoje</div>
+    <div class="campo"><label for="saldo">Pontos que já tem</label><input id="saldo" inputmode="numeric" placeholder="0"><span class="ajuda">Entra como saldo inicial.</span></div>
+    <div class="campo"><label for="vence">Esses pontos vencem em</label><input id="vence" type="date" value="${daqui(24)}"></div>`;
+}
+function ligarClube(raiz) {
+  const cb = raiz.querySelector('#temclube'); if (!cb) return;
+  const t = () => raiz.querySelectorAll('[data-clube]').forEach((e) => e.classList.toggle('oculto', !cb.checked)); cb.onchange = t; t();
+}
+function coletar(raiz, base) {
+  const v = (id) => { const e = raiz.querySelector('#' + id); return e ? (e.type === 'checkbox' ? e.checked : e.value) : undefined; };
+  return { ...base, categoria: v('cat'), numero: v('numero') || null, clube: v('temclube') ? { pontosMes: +v('plano'), mensalidade: v('mensal') } : null,
+    saldoInicial: +String(v('saldo') || 0).replace(/\D/g, '') || 0, vence: v('vence') };
+}
+
+const variantes = {
+  // A: um formulário só; titular existente ou novo
+  A() {
+    app.innerHTML = `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a>
+      <div class="topo"><h1>Nova conta de pontos</h1></div>
+      <form class="card" id="f" style="max-width:680px"><div class="grade-campos">
+        <div class="secao">Titular</div>
+        <div class="campo inteiro"><label for="tit">Titular</label><select id="tit"><option value="__novo">+ Titular novo</option>${KV.titulares.map((t) => `<option>${t}</option>`).join('')}</select></div>
+        <div class="campo" data-novo><label for="tnome">Nome do titular</label><input id="tnome" placeholder="Nome completo"></div>
+        <div class="campo" data-novo><label for="tcpf">CPF do titular</label><input id="tcpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+        <div class="secao">Programa</div>
+        <div class="campo inteiro"><label for="prog">Programa</label><select id="prog">${KV.programas.map((p) => `<option value="${p.id}">${p.nome}</option>`).join('')}</select><span class="ajuda" id="jatem"></span></div>
+        <div id="porprog" style="display:contents"></div>
+      </div><div class="rodape-form"><a class="btn" href="contas.html">Cancelar</a><button class="btn primario" type="submit"><i data-lucide="check"></i>Cadastrar conta</button></div></form>
+      <div id="salvo" style="max-width:680px;margin-top:14px"></div>`;
+    const $ = (id) => app.querySelector('#' + id);
+    const atual = () => {
+      const novo = $('tit').value === '__novo';
+      app.querySelectorAll('[data-novo]').forEach((e) => e.classList.toggle('oculto', !novo));
+      const tem = novo ? [] : progsDe($('tit').value);
+      $('jatem').innerHTML = tem.includes($('prog').value) ? '<span style="color:var(--warn)">Esse titular já tem conta nesse programa.</span>' : tem.length ? `Já tem: ${tem.map((x) => KV.programa(x).nome).join(', ')}.` : '';
+      $('porprog').innerHTML = camposPrograma($('prog').value); ligarClube(app);
+    };
+    $('tit').onchange = atual; $('prog').onchange = atual; atual();
+    $('f').onsubmit = (e) => { e.preventDefault(); salvo($('salvo'), coletar(app, { titular: $('tit').value === '__novo' ? { nome: $('tnome').value, cpf: $('tcpf').value } : $('tit').value, programa: $('prog').value })); };
+  },
+
+  // B: começa pela pessoa; mostra o que ela já tem e só oferece o que falta
+  B() {
+    const passo = KVShell.param('passo') || '1';
+    const tit = KVShell.param('tit');
+    const prog = KVShell.param('prog');
+    const ir = (m) => { KVShell.irPara(m); variantes.B(); KVShell.icones(); };
+    const cab = `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a><div class="topo"><h1>Nova conta de pontos</h1></div>
+      <div class="passos">${['Titular', 'Programa', 'Detalhes'].map((t, i) => `<span class="passo ${+passo >= i + 1 ? 'on' : ''}"><b>${i + 1}</b>${t}</span>`).join('')}</div>`;
+    if (passo === '1') {
+      app.innerHTML = cab + `<div class="lista-tit">
+        <button class="op-tit novo" data-tit="__novo"><span class="av"><i data-lucide="user-plus"></i></span><b>Titular novo</b><span class="progs faint">Cadastrar uma pessoa que ainda não está no sistema</span></button>
+        ${KV.titulares.map((t) => `<button class="op-tit" data-tit="${t}"><span class="av">${fmt.iniciais(t)}</span><b>${t}</b>
+          <span class="progs">${progsDe(t).map((p) => `<span class="prog" data-p="${p}">${KV.programa(p).nome}</span>`).join('')}</span></button>`).join('')}</div>`;
+      app.querySelectorAll('[data-tit]').forEach((b) => b.onclick = () => ir({ passo: '2', tit: b.dataset.tit }));
+    } else if (passo === '2') {
+      const tem = tit === '__novo' ? [] : progsDe(tit);
+      app.innerHTML = cab + `<p class="muted" style="margin:-6px 0 16px">${tit === '__novo' ? 'Titular novo.' : `<b style="color:var(--text)">${tit}</b> já tem ${tem.length} programa${tem.length === 1 ? '' : 's'}.`} Escolha o programa da conta nova.</p>
+        <div class="progs-escolha">${KV.programas.map((p) => `<button class="op-prog" data-prog="${p.id}" ${tem.includes(p.id) ? 'disabled' : ''}>
+          <span class="prog" data-p="${p.id}" style="font-size:16px">${p.nome}</span><span class="r">${tem.includes(p.id) ? 'Já tem conta aqui' : p.renovacao}</span></button>`).join('')}</div>
+        ${tem.length === KV.programas.length ? '<div class="aviso info" style="margin-top:14px;max-width:900px">Esse titular já tem conta em todos os programas. <a href="#" onclick="history.back();return false">Escolher outro titular</a></div>' : ''}`;
+      app.querySelectorAll('[data-prog]').forEach((b) => b.onclick = () => ir({ passo: '3', prog: b.dataset.prog }));
+    } else {
+      app.innerHTML = cab + `<form class="card" id="f" style="max-width:680px"><h2 style="margin-bottom:16px">${tit === '__novo' ? 'Titular novo' : tit} · ${KV.programa(prog).nome}</h2><div class="grade-campos">
+        ${tit === '__novo' ? `<div class="campo"><label for="tnome">Nome do titular</label><input id="tnome"></div><div class="campo"><label for="tcpf">CPF</label><input id="tcpf" inputmode="numeric"></div>` : ''}
+        ${camposPrograma(prog)}</div>
+        <div class="rodape-form"><button type="button" class="btn" id="volta">Trocar o programa</button><button class="btn primario" type="submit"><i data-lucide="check"></i>Cadastrar conta</button></div></form>
+        <div id="salvo" style="max-width:680px;margin-top:14px"></div>`;
+      ligarClube(app);
+      app.querySelector('#volta').onclick = () => history.back();
+      app.querySelector('#f').onsubmit = (e) => { e.preventDefault(); salvo(app.querySelector('#salvo'), coletar(app, { titular: tit, programa: prog })); };
+    }
+  },
+
+  // C: janela rápida em cima da lista; detalhes (clube, categoria) se completam depois
+  C() {
+    app.innerHTML = `<div class="fundo"><div class="topo"><div><h1>Contas de pontos</h1><div class="muted">14 titulares</div></div>
+      <div class="acoes"><span class="btn primario"><i data-lucide="wallet"></i>Nova conta</span></div></div>
+      <div class="grade-tit" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">${KV.titulares.slice(0, 6).map((t) => `<div class="card" style="height:150px"><b>${t}</b></div>`).join('')}</div></div>
+      <button class="btn" id="reabrir" style="margin-top:18px">Abrir a janela de nova conta de novo</button>`;
+    let dlg = document.querySelector('dialog.janela'); if (!dlg) { dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg); }
+    const desenhar = () => {
+      dlg.innerHTML = `<header><div style="flex:1"><h2>Nova conta</h2><div class="sub">O essencial agora; clube e categoria dá pra completar depois</div></div>
+          <button class="btn icone" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></header>
+        <form class="corpo" id="fc"><div class="grade-campos">
+          <div class="campo inteiro"><label for="tit">Titular</label><input id="tit" list="tits" placeholder="Digite o nome; se não existir, vira titular novo"><datalist id="tits">${KV.titulares.map((t) => `<option value="${t}">`).join('')}</datalist></div>
+          <div class="campo"><label for="prog">Programa</label><select id="prog">${KV.programas.map((p) => `<option value="${p.id}">${p.nome}</option>`).join('')}</select></div>
+          <div class="campo"><label for="saldo">Saldo de hoje</label><input id="saldo" inputmode="numeric" placeholder="0"></div>
+          <div class="inteiro" id="dica"></div></div><div id="res" style="margin-top:12px"></div></form>
+        <footer><span class="faint" style="font-size:13px">Voltar ou Esc fecha</span><button class="btn primario" type="submit" form="fc"><i data-lucide="check"></i>Cadastrar</button></footer>`;
+      const $ = (id) => dlg.querySelector('#' + id);
+      const dica = () => { const t = $('tit').value.trim(); const existe = KV.titulares.includes(t);
+        $('dica').innerHTML = !t ? '' : !existe ? '<div class="aviso info">Titular novo: o CPF é pedido depois, na conta.</div>' : progsDe(t).includes($('prog').value) ? '<div class="aviso warn">Esse titular já tem conta nesse programa.</div>' : ''; };
+      $('tit').oninput = dica; $('prog').onchange = dica;
+      dlg.querySelector('[data-fechar]').onclick = () => KVShell.desfazer({ janela: 1 }, sinc);
+      $('fc').onsubmit = (e) => { e.preventDefault(); salvo($('res'), { titular: $('tit').value, programa: $('prog').value, saldoInicial: +$('saldo').value.replace(/\D/g, '') || 0, completarDepois: ['clube', 'categoria', 'numero de fidelidade'] }); };
+      KVShell.icones(); setTimeout(() => $('tit').focus(), 30);
+    };
+    const sinc = () => { if (KVShell.param('janela') === 'nova') { desenhar(); if (!dlg.open) dlg.showModal(); } else if (dlg.open) dlg.close(); };
+    dlg.oncancel = (e) => { e.preventDefault(); KVShell.desfazer({ janela: 1 }, sinc); };
+    app.querySelector('#reabrir').onclick = () => { KVShell.irPara({ janela: 'nova' }); sinc(); };
+    window.onpopstate = sinc;
+    if (KVShell.param('janela') !== 'nova') KVShell.irPara({ janela: 'nova' });
+    sinc();
+  },
+};
+
+KVShell.variacoes([
+  { k: 'A', nome: 'Formulário único' },
+  { k: 'B', nome: 'Começa pela pessoa' },
+  { k: 'C', nome: 'Janela rápida' },
+], (k) => { const d = document.querySelector('dialog.janela'); if (d && d.open && k !== 'C') d.close(); variantes[k](); });
+KVShell.aoVoltar(() => { if ((KVShell.param('v') || 'A') === 'B') { variantes.B(); KVShell.icones(); } });
+</script>
+</body>
+</html>

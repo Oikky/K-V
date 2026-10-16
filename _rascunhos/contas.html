@@ -6,7 +6,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=5">
+<link rel="stylesheet" href="shared/base.css?r=6">
 <style>
   .filtros { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
@@ -30,8 +30,8 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=5"></script>
-<script src="shared/shell.js?r=5"></script>
+<script src="shared/dados.js?r=6"></script>
+<script src="shared/shell.js?r=6"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -65,7 +65,7 @@ function desenhar() {
   const comAviso = new Set(KV.alertas().map((a) => a.conta));
   app.innerHTML = `<div class="topo"><div><h1>Contas de pontos</h1><div class="muted">${titulares.length} titulares · ${contas.length} contas</div></div>
       <div class="acoes"><a class="btn" href="entrada.html"><i data-lucide="plus"></i>Registrar entrada</a>
-      <button class="btn primario"><i data-lucide="wallet"></i>Nova conta</button></div></div>
+      <a class="btn primario" href="nova-conta.html"><i data-lucide="wallet"></i>Nova conta</a></div></div>
     <div class="filtros">
       <div class="seg" role="group" aria-label="Como ver">
         <button data-vista="titular" aria-pressed="${estado.vista === 'titular'}"><i data-lucide="users"></i>Por titular</button>

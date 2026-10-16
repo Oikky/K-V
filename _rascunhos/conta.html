@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conta · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=5">
+<link rel="stylesheet" href="shared/base.css?r=6">
 <style>
   .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
   .voltar:hover { color: var(--text); }
@@ -39,30 +39,16 @@
   .vaga.manual { border: 0; background: var(--teal-soft); color: var(--bg); }
   .vagas-resumo { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
   .regra { font-size: 13px; color: var(--text-3); margin-top: 8px; }
-  .janela { border: 0; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: min(720px, calc(100dvh - 48px)); border-radius: 24px; background: var(--surface-1); color: var(--text); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden; }
-  .janela:not([open]) { display: none; }
-  .janela::backdrop { background: rgb(1 8 18 / .62); }
-  .janela header { display: flex; align-items: center; gap: 10px; padding: 18px 18px 12px 22px; }
-  .janela header .sub { font-size: 13px; color: var(--text-2); font-weight: 600; }
-  .janela .corpo { padding: 0 22px 8px; overflow-y: auto; }
-  .janela footer { padding: 14px 22px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
   .novo-ben { display: grid; gap: 14px; padding: 4px 22px 8px; }
   .tag-manual { font-size: 11px; font-weight: 700; color: var(--teal-soft); margin-left: 6px; }
   .aviso { padding: 10px 12px; border-radius: 12px; font-size: 13.5px; margin-bottom: 10px; }
   .aviso.danger { background: var(--danger-bg); color: var(--danger); } .aviso.ok { background: var(--ok-bg); color: var(--ok); }
-  @media (max-width: 760px) {
-    .janela { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: 24px 24px 0 0; }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .janela[open] { animation: sobe .22s cubic-bezier(.2, .8, .2, 1); }
-    @keyframes sobe { from { opacity: 0; transform: translateY(16px); } }
-  }
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/dados.js?r=5"></script>
-<script src="shared/shell.js?r=5"></script>
+<script src="shared/dados.js?r=6"></script>
+<script src="shared/shell.js?r=6"></script>
 <script>
 const app = KVShell.montar('contas');
 const { fmt } = KV;
@@ -177,7 +163,7 @@ function desenhar() {
     <div class="topo"><div><h1>${c.titular}</h1><div class="muted"><span class="prog" data-p="${c.programaId}">${p.nome}</span>${c.categoria ? ` · categoria ${c.categoria}` : ''}${c.clube ? ` · clube de ${fmt.pts(c.clube)}/mês` : ''}</div></div>
     <div class="acoes"><select class="trocar" aria-label="Ver outra conta" onchange="location='?id='+this.value">
       ${KV.contas().map((x) => `<option value="${x.id}" ${x === c ? 'selected' : ''}>${x.titular} · ${KV.programa(x.programaId).nome}</option>`).join('')}</select>
-      <a class="btn" href="#"><i data-lucide="minus"></i>Saída</a><a class="btn primario" href="entrada.html?conta=${c.id}"><i data-lucide="plus"></i>Entrada</a></div></div>
+      <a class="btn" href="saida.html?conta=${c.id}"><i data-lucide="minus"></i>Saída</a><a class="btn primario" href="entrada.html?conta=${c.id}"><i data-lucide="plus"></i>Entrada</a></div></div>
     <div class="extrato">
       <section class="card"><div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:14px">
         <div><div class="muted" style="font-size:13px">Saldo</div><div class="saldo-grande num">${fmt.pts(c.saldo)}<small>pts</small></div></div>

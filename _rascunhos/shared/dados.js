@@ -37,6 +37,7 @@
     'Alice Guimarães', 'Bernardo Leal', 'Cecília Prates', 'Davi Fonseca', 'Estela Marins',
     'Felipe Aguiar', 'Giovana Peixoto', 'Hugo Salles', 'Íris Calado', 'Jorge Mattos',
   ].map((nome) => ({ nome, cpf: cpfMascara() }));
+  const CPF_TITULAR = Object.fromEntries(NOMES_TITULARES.map((n) => [n, cpfMascara()]));
   const ROTAS = ['GRU → LIS', 'GIG → MIA', 'BSB → GRU', 'CNF → SDU', 'GYN → CGH', 'REC → GRU', 'POA → EZE', 'GRU → MCO', 'SSA → GIG', 'FOR → LIS', 'GRU → SCL', 'VCP → CNF'];
 
   const ENTRADA_TIPOS = {
@@ -230,6 +231,18 @@
     conta: (id) => contas.find((c) => c.id === id) || [...contas].sort((a, b) =>
       ((beneficiarios(b) || { usados: 0 }).usados + (vencendo(b).pontos ? 10 : 0)) - ((beneficiarios(a) || { usados: 0 }).usados + (vencendo(a).pontos ? 10 : 0)))[0],
     programa, beneficiarios, vencendo, custoReal, alertas, diasAte, fmt,
+    cpfTitular: (nome) => CPF_TITULAR[nome] || '—',
+    custoRealPrograma: (id) => {
+      const ents = contas.filter((c) => c.programaId === id).flatMap((c) => c.movimentos).filter((m) => m.lado === 'entrada' && m.tipo !== 'inicial' && m.tipo !== 'estorno');
+      const pts = ents.reduce((s2, m) => s2 + m.pontos, 0);
+      return pts ? ents.reduce((s2, m) => s2 + (m.custo || 0), 0) / pts : null;
+    },
+    // pontos que uma saída consumiria, dos lotes que vencem antes
+    lotesConsumidos: (conta, pontos) => {
+      let falta = pontos; const usados = [];
+      conta.lotes.forEach((l) => { if (falta <= 0) return; const usa = Math.min(l.resta, falta); falta -= usa; usados.push({ ...l, usa }); });
+      return { usados, falta: Math.max(0, falta) };
+    },
     adicionarBeneficiario: (contaId, b) => { const c = contas.find((x) => x.id === contaId); (c.manuais = c.manuais || []).push(b); return c; },
     valorEmReais: (c) => c.saldo * programa(c.programaId).valorMilha,
   };

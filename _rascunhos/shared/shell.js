@@ -10,7 +10,7 @@
     { id: 'clientes', nome: 'Clientes', icone: 'users' },
     { id: 'financeiro', nome: 'Financeiro', icone: 'chart-column' },
     { id: 'ponto', nome: 'Ponto', icone: 'timer' },
-    { id: 'config', nome: 'Configurações', icone: 'settings' },
+    { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html' },
   ];
 
   function montar(ativo) {

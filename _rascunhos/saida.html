@@ -1,0 +1,196 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL, rodada 4. Pergunta: como registrar saída de pontos (transferência, expiração, ajuste)?
+     A emissão não entra aqui: ela nasce no atendimento. Nada é salvo. ?v=A|B|C -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registrar saída · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=6">
+<style>
+  .form-dupla { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; max-width: 1020px; }
+  @media (max-width: 960px) { .form-dupla { grid-template-columns: 1fr; } }
+  .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grade-campos .inteiro { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grade-campos { grid-template-columns: 1fr; } }
+  .rodape-form { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+  .oculto { display: none !important; }
+  .previa { display: grid; gap: 14px; position: sticky; top: 20px; }
+  .lote { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .lote .faint { font-size: 12.5px; }
+
+  /* B */
+  .ponte { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: stretch; }
+  .ponte .lado-p { min-width: 0; background: var(--surface-1); border-radius: var(--r-card); padding: 18px; display: grid; gap: 12px; align-content: start; }
+  .ponte .meio { display: grid; place-items: center; color: var(--orange); }
+  .ponte .meio svg { width: 28px; height: 28px; }
+  .grande { font: 800 30px var(--font-brand); letter-spacing: -0.02em; }
+  @media (max-width: 760px) { .ponte { grid-template-columns: 1fr; } .ponte .meio { transform: rotate(90deg); } }
+  .tipo-tabs { margin-bottom: 18px; }
+  .exp-linha { display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .exp-linha:first-child { border-top: 0; }
+  @media (max-width: 640px) { .exp-linha { grid-template-columns: auto 1fr; } .exp-linha .btn { grid-column: 1 / -1; justify-self: start; } }
+
+  /* C */
+  .fundo-conta { opacity: .5; pointer-events: none; }
+  .chips-tipo { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip-tipo { height: 40px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; font-weight: 700; display: inline-flex; gap: 8px; align-items: center; color: var(--text-2); }
+  .chip-tipo[aria-pressed="true"] { border-color: var(--orange); color: var(--text); background: var(--orange-soft); }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=6"></script>
+<script src="shared/shell.js?r=6"></script>
+<script>
+const app = KVShell.montar('contas');
+const { fmt } = KV;
+const contas = KV.contas();
+const nomeConta = (c) => `${c.titular} · ${KV.programa(c.programaId).nome}`;
+const opcoesConta = (sel, filtro = () => true) => contas.filter(filtro).map((c) => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${nomeConta(c)} (${fmt.pts(c.saldo)})</option>`).join('');
+const num = (v) => +String(v || '').replace(/\D/g, '') || 0;
+const TIPOS = [
+  { id: 'transferencia', nome: 'Transferência', icone: 'arrow-left-right', exp: 'Pontos enviados pra outro programa. Vira entrada na conta de destino.' },
+  { id: 'expiracao', nome: 'Expiração', icone: 'hourglass', exp: 'Pontos que venceram sem uso.' },
+  { id: 'ajuste', nome: 'Ajuste', icone: 'scale', exp: 'Correção quando o saldo do sistema não bate com o do programa.' },
+];
+function salvo(alvo, obj) {
+  alvo.innerHTML = `<div class="card"><h2 style="margin-bottom:8px">O que seria salvo</h2><p class="muted" style="margin:0 0 10px;font-size:14px">Rascunho: nada foi gravado.</p><div class="json">${JSON.stringify(obj, null, 2)}</div></div>`;
+  KVShell.icones();
+}
+function previaLotes(c, pts) {
+  const r = KV.lotesConsumidos(c, pts);
+  return `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:6px">Saldo de ${c.titular.split(' ')[0]} na ${KV.programa(c.programaId).nome}</div>
+    <div class="de-para num"><span class="de">${fmt.pts(c.saldo)}</span><i data-lucide="arrow-right"></i><span style="${r.falta ? 'color:var(--danger)' : ''}">${fmt.pts(c.saldo - pts)}</span></div>
+    ${r.falta ? `<div class="aviso danger" style="margin-top:12px">Faltam ${fmt.pts(r.falta)} pontos: o saldo vai ficar negativo. O sistema deixa registrar, mas confira.</div>` : ''}
+    ${pts ? `<h3 style="margin:16px 0 4px">Sai destes lotes</h3><div class="faint" style="font-size:13px;margin-bottom:4px">Primeiro os que vencem antes.</div>
+      ${r.usados.map((l) => `<div class="lote"><span>${fmt.pts(l.usa)} pts<br><span class="faint">${l.origem}</span></span><span class="faint num">vence ${fmt.data(l.vence)}</span></div>`).join('')}` : ''}</div>`;
+}
+
+const variantes = {
+  // A: o mesmo formulário da entrada (escolhido na rodada 1), com prévia dos lotes que saem
+  A() {
+    app.innerHTML = `<a class="voltar" href="conta.html"><i data-lucide="arrow-left"></i>Voltar</a>
+      <div class="topo"><h1>Registrar saída de pontos</h1></div>
+      <div class="form-dupla"><form class="card" id="f"><div class="grade-campos">
+        <div class="campo inteiro"><label for="conta">Conta</label><select id="conta">${opcoesConta(KVShell.param('conta') || contas[0].id)}</select></div>
+        <div class="campo"><label for="tipo">Tipo</label><select id="tipo">${TIPOS.map((t) => `<option value="${t.id}">${t.nome}</option>`).join('')}<option disabled>Emissão (registrada no atendimento)</option></select></div>
+        <div class="campo"><label for="data">Data</label><input id="data" type="date" value="${KV.hoje}"></div>
+        <div class="campo"><label for="pontos">Pontos que saíram</label><input id="pontos" inputmode="numeric" value="20000"></div>
+        <div class="campo" data-so="transferencia"><label for="destino">Foram pra</label><select id="destino"></select></div>
+        <div class="campo" data-so="transferencia"><label for="bonus">Bônus da transferência (%)</label><input id="bonus" inputmode="numeric" value="80"></div>
+        <div class="campo inteiro" data-so="transferencia"><div class="aviso info" id="chegam"></div></div>
+        <div class="campo inteiro" data-so="ajuste"><label for="motivo">Motivo do ajuste</label><input id="motivo" placeholder="ex.: saldo no site da Smiles estava menor"></div>
+      </div><div class="rodape-form"><a class="btn" href="conta.html">Cancelar</a><button class="btn primario" type="submit"><i data-lucide="check"></i>Registrar saída</button></div></form>
+      <aside class="previa" id="previa"></aside></div>`;
+    const $ = (id) => app.querySelector('#' + id);
+    const atualizar = () => {
+      const c = KV.conta($('conta').value); const tipo = $('tipo').value; const pts = num($('pontos').value);
+      app.querySelectorAll('[data-so]').forEach((e) => e.classList.toggle('oculto', e.dataset.so !== tipo));
+      const destAtual = $('destino').value;
+      $('destino').innerHTML = opcoesConta(destAtual, (x) => x !== c && x.programaId !== 'livelo');
+      const d = KV.conta($('destino').value); const chega = Math.round(pts * (1 + num($('bonus').value) / 100));
+      $('chegam').innerHTML = `Chegam <b class="num">${fmt.pts(chega)} pts</b> na ${KV.programa(d.programaId).nome} de ${d.titular}. A entrada lá é criada junto.`;
+      $('previa').innerHTML = previaLotes(c, pts); KVShell.icones();
+    };
+    app.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', atualizar));
+    $('f').onsubmit = (e) => { e.preventDefault(); const tipo = $('tipo').value; const pts = num($('pontos').value);
+      salvo($('previa'), { saida: { conta: $('conta').value, tipo, pontos: pts, data: $('data').value, ...(tipo === 'ajuste' ? { motivo: $('motivo').value } : {}) },
+        ...(tipo === 'transferencia' ? { entradaNoDestino: { conta: $('destino').value, tipo: 'transferencia', pontos: Math.round(pts * (1 + num($('bonus').value) / 100)), bonusPct: num($('bonus').value) } } : {}) }); };
+    atualizar();
+  },
+
+  // B: cada tipo com a forma que faz sentido pra ele (abas que entram no histórico)
+  B() {
+    const tipo = KVShell.param('tipo') || 'transferencia';
+    const cab = `<a class="voltar" href="conta.html"><i data-lucide="arrow-left"></i>Voltar</a>
+      <div class="topo"><h1>Registrar saída de pontos</h1></div>
+      <div class="seg tipo-tabs" role="group" aria-label="Tipo de saída">${TIPOS.map((t) => `<button data-t="${t.id}" aria-pressed="${t.id === tipo}"><i data-lucide="${t.icone}"></i>${t.nome}</button>`).join('')}</div>
+      <p class="muted" style="margin:-6px 0 18px">${TIPOS.find((t) => t.id === tipo).exp}</p>`;
+    if (tipo === 'transferencia') {
+      app.innerHTML = cab + `<div class="ponte">
+        <div class="lado-p"><h3>Sai de</h3><div class="campo"><label for="orig">Conta</label><select id="orig">${opcoesConta(contas.find((c) => c.programaId === 'livelo').id)}</select></div>
+          <div class="campo"><label for="pts">Pontos</label><input id="pts" inputmode="numeric" value="30000"></div><div class="muted num" id="saldoO"></div></div>
+        <div class="meio"><i data-lucide="arrow-right"></i></div>
+        <div class="lado-p"><h3>Chega em</h3><div class="campo"><label for="dest">Conta</label><select id="dest"></select></div>
+          <div class="campo"><label for="bon">Bônus (%)</label><input id="bon" inputmode="numeric" value="100"></div>
+          <div><div class="faint" style="font-size:13px">Chegam</div><div class="grande num" id="chegam"></div></div></div></div>
+        <div class="rodape-form" style="justify-content:flex-start"><button class="btn primario" id="ok"><i data-lucide="check"></i>Registrar transferência</button></div><div id="salvo" style="margin-top:14px;max-width:720px"></div>`;
+      const $ = (id) => app.querySelector('#' + id);
+      const atual = () => {
+        const o = KV.conta($('orig').value); const pts = num($('pts').value);
+        const d0 = $('dest').value; $('dest').innerHTML = opcoesConta(d0, (x) => x !== o && x.programaId !== 'livelo');
+        $('saldoO').innerHTML = `Saldo ${fmt.pts(o.saldo)} → <b>${fmt.pts(o.saldo - pts)}</b>`;
+        $('chegam').textContent = fmt.pts(Math.round(pts * (1 + num($('bon').value) / 100))) + ' pts';
+      };
+      app.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', atual)); atual();
+      $('ok').onclick = () => salvo($('salvo'), { saida: { conta: $('orig').value, tipo: 'transferencia', pontos: num($('pts').value) }, entrada: { conta: $('dest').value, tipo: 'transferencia', pontos: Math.round(num($('pts').value) * (1 + num($('bon').value) / 100)) } });
+    } else if (tipo === 'expiracao') {
+      const lotes = contas.flatMap((c) => c.lotes.filter((l) => KV.diasAte(l.vence) <= 60).map((l) => ({ c, l }))).sort((a, b) => a.l.vence.localeCompare(b.l.vence));
+      app.innerHTML = cab + `<div class="card" style="padding:6px 0;max-width:820px">${lotes.map(({ c, l }, i) => { const d = KV.diasAte(l.vence); return `<div class="exp-linha">
+          <i data-lucide="hourglass" style="color:var(--warn)"></i><span><b>${fmt.pts(l.resta)} pts</b> · ${nomeConta(c)}<br><span class="faint" style="font-size:13px">${l.origem} · vence ${fmt.data(l.vence)}</span></span>
+          <span class="chip ${d < 0 ? 'danger' : 'warn'}">${d < 0 ? `venceu há ${-d} dias` : `em ${d} dias`}</span>
+          <button class="btn" data-exp="${i}">Marcar como expirado</button></div>`; }).join('') || '<p class="muted" style="padding:16px">Nenhum lote vencendo.</p>'}</div>
+        <p class="faint" style="font-size:13px">Lotes vencidos ou vencendo em 60 dias, de todas as contas.</p><div id="salvo" style="margin-top:14px;max-width:820px"></div>`;
+      app.querySelectorAll('[data-exp]').forEach((b) => b.onclick = () => { const { c, l } = lotes[+b.dataset.exp]; salvo(app.querySelector('#salvo'), { conta: c.id, tipo: 'expiracao', pontos: l.resta, lote: l }); });
+    } else {
+      app.innerHTML = cab + `<div class="card" style="max-width:620px"><div class="grade-campos">
+        <div class="campo inteiro"><label for="conta">Conta</label><select id="conta">${opcoesConta(contas[0].id)}</select></div>
+        <div class="campo"><label>Saldo no sistema</label><div class="grande num" id="sist" style="font-size:22px;padding-top:8px"></div></div>
+        <div class="campo"><label for="real">Saldo no site do programa hoje</label><input id="real" inputmode="numeric" placeholder="digite o que aparece lá"></div>
+        <div class="campo inteiro"><div class="aviso info" id="dif">Digite o saldo que aparece no site e o sistema calcula o ajuste.</div></div>
+        <div class="campo inteiro"><label for="motivo">Motivo (opcional)</label><input id="motivo" placeholder="ex.: pontos de bônus que não lançamos"></div></div>
+        <div class="rodape-form"><button class="btn primario" id="ok"><i data-lucide="check"></i>Registrar ajuste</button></div></div><div id="salvo" style="margin-top:14px;max-width:620px"></div>`;
+      const $ = (id) => app.querySelector('#' + id);
+      const atual = () => { const c = KV.conta($('conta').value); $('sist').textContent = fmt.pts(c.saldo); if (!$('real').value) return;
+        const d = num($('real').value) - c.saldo;
+        $('dif').innerHTML = d === 0 ? 'Bate certinho. Não precisa de ajuste.' : d < 0 ? `O programa tem <b class="num">${fmt.pts(-d)}</b> a menos: registra uma <b>saída</b> de ajuste.` : `O programa tem <b class="num">${fmt.pts(d)}</b> a mais: isso vira uma <b>entrada</b> (bônus), não uma saída.`; };
+      app.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', atual)); atual();
+      $('ok').onclick = () => { const c = KV.conta($('conta').value); salvo($('salvo'), { conta: c.id, tipo: 'ajuste', saldoSistema: c.saldo, saldoPrograma: num($('real').value), diferenca: num($('real').value) - c.saldo, motivo: $('motivo').value }); };
+    }
+    app.querySelectorAll('[data-t]').forEach((b) => b.onclick = () => { if (b.dataset.t !== tipo) { KVShell.irPara({ tipo: b.dataset.t }); variantes.B(); KVShell.icones(); } });
+  },
+
+  // C: janela em cima da conta (como os beneficiários)
+  C() {
+    const c = KV.conta(KVShell.param('id'));
+    app.innerHTML = `<div class="fundo-conta"><a class="voltar" href="#"><i data-lucide="arrow-left"></i>Contas de pontos</a>
+      <div class="topo"><div><h1>${c.titular}</h1><div class="muted">${KV.programa(c.programaId).nome}</div></div>
+      <div class="acoes"><span class="btn"><i data-lucide="minus"></i>Saída</span><span class="btn primario"><i data-lucide="plus"></i>Entrada</span></div></div>
+      <div class="card" style="max-width:720px"><div class="muted" style="font-size:13px">Saldo</div><div class="grande num">${fmt.pts(c.saldo)} pts</div></div></div>
+      <button class="btn" id="reabrir" style="margin-top:18px">Abrir a janela de saída de novo</button>`;
+    let dlg = document.querySelector('dialog.janela'); if (!dlg) { dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg); }
+    let tipo = 'transferencia';
+    const desenhar = () => {
+      dlg.innerHTML = `<header><div style="flex:1"><h2>Saída de pontos</h2><div class="sub">${nomeConta(c)} · saldo ${fmt.pts(c.saldo)}</div></div>
+          <button class="btn icone" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></header>
+        <form class="corpo" id="fs"><div class="chips-tipo">${TIPOS.map((t) => `<button type="button" class="chip-tipo" data-t="${t.id}" aria-pressed="${t.id === tipo}"><i data-lucide="${t.icone}"></i>${t.nome}</button>`).join('')}</div>
+          <div class="grade-campos">
+            <div class="campo"><label for="p">Pontos</label><input id="p" inputmode="numeric" value="${tipo === 'expiracao' ? (KV.vencendo(c).pontos || '') : '10000'}"></div>
+            <div class="campo"><label for="d">Data</label><input id="d" type="date" value="${KV.hoje}"></div>
+            ${tipo === 'transferencia' ? `<div class="campo inteiro"><label for="dst">Foram pra</label><select id="dst">${opcoesConta(null, (x) => x !== c && x.programaId !== 'livelo')}</select></div>` : ''}
+            ${tipo === 'ajuste' ? `<div class="campo inteiro"><label for="m">Motivo</label><input id="m" placeholder="ex.: saldo do site menor"></div>` : ''}
+          </div><div id="res" style="margin-top:12px"></div></form>
+        <footer><span class="faint" style="font-size:13px">${TIPOS.find((t) => t.id === tipo).exp}</span><button class="btn primario" type="submit" form="fs"><i data-lucide="check"></i>Registrar</button></footer>`;
+      dlg.querySelectorAll('[data-t]').forEach((b) => b.onclick = () => { tipo = b.dataset.t; desenhar(); });
+      dlg.querySelector('[data-fechar]').onclick = () => KVShell.desfazer({ janela: 1 }, sinc);
+      dlg.querySelector('#fs').onsubmit = (e) => { e.preventDefault(); salvo(dlg.querySelector('#res'), { conta: c.id, tipo, pontos: num(dlg.querySelector('#p').value), data: dlg.querySelector('#d').value }); };
+      KVShell.icones();
+    };
+    const sinc = () => { if (KVShell.param('janela') === 'saida') { desenhar(); if (!dlg.open) dlg.showModal(); } else if (dlg.open) dlg.close(); };
+    dlg.oncancel = (e) => { e.preventDefault(); KVShell.desfazer({ janela: 1 }, sinc); };
+    app.querySelector('#reabrir').onclick = () => { KVShell.irPara({ janela: 'saida' }); sinc(); };
+    window.onpopstate = sinc;
+    if (KVShell.param('janela') !== 'saida') { KVShell.irPara({ janela: 'saida' }); }
+    sinc();
+  },
+};
+
+KVShell.variacoes([
+  { k: 'A', nome: 'Formulário com prévia dos lotes' },
+  { k: 'B', nome: 'Uma forma por tipo' },
+  { k: 'C', nome: 'Janela em cima da conta' },
+], (k) => { const d = document.querySelector('dialog.janela'); if (d && d.open && k !== 'C') d.close(); variantes[k](); });
+KVShell.aoVoltar(() => { const k = KVShell.param('v') || 'A'; if (k === 'B') { variantes.B(); KVShell.icones(); } });
+</script>
+</body>
+</html>
