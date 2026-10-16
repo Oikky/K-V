@@ -10,3 +10,6 @@ desktop.ini
 .vscode/
 node_modules/
 .playwright-mcp/
+
+# Referências de terceiros (direitos autorais): só locais, não vão pro repositório público
+referencias/
