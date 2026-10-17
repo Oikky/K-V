@@ -5,6 +5,7 @@ import { executar, Recusa } from './acoes.js';
 import { estado } from './estado.js';
 import { listarOrcamentos, abrirOrcamento } from './orcamentos.js';
 import './acoes/pesquisa.js';
+import './acoes/proposta.js';
 import './acoes/base.js';
 import './acoes/orcamentos.js';
 
