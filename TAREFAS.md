@@ -38,7 +38,7 @@ Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do S
 - [x] Fila de orçamentos lendo do banco: pegar, mudar etapa, duplicar, apagar; atualiza sozinha a cada 15 s. `orcamento.html` por enquanto só mostra o pedido.
 - [x] Atendimento inteiro no banco: novo orçamento, pesquisa, proposta (salva sozinha), fechamento (pessoas pelo CPF) e emissão (saída de pontos na conta, lote que vence antes primeiro).
 - [x] Contas de pontos, clientes, ponto e configurações dos programas no banco.
-- [ ] **Publicar:** `npm run banco:nuvem` (migração 0003) e `npm run deploy`, dentro de `sistema/`.
+- [x] Publicado (migração 0003 + deploy, 17/10).
 - [ ] Painel e financeiro (ainda não têm rascunho).
 - [ ] Trazer os dados do Superhuman Docs.
 
