@@ -51,7 +51,7 @@ Pessoa que compra passagem com a K&V. Um titular também pode ser cliente, mas a
 _Evitar_: titular, conta
 
 **Contato**:
-Quem pediu o orçamento, anotado só com nome e WhatsApp. É pelo WhatsApp que se acham os orçamentos antigos da mesma pessoa. Se ela fechar, vira cliente.
+Quem pediu o orçamento, anotado com nome e, se tiver, WhatsApp (o WhatsApp deixou de ser obrigatório em 2026-10-17). É pelo WhatsApp que se acham os orçamentos antigos da mesma pessoa. Se ela fechar, vira cliente.
 _Evitar_: lead, cliente (antes do fechamento)
 
 **Beneficiário**:

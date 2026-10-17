@@ -7,7 +7,7 @@ import '../acoes/orcamentos.js';
 import { transcrever, interpretar } from './ia.js';
 
 const BOT = { email: 'bot', nome: 'Bot do Telegram', papel: 'dono' };
-const ESPERA_MIN = 15; // quanto tempo um pedido sem nome/WhatsApp espera o complemento
+const ESPERA_MIN = 15; // quanto tempo um pedido sem o nome do cliente espera o complemento
 
 export default {
   async fetch(req, env, ctx) {
@@ -44,7 +44,7 @@ const chatsLiberados = (env) => new Set(String(env.KV_CHATS || '').split(',').ma
 
 const AJUDA = 'Oi! Sou o bot da K&amp;V. Me mande o pedido do cliente, escrito ou em áudio, do jeito que você falaria. '
   + 'Ex.: "A Maria Souza, (11) 91234-5678, quer ir pra Lisboa dia 12/11 com o marido, volta dia 26, só voo direto."\n\n'
-  + 'Nome e WhatsApp do cliente são obrigatórios: sem eles eu pergunto antes.\n\n'
+  + 'O nome do cliente é obrigatório: sem ele eu pergunto antes. O WhatsApp é opcional.\n\n'
   + 'Eu mostro o resumo e o pedido só entra na fila quando você tocar em <b>Confirmar</b>.\n/desfazer apaga o último que entrou.';
 
 async function tratar(env, upd) {
@@ -80,7 +80,7 @@ async function tratar(env, upd) {
   }
   if (!texto) return responder(env, chat, 'Me mande o pedido em texto ou áudio.');
 
-  // pedido que ficou esperando nome e WhatsApp: a mensagem nova completa o anterior
+  // pedido que ficou esperando o nome do cliente: a mensagem nova completa o anterior
   const quem = `${chat}:${msg.from?.id || 0}`;
   const antes = await env.DB.prepare("SELECT dados FROM bot_pendentes WHERE chat_id = ? AND situacao = 'faltando' AND expira > ?").bind(quem, agora()).first();
   let veioDeAudio = !!voz;
@@ -98,20 +98,17 @@ async function tratar(env, upd) {
     return responder(env, chat, 'Não entendi isso como um pedido de viagem. Me diga pra onde, quando e quantas pessoas.');
   }
 
-  // nome e WhatsApp são obrigatórios: sem eles o pedido espera o complemento
-  const falta = [];
-  if (!String(p.nome_contato || '').trim()) falta.push('o nome do cliente');
-  if (String(p.whatsapp || '').replace(/\D/g, '').length < 10) falta.push('o WhatsApp com DDD');
-  if (falta.length) {
+  // o nome é obrigatório (o WhatsApp não, decidido em 2026-10-17): sem ele o pedido espera o complemento
+  if (!String(p.nome_contato || '').trim()) {
     const expira = new Date(Date.now() + ESPERA_MIN * 60e3).toISOString();
     await env.DB.prepare("INSERT OR REPLACE INTO bot_pendentes (chat_id, dados, situacao, expira) VALUES (?, ?, 'faltando', ?)")
       .bind(quem, JSON.stringify({ texto, audio: veioDeAudio }), expira).run();
-    return responder(env, chat, `Entendi o pedido, mas falta ${falta.join(' e ')}. Me manda que eu completo. Ex.: "Maria Souza, (11) 91234-5678"`);
+    return responder(env, chat, 'Entendi o pedido, mas falta o nome do cliente. Me manda que eu completo. Ex.: "Maria Souza"');
   }
 
   // tudo certo: mostra o resumo e espera o Confirmar
   const dados = {
-    contato: { nome: p.nome_contato.trim(), whatsapp: p.whatsapp },
+    contato: { nome: p.nome_contato.trim(), whatsapp: p.whatsapp || '' },
     trechos: p.trechos.map((t) => ({ de: t.de.toUpperCase(), para: t.para.toUpperCase(), data: t.data, janela: t.data_flexivel })),
     passageiros: { adultos: Math.max(p.adultos, 0), criancas: Math.max(p.criancas, 0), bebes: Math.max(p.bebes, 0) },
     especiais: p.pedidos_especiais, observacao: p.observacao, faltando: p.faltando,
