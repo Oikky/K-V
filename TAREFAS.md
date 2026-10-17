@@ -29,6 +29,8 @@ Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do S
 ## Demonstração de IA (2026-10-17)
 - [x] **Bot do Telegram** (`bot/bot.py`, `bot/Ligar bot.bat`): o dono manda o pedido em texto ou áudio; o áudio vira texto no PC (faster-whisper), a Claude monta o orçamento e ele entra na fila como Novo (`_rascunhos/dados/pedidos.json`, fora do git). Só pra mostrar a ideia ao dono; não é o sistema de verdade.
 
+- [ ] **O dono aprovou o bot (2026-10-17) e quer levar adiante.** Definir com o usuário: escopo (bot de verdade, sistema de verdade ou os dois), onde roda e onde ficam os dados, mantendo custo zero.
+
 ## Futuro (só depois do sistema todo montado)
 A IA serve pra automatizar processos manuais chatos que já existem. Então primeiro vem o fluxo manual completo.
 
