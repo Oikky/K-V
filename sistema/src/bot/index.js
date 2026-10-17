@@ -169,7 +169,13 @@ async function desfazer(env, chat) {
 }
 
 // ---------- resumo do pedido ----------
-const dataBr = (iso) => { const [, m, d] = String(iso).split('-'); return d && m ? `${d}/${m}` : iso; };
+// data de outro ano mostra o ano junto (27/12 e 01/01/27), pra virada de ano não confundir
+const dataBr = (iso) => {
+  const [a, m, d] = String(iso).split('-');
+  if (!d || !m) return iso;
+  const anoAtual = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 4);
+  return a === anoAtual ? `${d}/${m}` : `${d}/${m}/${a.slice(2)}`;
+};
 function resumo(o) {
   const { adultos, criancas, bebes } = o.passageiros;
   const pessoas = [adultos && `${adultos} adulto${adultos > 1 ? 's' : ''}`, criancas && `${criancas} criança${criancas > 1 ? 's' : ''}`,
