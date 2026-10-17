@@ -9,8 +9,9 @@ import './acoes/proposta.js';
 import './acoes/pessoas.js';
 import './acoes/fechamento.js';
 import './acoes/emissao.js';
+import './acoes/contas.js';
 import { listarPessoas, viajaCom } from './pessoas.js';
-import { contasCompletas } from './contas.js';
+import { contasCompletas, contaDetalhe } from './contas.js';
 import './acoes/base.js';
 import './acoes/orcamentos.js';
 
@@ -33,10 +34,14 @@ export default {
           return o ? json(o) : json({ erro: 'Orçamento não encontrado (ou já saiu da sua fila).' }, 404);
         }
         // só o dono: cadastro de pessoas e contas de pontos
-        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
+        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
         if (url.pathname === '/api/pessoas' && req.method === 'GET') return json(await listarPessoas(env));
         if (url.pathname === '/api/pessoas/juntos' && req.method === 'GET') return json(await viajaCom(env, Number(url.searchParams.get('id'))));
         if (url.pathname === '/api/contas' && req.method === 'GET') return json(await contasCompletas(env, { programa: url.searchParams.get('programa') || undefined }));
+        if (url.pathname === '/api/conta' && req.method === 'GET') {
+          const c = await contaDetalhe(env, Number(url.searchParams.get('id')));
+          return c ? json(c) : json({ erro: 'Conta não encontrada' }, 404);
+        }
         if (url.pathname === '/api/acao' && req.method === 'POST') {
           return json({ ok: true, resultado: await executar(env, usuario, await req.json()) });
         }
