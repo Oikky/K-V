@@ -227,16 +227,19 @@ def tratar(msg):
     chat_id = msg["chat"]["id"]
     texto = (msg.get("text") or msg.get("caption") or "").strip()
     grupo = msg["chat"]["type"] in ("group", "supergroup")
+    # num grupo liberado (feito pra mandar pedidos), toda mensagem e todo áudio vão pro bot, sem precisar marcar.
+    # Se não for pedido de viagem e ninguém chamou o bot, ele fica quieto em vez de responder "não entendi".
+    chamado = not grupo or falou_comigo(msg, texto)
     if grupo:
-        if not falou_comigo(msg, texto):
+        if str(chat_id) not in CHATS and not chamado:
             return
         texto = texto.replace(f"@{EU.get('username', '')}", "").strip()
     if texto.startswith("/start") or texto.startswith("/ajuda"):
         extra = ""
         if str(chat_id) not in CHATS:
             extra = f"\n\nNúmero deste {'grupo' if grupo else 'chat'}: {chat_id}"
-        if grupo:
-            extra += f"\n\nNo grupo, me chame com @{EU.get('username')} na mensagem ou responda a uma mensagem minha (vale com áudio também)."
+        elif grupo:
+            extra = "\n\nNeste grupo eu leio todas as mensagens e áudios: é só mandar o pedido, sem me marcar."
         responder(chat_id, AJUDA + extra)
         return
     if CHATS and str(chat_id) not in CHATS:
@@ -267,11 +270,13 @@ def tratar(msg):
             responder(chat_id, "Não consegui entender o áudio. Pode mandar de novo ou escrever?")
             return
         responder(chat_id, f"Entendi assim: \"{texto}\"")
-    if not texto:
-        responder(chat_id, "Me mande o pedido em texto ou áudio.")
+    if not texto:  # foto, figurinha, alguém entrando no grupo...
+        if chamado:
+            responder(chat_id, "Me mande o pedido em texto ou áudio.")
         return
 
-    telegram("sendChatAction", chat_id=chat_id, action="typing")
+    if chamado or voz:
+        telegram("sendChatAction", chat_id=chat_id, action="typing")
     try:
         p = interpretar(texto)
     except anthropic.APIConnectionError:
@@ -288,6 +293,8 @@ def tratar(msg):
         responder(chat_id, "A IA não quis processar essa mensagem. Pode reescrever?")
         return
     if not p.e_pedido_de_viagem or not p.trechos:
+        if not chamado and not voz:
+            return  # conversa normal do grupo: fica quieto
         responder(chat_id, "Não entendi isso como um pedido de viagem. Me diga pra onde, quando e quantas pessoas.")
         return
     o = salvar(p, texto, chat_id, bool(voz))
