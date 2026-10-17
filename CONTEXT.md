@@ -73,7 +73,7 @@ Regra pela qual um programa libera vagas de beneficiário. Muda de programa pra 
 - **TudoAzul**: 5 CPFs (6 a 8 conforme a categoria da conta); não zera sozinho. A troca é manual, com 30 dias de carência antes de emitir pro CPF novo.
 
 **Valor da milha**:
-Preço de 1 milha de um programa, definido pelo dono (ex.: Smiles R$ 0,016). É o número usado nas cotações. Anotado por milha, não por milheiro.
+Preço de 1 milha de um programa, definido pelo dono (ex.: Smiles R$ 0,016). É com ele que se monta o preço pro cliente: milhas × valor da milha + taxa. O das configurações é só o padrão, que vem sempre; em cada combinação da proposta o dono pode mudar (decidido em 2026-10-17). Anotado por milha, não por milheiro.
 _Evitar_: milheiro (usar só quando for de fato o preço de 1.000)
 
 **Custo real da milha**:
@@ -155,7 +155,7 @@ Milhas × valor da milha + taxa. É quanto a opção custa pra K&V quando sai em
 Quanto a passagem custa comprada direto, sem pontos (achado no Skyscanner ou no site da companhia). Serve de teto: é o que o cliente pagaria sozinho.
 
 **Preço de venda**:
-Quanto o cliente paga à K&V. O dono digita caso a caso, olhando lado a lado o custo, o preço em dinheiro e o lucro. Não existe margem automática.
+Quanto o cliente paga à K&V pela viagem inteira (todos os passageiros). Sai sozinho das milhas × valor da milha da combinação + taxas (+ trechos em dinheiro), mas o dono pode digitar um valor livre por cima (decidido em 2026-10-17). Pro dono, o que importa são as milhas; os reais são o que vai pro cliente.
 _Evitar_: valor, preço final
 
 **Recebimento**:
@@ -246,6 +246,13 @@ A primeira versão foi rejeitada ("informação demais, não parece com o resto,
 - **Opção de voo:** horário grande numa linha só; **pontos + taxa** em destaque e o custo total pequeno embaixo (só o dono); etiquetas (escalas, mala, avisos do pedido) e valor grudados no fundo; etiquetas que não cabem andam sozinhas. Pro dono, a de menor custo fica em laranja.
 - **Nova opção / Editar:** painel lateral que fica aberto pra lançar várias seguidas (Enter salva; tecla N abre). Se mexeu e tenta sair sem salvar, pergunta "Salvar antes de sair?".
 - **Novo orçamento:** versão única (quem pediu, viagem, passageiros, pedido especial; a lista de conferência vem fechada).
+
+**Rodada 9: proposta, fechamento e emissão (2026-10-17, em revisão)**
+Uma versão só de cada tela, no jeito da rodada 8. Uma trilha no topo (Pesquisa → Proposta → Fechamento → Emissão) liga as quatro telas do orçamento; na fila, o cartão abre direto a tela do que falta fazer.
+- **Proposta (`proposta.html`):** o sistema já sugere 2 combinações (uma opção de voo por trecho): "Mais barata" e, quando der diferente, "Só voo direto" ou "Com mala". O dono troca qualquer voo num painel lateral (com o "+ R$" ou "− R$" de cada troca) e pode ter até 3 combinações. **As milhas vêm em destaque**, somadas por programa; ao lado, o **valor da milha daquela combinação**, que começa no padrão das configurações e muda com − e + (0,0005) ou digitado. O preço pro cliente sai calculado (milhas × valor da milha + taxas); "Digitar outro valor" deixa pôr um preço livre, mostrando a diferença do calculado. Avisa se ficar acima do preço em dinheiro. O valor da milha fica atrás do botão "Alterar valor das milhas", que abre uma janela (no cartão aparecem só as milhas e o valor usado). Esse preço é o **à vista (Pix ou dinheiro)**; o **parcelado** é outro preço, digitado à mão, com o número de vezes (padrão 10). Se ficar vazio, não se oferece parcelado. Na mensagem vai "R$ X no Pix ou dinheiro ou R$ Y em até 10x de R$ Z". No fechamento, se a pessoa parcelar, vale o preço parcelado. A mensagem pro WhatsApp se monta sozinha, sem custo nem lucro. "Marcar como enviada" leva pra Enviado; depois aparecem "Ela aceitou" e "Desistiu" (com motivo).
+- **Fechamento (`fechamento.html`):** quatro passos na mesma tela: qual ela aceitou (o cartão escolhido fica laranja), quem paga (já vem o cliente ligado ao contato, ou cadastra com nome e WhatsApp preenchidos), quem voa (busca pelo cadastro, "costumam ir" com quem já viajou junto, ou pessoa nova) e recebimento (Pix, cartão ou parcelado; quanto já recebeu). Avisa passaporte faltando ou vencendo em voo internacional. Dá pra fechar faltando passageiro.
+- **Emissão (`emissao.html`):** um cartão por voo. Em pontos, o sistema **sugere a conta**: com saldo, sem estourar vagas, com menos CPFs novos e usando antes os pontos que vão vencer. Trocar abre a lista de contas com busca. Digita o localizador e registra: a saída entra sozinha na conta. Com todos os voos emitidos, o orçamento vai pra Emitido.
+- **Suposição a confirmar:** pergunta 13 (2 ou 3 combinações).
 
 **Regras gerais de tela (2026-10-16)**
 - **Celular é prioridade:** o dono usa o sistema principalmente no **celular**; os pesquisadores, no **computador**. O celular precisa estar impecável.

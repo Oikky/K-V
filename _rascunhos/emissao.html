@@ -1,0 +1,193 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Emissão, rodada 9: um cartão por voo da combinação aceita. Em pontos, o dono escolhe de qual conta sai
+     (o sistema sugere a que tem saldo, não estoura o limite de beneficiários e usa pontos que vencem antes) e digita o localizador.
+     Registrar gera sozinho a saída na conta. Quando todos os voos estão emitidos, o orçamento vai pra Emitido. Nada é salvo. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emissão · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=12">
+<style>
+  .topo-orc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 8px; container-type: inline-size; }
+  .topo-orc .quem { font-size: 14px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+  .topo-orc h1 { font: 800 min(40px, calc(100cqi / (var(--n, 20) * 0.64)))/1.08 var(--font-brand); letter-spacing: -0.03em; white-space: nowrap; }
+  .topo-orc h1 .seta { color: var(--text-3); font-weight: 600; }
+  .pax { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pax .etiqueta .ava { width: 20px; height: 20px; font-size: 9px; margin-left: -6px; }
+
+  .voo { display: flex; flex-direction: column; gap: 14px; container-type: inline-size; }
+  .voo .cab { display: grid; gap: 4px; padding-right: 44px; }
+  .voo .hora { font: 800 clamp(22px, 10cqi, 30px)/1.1 var(--font-brand); letter-spacing: -0.02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .voo .hora sup { font: 700 13px var(--font); opacity: .75; margin-left: 2px; }
+  .voo .gasto { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .voo .gasto b { font: 800 20px var(--font-brand); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .voo .gasto span { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .conta-bt { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; width: 100%; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-2); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .conta-bt:hover { border-color: var(--text-3); }
+  .conta-bt .rot { font-size: 12.5px; font-weight: 700; color: var(--text-3); }
+  .conta-bt b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conta-bt .saldo { font-size: 13px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .conta-bt .ir { grid-row: 1 / span 3; grid-column: 2; color: var(--text-3); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .loc { display: flex; gap: 8px; align-items: flex-end; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+  .loc .campo { flex: 1; }
+  .loc input { font: 800 20px var(--font-brand) !important; letter-spacing: .12em; text-transform: uppercase; height: 50px !important; }
+  .loc .btn { height: 50px; }
+  .voo.feito { background: var(--surface-1); }
+  .feito-linha { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .feito-linha .locz { font: 800 22px var(--font-brand); letter-spacing: .1em; }
+  .chip.ok svg.lucide, .etiqueta svg.lucide { width: 14px; height: 14px; }
+  .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
+  .etiqueta.danger { background: var(--danger-bg); color: var(--danger); }
+  .etiqueta.teal { background: var(--teal-bg); color: var(--teal-soft); }
+  .fim { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; margin-top: 24px; padding: 18px 20px; border-radius: 22px; background: var(--ok-bg); }
+  .fim b { font-size: 16px; } .fim .acoes { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* lista de contas (janela lateral) */
+  .lista-c { display: grid; gap: 8px; padding-bottom: 14px; }
+  .item-c { display: grid; gap: 6px; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; text-align: left; color: inherit; font: inherit; }
+  .item-c:hover { background: var(--surface-2); }
+  .item-c[aria-pressed="true"] { border-color: var(--orange); background: var(--orange-soft); }
+  .item-c .l1 { display: flex; align-items: baseline; gap: 8px; }
+  .item-c .l1 b { font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-c .l1 .sug { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--orange); white-space: nowrap; }
+  .item-c .saldo { font-size: 13px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .busca-c { width: 100%; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/pessoas.js?r=1"></script>
+<script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/proposta.js?r=3"></script>
+<script src="shared/shell.js?r=10"></script>
+<script>
+const app = KVShell.montar('orcamentos');
+const O = KV.orc, PS = KV.pessoas, { fmt } = KV;
+const o = O.get(KVShell.param('id')) || O.lista().find((x) => x.etapa === 'fechado' && O.opsDaCombo(x, O.aceita(x)).some((y) => O.site(y.site).forma === 'pontos')) || O.lista().find((x) => x.etapa === 'fechado');
+if (!O.aceita(o)) { o.combos = o.combos || O.sugerir(o, 1); o.aceita = o.combos[0].id; }
+o.emissoes = o.emissoes || {};
+let buscaConta = '';
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const hora = (x) => `${x.sai} → ${x.chega.replace(' +1', '')}${x.chega.includes('+1') ? '<sup>+1</sup>' : ''}`;
+const opDo = (ti) => O.op(o, O.aceita(o).escolha[ti]);
+const emPontos = (ti) => O.site(opDo(ti).site).forma === 'pontos';
+const em = (ti) => (o.emissoes[ti] = o.emissoes[ti] || { contaId: null, localizador: '', feito: false });
+const contaDe = (id) => KV.contas().find((c) => c.id === id);
+const progNome = (c) => KV.programa(c.programaId).nome;
+// sugestão: a primeira da lista ordenada (tem saldo, não estoura vaga, menos CPFs novos, pontos vencendo primeiro)
+o.trechos.forEach((t, ti) => { if (emPontos(ti) && !em(ti).feito && !em(ti).contaId) { const s = O.contasPara(o, ti)[0]; if (s) { em(ti).contaId = s.conta.id; em(ti).sugerida = true; } } });
+
+// ---------- topo ----------
+function topo() {
+  const cidades = [o.trechos[0].de, ...o.trechos.map((t) => t.para)].map(O.cidadeCurta);
+  const feitos = o.trechos.filter((_, i) => o.emissoes[i] && o.emissoes[i].feito).length;
+  const s = O.situacao(o);
+  const pax = (o.passageirosIds || []).map(PS.pessoa).filter(Boolean);
+  const falta = O.total(o) - pax.length;
+  return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'emissao')}
+    ${KVShell.param('fechou') ? '<div class="aviso ok" style="margin-bottom:14px">Orçamento fechado. Agora é emitir cada voo.</div>' : ''}
+    <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.numero} · ${esc(O.aceita(o).nome)}</span>
+      <h1 style="--n:${cidades.join(' → ').length}">${cidades.join(' <span class="seta">→</span> ')}</h1>
+      <div class="kpis"><span class="kpi ${feitos < o.trechos.length ? 'destaque' : ''}"><b>${feitos}/${o.trechos.length}</b><span>voos emitidos</span></span>
+        <span class="kpi"><b>${fmt.brl(O.valorFinal(o) || 0).replace(',00', '')}</b><span>venda${o.receb && o.receb.forma === 'parcelado' && O.aceita(o).parcelado ? ' parcelada' : ''}</span></span>
+        ${s ? `<span class="kpi"><b>${s.falta ? fmt.brl(s.falta).replace(',00', '') : '<i data-lucide="check" style="width:30px;height:30px;stroke-width:3;color:var(--ok)"></i>'}</b><span>${s.falta ? 'a receber' : 'recebido'}</span></span>` : ''}</div>
+      <div class="pax">${pax.map((p) => `<span class="etiqueta"><span class="ava">${fmt.iniciais(p.nome)}</span>${esc(p.nome.split(' ').slice(0, 2).join(' '))}</span>`).join('')}
+        ${falta > 0 ? `<a class="etiqueta warn" href="fechamento.html?id=${o.id}" style="text-decoration:none">Faltam ${falta} passageiro${falta > 1 ? 's' : ''} →</a>` : ''}</div></div>`;
+}
+
+// ---------- um cartão por voo ----------
+function chipsConta(info) {
+  const l = [];
+  if (info.falta) l.push(`<span class="etiqueta danger">faltam ${fmt.pts(-info.sobra)} pts</span>`);
+  if (info.vagas) {
+    if (!info.novos.length) l.push('<span class="etiqueta ok"><i data-lucide="check"></i>todos já são beneficiários</span>');
+    else if (info.estoura) l.push(`<span class="etiqueta warn">${info.novos.length} CPF${info.novos.length > 1 ? 's' : ''} novo${info.novos.length > 1 ? 's' : ''}, só ${info.vagas.livres} vaga${info.vagas.livres === 1 ? '' : 's'}</span>`);
+    else l.push(`<span class="etiqueta">${info.novos.length} CPF${info.novos.length > 1 ? 's' : ''} novo${info.novos.length > 1 ? 's' : ''} · ${info.vagas.livres} vagas</span>`);
+  }
+  if (info.vencendo) l.push(`<span class="etiqueta teal">${fmt.pts(info.vencendo.pontos)} vencem em ${KV.diasAte(info.vencendo.primeiro)} dias</span>`);
+  return l.join('');
+}
+function cartaoVoo(ti) {
+  const x = opDo(ti), t = o.trechos[ti], e = em(ti), pts = emPontos(ti), pag = O.pagantes(o);
+  const cab = `<div class="cab"><span class="pq">${O.nomeTrecho(o, ti)} · ${O.diaSem(x.data)} ${fmt.dataCurta(x.data)} · ${t.de} → ${t.para} · <span class="sitio" data-s="${x.site}">${x.site}</span></span>
+    <span class="hora">${hora(x)}</span><span class="pq">${[x.voo !== '—' && x.voo, x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto', x.bagagem && 'com mala'].filter(Boolean).join(' · ')}</span></div>`;
+  const gasto = pts ? `<div class="gasto"><b>${fmt.pts(x.milhas * pag)} pts</b><span>+ ${fmt.brl(x.taxa * pag)} de taxa · ${pag} ${pag > 1 ? 'pagantes' : 'pagante'}</span></div>`
+    : `<div class="gasto"><b>${fmt.brl(x.preco * pag)}</b><span>em dinheiro · ${pag} ${pag > 1 ? 'pagantes' : 'pagante'}</span></div>`;
+  if (e.feito) {
+    const c = e.contaId && contaDe(e.contaId);
+    return `<article class="cartao-ref voo feito">${cab}${gasto}
+      <div class="feito-linha"><span class="etiqueta ok"><i data-lucide="check"></i>Emitido</span><span class="locz">${esc(e.localizador)}</span>
+        <span class="pq" style="flex-basis:100%">${c ? `Saiu da conta de ${esc(c.titular)} (${progNome(c)})` : 'Comprado em dinheiro'}</span></div></article>`;
+  }
+  let conta = '';
+  if (pts) {
+    const info = O.contasPara(o, ti).find((i) => i.conta.id === e.contaId);
+    conta = info ? `<button class="conta-bt" data-conta="${ti}"><span class="rot">Sai da conta${e.sugerida ? ' · sugerida' : ''}</span><b>${esc(info.conta.titular)} · <span class="prog" data-p="${info.conta.programaId}">${progNome(info.conta)}</span></b>
+        <span class="saldo">${fmt.pts(info.conta.saldo)} → sobram ${fmt.pts(Math.max(0, info.sobra))} pts</span><i data-lucide="chevron-right" class="ir"></i></button><div class="chips">${chipsConta(info)}</div>`
+      : `<button class="conta-bt" data-conta="${ti}"><span class="rot">Sai da conta</span><b>Escolher a conta</b><i data-lucide="chevron-right" class="ir"></i></button>`;
+  }
+  return `<article class="cartao-ref voo">${cab}${gasto}${conta}
+    <div class="loc"><div class="campo"><label for="loc-${ti}">Localizador</label><input id="loc-${ti}" data-loc="${ti}" maxlength="8" autocomplete="off" spellcheck="false" placeholder="ABC123" value="${esc(e.localizador)}"></div>
+      <button class="btn primario" data-emitir="${ti}"><i data-lucide="ticket-check"></i>Registrar</button></div></article>`;
+}
+function fim() {
+  if (o.etapa !== 'emitido') return '';
+  return `<div class="fim"><i data-lucide="circle-check-big" style="color:var(--ok);width:24px;height:24px"></i><span><b>Tudo emitido.</b><br><span class="muted" style="font-size:13.5px">As saídas de pontos já estão nas contas.</span></span>
+    <span class="acoes">${o.clienteId ? `<a class="btn" href="pessoa.html?id=${o.clienteId}"><i data-lucide="user"></i>Ficha do cliente</a>` : ''}<button class="btn" disabled title="Vem depois, a partir do modelo atual" style="opacity:.55"><i data-lucide="file-text"></i>Recibo (em breve)</button></span></div>`;
+}
+function render() {
+  const y = scrollY;
+  app.innerHTML = topo() + `<div class="secao"><h2>Voos</h2><span class="n">um registro por voo</span></div><div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))">${o.trechos.map((_, i) => cartaoVoo(i)).join('')}</div>` + fim();
+  document.title = `Emissão #${o.numero} ${O.destino(o)} · Rascunho K&V`;
+  KVShell.icones();
+  scrollTo(0, y);
+}
+
+// ---------- janela: escolher a conta ----------
+const dlg = document.createElement('dialog'); dlg.className = 'janela lateral'; document.body.append(dlg);
+const fechar = () => KVShell.desfazer({ janela: 1, t: 1 }, sinc);
+dlg.addEventListener('cancel', (e) => { e.preventDefault(); fechar(); });
+dlg.addEventListener('click', (e) => { if (e.target === dlg) fechar(); });
+function listaContas(ti) {
+  const todas = O.contasPara(o, ti), sug = todas[0];
+  const l = todas.filter((i) => !buscaConta || tira(i.conta.titular).includes(tira(buscaConta)));
+  return l.length ? l.map((i) => `<button class="item-c" data-escolher="${i.conta.id}" aria-pressed="${em(ti).contaId === i.conta.id}">
+    <span class="l1"><b>${esc(i.conta.titular)}</b>${i === sug ? '<span class="sug">sugerida</span>' : ''}</span>
+    <span class="saldo">${fmt.pts(i.conta.saldo)} pts${i.falta ? '' : ` → sobram ${fmt.pts(i.sobra)}`}</span><span class="chips">${chipsConta(i)}</span></button>`).join('') : '<div class="faint" style="padding:12px 2px">Nenhuma conta com esse nome.</div>';
+}
+function sinc() {
+  if (KVShell.param('janela') !== 'conta') { if (dlg.open) dlg.close(); return; }
+  const ti = +KVShell.param('t'), x = opDo(ti), prog = KV.programa(O.site(x.site).programa);
+  dlg.innerHTML = `<header><div style="flex:1"><h2>De qual conta sai?</h2><div class="sub">${prog.nome} · precisa de ${fmt.pts(x.milhas * O.pagantes(o))} pts · ${(o.passageirosIds || []).length} de ${O.total(o)} passageiros cadastrados</div></div><button class="btn icone" data-x aria-label="Fechar"><i data-lucide="x"></i></button></header>
+    <div class="corpo"><div class="busca-wrap busca-c"><i data-lucide="search"></i><input class="busca" style="width:100%" type="search" placeholder="Titular" aria-label="Buscar titular" value="${esc(buscaConta)}"></div><div class="lista-c" data-lista>${listaContas(ti)}</div></div>`;
+  const ligar = () => dlg.querySelectorAll('[data-escolher]').forEach((b) => b.onclick = () => { em(ti).contaId = b.dataset.escolher; em(ti).sugerida = false; fechar(); render(); });
+  dlg.querySelector('.busca').oninput = (e) => { buscaConta = e.target.value; dlg.querySelector('[data-lista]').innerHTML = listaContas(ti); KVShell.icones(); ligar(); };
+  ligar();
+  dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fechar);
+  if (!dlg.open) dlg.showModal();
+  KVShell.icones();
+}
+
+// ---------- ações ----------
+app.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.dataset.conta) { buscaConta = ''; KVShell.irPara({ janela: 'conta', t: b.dataset.conta }); sinc(); }
+  else if (b.dataset.emitir) {
+    const ti = +b.dataset.emitir, inp = app.querySelector(`[data-loc="${ti}"]`), loc = inp.value.trim().toUpperCase();
+    if (loc.length < 5) { inp.style.borderColor = 'var(--danger)'; inp.focus(); return; }
+    O.emitir(o, ti, { contaId: emPontos(ti) ? em(ti).contaId : null, localizador: loc });
+    render();
+  }
+});
+app.addEventListener('input', (e) => { if (e.target.dataset.loc) { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); em(+e.target.dataset.loc).localizador = e.target.value; e.target.style.borderColor = ''; } });
+app.addEventListener('keydown', (e) => { if (e.target.dataset.loc && e.key === 'Enter') app.querySelector(`[data-emitir="${e.target.dataset.loc}"]`).click(); });
+
+render();
+sinc();
+KVShell.aoVoltar(() => { render(); sinc(); });
+</script>
+</body>
+</html>

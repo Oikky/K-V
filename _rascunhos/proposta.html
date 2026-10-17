@@ -1,0 +1,370 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Proposta, rodada 9: o dono monta 2 ou 3 combinações (uma opção de voo por trecho).
+     O que importa pra ele são as milhas: o preço pro cliente sai de milhas × valor da milha + taxa. O valor da milha vem das
+     configurações e pode ser mudado em cada combinação (− e + ou digitado); o preço também pode ser digitado livre por cima.
+     O sistema já sugere "Mais barata" e "Só voo direto"; tocar num voo troca a opção. Só o dono vê esta tela. Nada é salvo. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposta · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=12">
+<style>
+  .topo-orc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 8px; container-type: inline-size; }
+  .topo-orc .quem { font-size: 14px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+  .topo-orc h1 { font: 800 min(40px, calc(100cqi / (var(--n, 20) * 0.64)))/1.08 var(--font-brand); letter-spacing: -0.03em; white-space: nowrap; }
+  .topo-orc h1 .seta { color: var(--text-3); font-weight: 600; }
+  .kpi small { font-size: 13px; color: var(--text-3); font-weight: 600; }
+
+  .combina { display: flex; flex-direction: column; gap: 0; padding-bottom: 18px; }
+  .combina .grande { margin-bottom: 4px; display: flex; align-items: center; gap: 8px; min-height: 40px; }
+  .combina .grande input { font: inherit; letter-spacing: inherit; width: 100%; height: 40px; border-radius: 12px; border: 1px solid var(--orange); background: var(--surface-2); padding: 0 10px; }
+  .combina .nro { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); font: 800 14px var(--font-brand); }
+  .combina .ofer { font-size: 13px; color: var(--text-2); font-weight: 600; margin-bottom: 8px; }
+  .combina .pe { grid-template-columns: minmax(0, 1fr); margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+  .linha-custo { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; color: var(--text-2); font-weight: 600; }
+  .linha-custo b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .venda { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .venda label { font-size: 13px; font-weight: 700; color: var(--text-2); }
+  .venda .caixa { display: flex; align-items: center; height: 58px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); padding: 0 14px; gap: 6px; transition: border-color .15s; }
+  .venda .caixa:focus-within { border-color: var(--orange); }
+  .venda .caixa span { font: 800 18px var(--font-brand); color: var(--text-3); }
+  .venda input { flex: 1; min-width: 0; width: 0; height: 100%; border: 0; background: none; outline: none; font: 800 26px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .venda input::placeholder { color: var(--text-3); opacity: .6; }
+  .milhas-res { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .milhas-res .btn { justify-self: start; margin-top: 6px; }
+  .milhas-res .btn svg.lucide { width: 16px; height: 16px; }
+  .pl-vm { font-size: 13px; color: var(--text-2); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-top: -4px; }
+  .pl-vm .etiqueta { height: 22px; font-size: 11.5px; padding: 0 8px; }
+  .milhas-j { display: grid; gap: 14px; }
+  .milhas-j .prog-l { padding: 16px; border: 0; border-radius: 18px; background: var(--surface-2); }
+  .milhas-j .vm { flex-wrap: nowrap; }
+  .milhas-j .vm .btn.icone { width: 48px; height: 48px; flex: none; background: var(--surface-1); }
+  .milhas-j .vm-in { flex: 1; justify-content: center; height: 48px; border-radius: 14px; background: var(--surface-1); }
+  .milhas-j .vm-in input { font: 800 22px var(--font-brand); text-align: center; width: 7ch; }
+  .vm-pe { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .vm-pe b { font: 800 16px var(--font-brand); }
+  .preco-j { display: grid; gap: 2px; padding: 16px 2px 18px; }
+  .preco-j span { font-size: 13px; font-weight: 700; color: var(--text-2); }
+  .preco-j b { font: 800 30px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .preco-j small { font-size: 13px; color: var(--warn); font-weight: 600; }
+  .prog-l { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .pl-top { display: flex; align-items: baseline; gap: 8px; }
+  .pl-top .prog { font-size: 13.5px; }
+  .pl-top .mil { margin-left: auto; font: 800 26px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--teal-soft); }
+  .pl-top small { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .vm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .vm .rot { font-size: 13px; color: var(--text-2); font-weight: 600; margin-right: 2px; white-space: nowrap; }
+  .vm .btn.icone.pequeno { width: 34px; height: 34px; padding: 0; justify-content: center; flex: none; }
+  .vm-in { display: flex; align-items: center; gap: 4px; height: 34px; padding: 0 8px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+  .vm-in:focus-within { border-color: var(--orange); }
+  .vm-in span { font-size: 12.5px; white-space: nowrap; color: var(--text-3); font-weight: 700; }
+  .vm-in input { width: 6ch; border: 0; background: none; outline: none; font: 700 15px var(--font); font-variant-numeric: tabular-nums; }
+  .vm .eq { margin-left: auto; font-size: 14px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .padrao { font-size: 12.5px; color: var(--text-3); font-weight: 600; }
+  .link { border: 0; background: none; padding: 0; color: var(--orange); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; justify-self: start; }
+  .preco-bloco { display: grid; gap: 10px; }
+  .preco-f { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .preco-f .rot { font-size: 13px; font-weight: 700; color: var(--text-2); grid-column: 1 / -1; }
+  .preco-f b { font: 800 30px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .preco-f .link { font-size: 13.5px; margin-top: 4px; }
+  .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .parc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .parc .rot { font-size: 13px; font-weight: 700; color: var(--text-2); }
+  .parc-linha { display: flex; gap: 8px; align-items: center; }
+  .pq-caixa { flex: 1; min-width: 0; display: flex; align-items: center; height: 48px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); padding: 0 12px; gap: 6px; }
+  .pq-caixa:focus-within { border-color: var(--orange); }
+  .pq-caixa span { font: 800 15px var(--font-brand); color: var(--text-3); }
+  .pq-caixa input { flex: 1; min-width: 0; width: 0; height: 100%; border: 0; background: none; outline: none; font: 800 20px var(--font-brand); font-variant-numeric: tabular-nums; }
+  .pq-caixa input::placeholder { font: 600 14px var(--font); color: var(--text-3); }
+  .vezes { margin-left: 0; flex: none; }
+  .vezes select { height: 48px; }
+  .parc-info { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .resultado { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 28px; font-size: 14px; font-weight: 700; }
+  .resultado .luc { font-variant-numeric: tabular-nums; }
+  .resultado .pp { color: var(--text-3); font-weight: 600; font-size: 13px; margin-left: auto; white-space: nowrap; }
+  .etiqueta.danger { background: var(--danger-bg); color: var(--danger); }
+  .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
+  .combina.aceita { outline: 2px solid var(--ok); outline-offset: -2px; }
+  .nova-combo { display: grid; place-content: center; justify-items: center; gap: 10px; min-height: 220px; border: 1.5px dashed var(--line); border-radius: 26px; background: none; color: var(--text-2); font-weight: 700; cursor: pointer; }
+  .nova-combo:hover { color: var(--text); border-color: var(--text-3); }
+  .nova-combo .mais { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; background: var(--surface-1); }
+
+  .msg-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+  .msg { background: var(--surface-1); border-radius: 26px; padding: 20px 22px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; }
+  .msg b { font-weight: 800; } .msg em { color: var(--text-3); }
+  .lado { display: grid; gap: 12px; }
+  .lado .estado { line-height: 1.5; }
+  .lado .btn { justify-content: center; }
+  @media (max-width: 900px) { .msg-wrap { grid-template-columns: 1fr; } }
+
+  /* painel de troca de voo */
+  .lista-op { display: grid; gap: 8px; padding-bottom: 14px; }
+  .item-op { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; text-align: left; color: inherit; font: inherit; container-type: inline-size; }
+  .item-op:hover { background: var(--surface-2); }
+  .item-op[aria-pressed="true"] { border-color: var(--orange); background: var(--orange-soft); }
+  .item-op b { font: 800 19px var(--font-brand); letter-spacing: -0.02em; white-space: nowrap; }
+  .item-op b sup { font: 700 11.5px var(--font); opacity: .75; margin-left: 2px; }
+  .item-op small { font-size: 12.5px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-op .dif { grid-row: 1 / span 2; grid-column: 2; text-align: right; display: grid; gap: 1px; }
+  .item-op .dif strong { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .item-op .dif span { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .item-op .dif .menos { color: var(--ok); }
+  .filtro-op { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/pessoas.js?r=1"></script>
+<script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/proposta.js?r=3"></script>
+<script src="shared/shell.js?r=10"></script>
+<script>
+const app = KVShell.montar('orcamentos');
+const O = KV.orc, { fmt } = KV;
+const o = O.get(KVShell.param('id')) || O.lista().find((x) => x.etapa === 'pesquisado' && x.trechos.length === 2) || O.lista().find((x) => x.etapa === 'pesquisado');
+if (!o.combos) o.combos = O.sugerir(o, 2);
+let livreAberto = null, menuAberto = null, confirmarApagar = null, renomeando = null, copiado = false, filtroTroca = 'todas';
+const editavel = () => ['pesquisado', 'enviado'].includes(o.etapa);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const lerNum = (t) => { const n = +String(t || '').replace(/[^\d,]/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? n : null; };
+const numCampo = (n) => n == null ? '' : n.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+const hora = (x) => `${x.sai} → ${x.chega.replace(' +1', '')}${x.chega.includes('+1') ? '<sup>+1</sup>' : ''}`;
+const detalhe = (x) => [x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto', x.bagagem && 'mala'].filter(Boolean).join(' · ');
+const valorOp = (x) => O.site(x.site).forma === 'dinheiro' ? fmt.brl(x.preco) : `${fmt.pts(x.milhas)} pts + ${fmt.brl(x.taxa)}`;
+const teto = () => O.teto(o);
+
+// ---------- topo ----------
+function topo() {
+  const cidades = [o.trechos[0].de, ...o.trechos.map((t) => t.para)].map(O.cidadeCurta);
+  const menos = Math.min(...o.combos.map((c) => O.milhasCombo(o, c)));
+  const t = teto();
+  return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'proposta')}
+    <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.numero} · ${O.fmtPax(o.passageiros)}</span>
+      <h1 style="--n:${cidades.join(' → ').length}">${cidades.join(' <span class="seta">→</span> ')}</h1>
+      <div class="kpis">${menos ? `<span class="kpi"><b>${fmt.pts(menos)}</b><span>milhas na mais econômica</span></span>` : ''}
+        <span class="kpi"><b>${t.valor ? fmt.brl(t.valor).replace(',00', '') : '—'}</b><span>${t.valor ? 'em dinheiro' : 'sem preço em dinheiro'}</span></span>
+        <span class="kpi"><b>${o.opcoes.length}</b><span>opções pesquisadas</span></span></div></div>`;
+}
+
+// ---------- combinações ----------
+function menuCombo(c) {
+  const it = (attrs, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" ${attrs}><i data-lucide="${icone}"></i>${texto}</button>`;
+  if (confirmarApagar === c.id) return `<div class="menu-orc" role="menu"><p>Tirar "${esc(c.nome)}" da proposta?</p>${it(`data-del="${c.id}"`, 'trash-2', 'Sim, tirar', 'perigo')}${it('data-cancela', 'x', 'Não')}</div>`;
+  return `<div class="menu-orc" role="menu">${it(`data-renomear="${c.id}"`, 'pencil', 'Renomear')}${o.combos.length < 3 ? it(`data-dup="${c.id}"`, 'copy', 'Duplicar') : ''}${o.combos.length > 1 ? it(`data-pede-del="${c.id}"`, 'trash-2', 'Tirar da proposta', 'perigo') : ''}</div>`;
+}
+const vm = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+const progNome = (id) => KV.programa(id).nome;
+// no cartão: só o resumo das milhas por programa e o botão que abre a janela de valores
+function resumoMilhas(c) {
+  const gs = O.porPrograma(o, c);
+  if (!gs.length) return '';
+  const mudou = gs.some((g) => Math.abs(g.valor - g.padrao) > 1e-9);
+  return gs.map((g) => `<div class="pl-top"><span class="prog" data-p="${g.programa}">${progNome(g.programa)}</span><b class="mil">${fmt.pts(g.milhas)}</b><small>milhas</small></div>
+      <span class="pl-vm">R$ ${vm(g.valor)} por milha${Math.abs(g.valor - g.padrao) > 1e-9 ? ' <span class="etiqueta">mudou</span>' : ''}</span>`).join('')
+    + (editavel() ? `<button class="btn pequeno" data-milhas="${c.id}"><i data-lucide="sliders-horizontal"></i>Alterar valor das milhas</button>` : '');
+}
+// na janela: − e + de 0,0005 (ou digitado) pra cada programa, com o valor em R$ e o preço da combinação na hora
+function blocoMilhas(c) {
+  return O.porPrograma(o, c).map((g) => {
+    const k = `${c.id}|${g.programa}`, mudou = Math.abs(g.valor - g.padrao) > 1e-9;
+    return `<div class="prog-l"><div class="pl-top"><span class="prog" data-p="${g.programa}">${progNome(g.programa)}</span><b class="mil">${fmt.pts(g.milhas)}</b><small>milhas</small></div>
+      <div class="vm"><button class="btn icone" data-vm="${k}" data-passo="-0.0005" aria-label="Diminuir valor da milha ${progNome(g.programa)}"><i data-lucide="minus"></i></button>
+        <label class="vm-in"><span>R$</span><input data-vmi="${k}" inputmode="decimal" autocomplete="off" value="${vm(g.valor)}" aria-label="Valor da milha ${progNome(g.programa)}"></label>
+        <button class="btn icone" data-vm="${k}" data-passo="0.0005" aria-label="Aumentar valor da milha ${progNome(g.programa)}"><i data-lucide="plus"></i></button></div>
+      <div class="vm-pe"><span class="padrao">${mudou ? `padrão ${vm(g.padrao)} · <button class="link" data-vm-padrao="${k}">voltar pro padrão</button>` : 'padrão das configurações'}</span><b data-eq="${k}">${fmt.brl(g.reais)}</b></div></div>`;
+  }).join('');
+}
+function precoHtml(c) {
+  const calc = O.precoCalc(o, c);
+  const linhas = `${O.taxas(o, c) ? `<div class="linha-custo"><span>Taxas</span><b>${fmt.brl(O.taxas(o, c))}</b></div>` : ''}${O.dinheiro(o, c) ? `<div class="linha-custo"><span>Trechos em dinheiro</span><b>${fmt.brl(O.dinheiro(o, c))}</b></div>` : ''}`;
+  if (c.livre != null || livreAberto === c.id) return `${linhas}<div class="venda"><label for="v-${c.id}">À vista, Pix ou dinheiro (digitado)</label>
+      <div class="caixa"><span>R$</span><input id="v-${c.id}" data-venda="${c.id}" inputmode="decimal" autocomplete="off" placeholder="${numCampo(calc)}" value="${numCampo(c.livre)}" ${editavel() ? '' : 'readonly'}></div>
+      ${editavel() ? `<button class="link" data-calc="${c.id}">Voltar pro calculado: <span data-calcv="${c.id}">${fmt.brl(calc)}</span></button>` : ''}</div>
+    <div class="resultado" data-res="${c.id}">${resultado(c)}</div>`;
+  return `${linhas}<div class="preco-f"><span class="rot">À vista, Pix ou dinheiro</span><b data-pf="${c.id}">${fmt.brl(calc)}</b>
+      ${editavel() ? `<button class="link" data-livre="${c.id}">Digitar outro valor</button>` : ''}</div>
+    <div class="resultado" data-res="${c.id}">${resultado(c)}</div>`;
+}
+// parcelado: outro preço, digitado à mão, com o número de vezes; vai na mensagem como "em até 10x de ..."
+function parceladoHtml(c) {
+  const ed = editavel();
+  if (!ed && !c.parcelado) return '';
+  return `<div class="parc"><label class="rot" for="p-${c.id}">Parcelado</label>
+    <div class="parc-linha"><div class="caixa pq-caixa"><span>R$</span><input id="p-${c.id}" data-parc="${c.id}" inputmode="decimal" autocomplete="off" placeholder="não oferecer" value="${numCampo(c.parcelado)}" ${ed ? '' : 'readonly'}></div>
+      <label class="sel-pilula vezes"><span class="escondido">Vezes</span><select data-vezes="${c.id}" data-combo="nao" ${ed ? '' : 'disabled'}>${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option value="${n}" ${n === c.vezes ? 'selected' : ''}>em ${n}x</option>`).join('')}</select></label></div>
+    <span class="parc-info" data-pinfo="${c.id}">${parcInfo(c)}</span></div>`;
+}
+function parcInfo(c) {
+  if (!c.parcelado) return 'Deixe vazio pra não oferecer parcelado.';
+  const dif = c.parcelado - c.venda, pct = Math.round((dif / c.venda) * 1000) / 10;
+  return `${c.vezes}x de ${fmt.brl(c.parcelado / c.vezes)} · ${dif >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do à vista (${dif >= 0 ? '+' : '−'}${String(Math.abs(pct)).replace('.', ',')}%)`;
+}
+function resultado(c) {
+  const t = teto().valor, calc = O.precoCalc(o, c), dif = c.livre != null ? c.livre - calc : 0;
+  const avisos = [t && c.venda > t && '<span class="etiqueta warn">acima do preço em dinheiro</span>', Math.abs(dif) >= 1 && `<span class="etiqueta">${dif > 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do calculado</span>`].filter(Boolean).join('');
+  return `${avisos}<span class="pp">${fmt.brl(c.venda / O.pagantes(o))} por pessoa</span>`;
+}
+function cartaoCombo(c, i) {
+  const ops = O.opsDaCombo(o, c);
+  const titulo = renomeando === c.id ? `<input data-nome="${c.id}" value="${esc(c.nome)}" aria-label="Nome da combinação" maxlength="28">` : `<span>${esc(c.nome)}</span>`;
+  return `<article class="cartao-ref combina ${o.aceita === c.id ? 'aceita' : ''}" data-cb="${c.id}">
+    ${editavel() ? `<span class="canto"><button data-menu="${c.id}" aria-haspopup="menu" aria-expanded="${menuAberto === c.id}" aria-label="Ações da combinação"><i data-lucide="menu"></i></button></span>${menuAberto === c.id ? menuCombo(c) : ''}` : ''}
+    <div class="grande"><span class="nro" aria-label="Opção ${i + 1}">${i + 1}</span>${titulo}${o.aceita === c.id ? '<span class="etiqueta ok">aceita</span>' : ''}</div>
+    ${ops.map((x) => { const tag = editavel() ? 'button' : 'div';
+      return `<${tag} class="tr" ${editavel() ? `data-trocar="${c.id}" data-t="${x.trecho}" aria-label="Trocar ${O.nomeTrecho(o, x.trecho)}"` : ''}><span><small>${O.nomeTrecho(o, x.trecho)} · ${O.diaSem(x.data)} ${fmt.dataCurta(x.data)} · <span class="sitio" data-s="${x.site}">${x.site}</span></small><b>${hora(x)}</b><small>${detalhe(x)} · ${valorOp(x)}</small></span>${editavel() ? '<span class="troca"><i data-lucide="arrow-left-right"></i></span>' : ''}</${tag}>`; }).join('')}
+    <div class="pe"><div class="milhas-res">${resumoMilhas(c)}</div><div class="preco-bloco" data-preco="${c.id}">${precoHtml(c)}</div>${parceladoHtml(c)}</div></article>`;
+}
+function combos() {
+  const pode = editavel() && o.combos.length < 3;
+  return `<div class="secao"><h2>O que vai pro cliente</h2><span class="n">${o.combos.length} ${o.combos.length > 1 ? 'combinações' : 'combinação'}</span></div>
+    <div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${o.combos.map(cartaoCombo).join('')}
+    ${pode ? '<button class="nova-combo" data-nova><span class="mais"><i data-lucide="plus"></i></span>Outra combinação<span class="faint" style="font-weight:600;font-size:13px">até 3</span></button>' : ''}</div>`;
+}
+
+// ---------- mensagem ----------
+const formatar = (txt) => esc(txt).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/_([^_\n]+)_/g, '<em>$1</em>');
+function lado() {
+  const copiar = `<button class="btn" data-copiar><i data-lucide="${copiado ? 'check' : 'copy'}"></i>${copiado ? 'Copiada' : 'Copiar mensagem'}</button>`;
+  if (o.etapa === 'pesquisado') return `${copiar}
+    <button class="btn primario" data-enviar><i data-lucide="send"></i>Marcar como enviada</button>`;
+  if (o.etapa === 'enviado') return `<div class="estado">Enviada ${O.idade(o.enviadaEm)}. Esperando a resposta de ${esc(o.contato.nome.split(' ')[0])}.<br><span class="faint">Se ela pedir outra coisa, dá pra mudar aqui e copiar de novo.</span></div>${copiar}
+    <a class="btn primario" href="fechamento.html?id=${o.id}"><i data-lucide="handshake"></i>Ela aceitou</a>
+    <button class="btn fantasma" data-perdeu><i data-lucide="circle-x"></i>Desistiu</button>`;
+  if (o.etapa === 'perdido') return `<div class="estado">Perdido: ${esc(o.motivo || '')}.</div><button class="btn" data-reabrir><i data-lucide="rotate-ccw"></i>Voltar pra Enviado</button>`;
+  return `<div class="estado">Fechado com a opção "${esc(O.aceita(o).nome)}".</div><a class="btn primario" href="${o.etapa === 'fechado' ? 'emissao' : 'emissao'}.html?id=${o.id}"><i data-lucide="ticket"></i>${o.etapa === 'fechado' ? 'Emitir' : 'Ver emissão'}</a>`;
+}
+const mensagemHtml = () => `<div class="secao"><h2>Mensagem</h2><span class="n">vai só o preço, sem milhas</span></div>
+  <div class="msg-wrap"><div class="msg" data-msg>${formatar(O.mensagem(o))}</div><div class="lado" data-lado>${lado()}</div></div>`;
+
+function render() {
+  app.innerHTML = topo() + combos() + mensagemHtml();
+  document.title = `Proposta #${o.numero} ${O.destino(o)} · Rascunho K&V`;
+  KVShell.icones();
+  const r = app.querySelector('[data-nome]'); if (r) { r.focus(); r.select(); }
+}
+// digitar o valor da milha ou o preço atualiza as contas e a mensagem sem redesenhar a tela (o cursor fica onde está)
+function atualizarPreco(c) {
+  const pf = app.querySelector(`[data-pf="${c.id}"]`); if (pf) pf.textContent = fmt.brl(O.precoCalc(o, c));
+  const cv = app.querySelector(`[data-calcv="${c.id}"]`); if (cv) cv.textContent = fmt.brl(O.precoCalc(o, c));
+  app.querySelector(`[data-res="${c.id}"]`).innerHTML = resultado(c);
+  const pi = app.querySelector(`[data-pinfo="${c.id}"]`); if (pi) pi.textContent = parcInfo(c);
+  app.querySelector('[data-msg]').innerHTML = formatar(O.mensagem(o));
+  copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones();
+}
+
+// ---------- janelas: trocar voo, desistiu ----------
+const dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg);
+const fechar = () => KVShell.desfazer({ janela: 1, c: 1, t: 1 }, sinc);
+// a janela de milhas: − e +, digitar e voltar pro padrão atualizam a janela e o cartão por trás
+const comboK = (k) => o.combos.find((x) => x.id === k.split('|')[0]), progK = (k) => k.split('|')[1];
+function milhasMudou(c, foco) {
+  render();
+  if (KVShell.param('janela') === 'milhas') { janelaMilhas(c); dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fechar); KVShell.icones(); const f = foco && dlg.querySelector(foco); if (f) f.focus(); }
+}
+dlg.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.vm) { const c = comboK(b.dataset.vm), p = progK(b.dataset.vm); c.milha[p] = Math.max(0.0005, +(O.valorMilha(c, p) + +b.dataset.passo).toFixed(4)); milhasMudou(c, `[data-vm="${b.dataset.vm}"][data-passo="${b.dataset.passo}"]`); }
+  else if (b.dataset.vmPadrao) { const c = comboK(b.dataset.vmPadrao); delete c.milha[progK(b.dataset.vmPadrao)]; milhasMudou(c, `[data-vmi="${b.dataset.vmPadrao}"]`); }
+});
+dlg.addEventListener('input', (e) => {
+  const k = e.target.dataset.vmi; if (!k) return;
+  const c = comboK(k), n = lerNum(e.target.value.replace('.', ','));
+  if (!(n && n < 1)) return;
+  c.milha[progK(k)] = n;
+  const g = O.porPrograma(o, c).find((x) => x.programa === progK(k));
+  dlg.querySelector(`[data-eq="${k}"]`).textContent = fmt.brl(g.reais);
+  dlg.querySelector('[data-pj]').textContent = fmt.brl(O.precoCalc(o, c));
+  atualizarPreco(c);
+});
+dlg.addEventListener('focusout', (e) => { const k = e.target.dataset.vmi; if (k) e.target.value = vm(O.valorMilha(comboK(k), progK(k))); });
+dlg.addEventListener('keydown', (e) => { if (e.target.dataset.vmi && e.key === 'Enter') { e.preventDefault(); milhasMudou(comboK(e.target.dataset.vmi)); } });
+dlg.addEventListener('cancel', (e) => { e.preventDefault(); fechar(); });
+dlg.addEventListener('click', (e) => { if (e.target === dlg) fechar(); });
+const cab = (t, sub) => `<header><div style="flex:1"><h2>${t}</h2><div class="sub">${sub}</div></div><button class="btn icone" data-x aria-label="Fechar"><i data-lucide="x"></i></button></header>`;
+const FILTROS_TROCA = [['todas', 'Todas'], ['direto', 'Diretas'], ['mala', 'Com mala'], ['pontos', 'Em pontos'], ['dinheiro', 'Em dinheiro']];
+const passaFiltro = (x) => ({ todas: true, direto: x.escalas === 0, mala: x.bagagem, pontos: O.site(x.site).forma === 'pontos', dinheiro: O.site(x.site).forma === 'dinheiro' })[filtroTroca];
+function painelTroca(c, ti) {
+  const atual = O.op(o, c.escolha[ti]), base = O.custo(atual, o);
+  const l = O.opsDo(o, ti).filter(passaFiltro).sort((a, b) => O.custoPessoa(a) - O.custoPessoa(b));
+  const t = o.trechos[ti];
+  dlg.className = 'janela lateral';
+  dlg.innerHTML = cab(`Trocar a ${O.nomeTrecho(o, ti).toLowerCase()}`, `${esc(c.nome)} · ${t.de} → ${t.para} · ${O.opsDo(o, ti).length} opções`) + `<div class="corpo">
+    <div class="filtro-op">${FILTROS_TROCA.map(([k, n]) => `<button class="pilula" data-ft="${k}" aria-pressed="${filtroTroca === k}">${n}</button>`).join('')}</div>
+    <div class="lista-op">${l.length ? l.map((x) => { const d = O.custo(x, o) - base;
+      return `<button class="item-op" data-escolher="${x.id}" aria-pressed="${x.id === atual.id}"><b>${hora(x)}</b>
+        <small>${O.diaSem(x.data)} ${fmt.dataCurta(x.data)} · <span class="sitio" data-s="${x.site}">${x.site}</span> · ${detalhe(x)}</small>
+        <span class="dif">${x.id === atual.id ? '<strong>escolhida</strong>' : `<strong class="${d < 0 ? 'menos' : ''}">${d < 0 ? '−' : '+'} ${fmt.brl(Math.abs(d))}</strong>`}<span>${valorOp(x)}</span></span></button>`; }).join('') : '<div class="faint" style="padding:12px 2px">Nenhuma opção com esse filtro.</div>'}</div></div>`;
+  dlg.querySelectorAll('[data-ft]').forEach((b) => b.onclick = () => { filtroTroca = b.dataset.ft; painelTroca(c, ti); KVShell.icones(); });
+  dlg.querySelectorAll('[data-escolher]').forEach((b) => b.onclick = () => { c.escolha[ti] = b.dataset.escolher; fechar(); render(); });
+}
+function janelaMilhas(c) {
+  dlg.className = 'janela';
+  dlg.innerHTML = cab('Valor das milhas', `${esc(c.nome)} · só nesta combinação`) + `<div class="corpo"><div class="milhas-j">${blocoMilhas(c)}</div>
+      <div class="preco-j"><span>Preço pro cliente</span><b data-pj>${fmt.brl(O.precoCalc(o, c))}</b>${c.livre != null ? '<small>Você digitou um preço livre nesta combinação; ele continua valendo.</small>' : ''}</div></div>
+    <footer><span></span><button class="btn primario" data-x><i data-lucide="check"></i>Pronto</button></footer>`;
+}
+function sinc() {
+  const j = KVShell.param('janela');
+  if (j === 'milhas') { const c = o.combos.find((x) => x.id === KVShell.param('c')); if (!c) return; janelaMilhas(c); }
+  else if (j === 'trocar') { const c = o.combos.find((x) => x.id === KVShell.param('c')); if (!c) return; painelTroca(c, +KVShell.param('t')); }
+  else if (j === 'perdeu') {
+    dlg.className = 'janela';
+    dlg.innerHTML = cab('Ela desistiu?', 'O orçamento vai pro arquivo, mas fica guardado') + `<div class="corpo" style="display:grid;gap:8px;padding-bottom:14px">
+      ${['Achou mais barato em outro lugar', 'Desistiu da viagem', 'Não respondeu mais', 'Mudou as datas'].map((m, i) => `<label class="item-op" style="grid-template-columns:auto 1fr;cursor:pointer"><input type="radio" name="motivo" value="${m}" ${i ? '' : 'checked'} style="width:18px;height:18px;accent-color:var(--orange)"><span style="font-weight:600">${m}</span></label>`).join('')}</div>
+      <footer><button class="btn" data-x>Cancelar</button><button class="btn primario" data-ok-perdeu><i data-lucide="archive"></i>Marcar como perdido</button></footer>`;
+    dlg.querySelector('[data-ok-perdeu]').onclick = () => { O.perder(o, dlg.querySelector('[name=motivo]:checked').value); fechar(); render(); };
+  } else { if (dlg.open) dlg.close(); return; }
+  dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fechar);
+  if (!dlg.open) dlg.showModal();
+  KVShell.icones();
+}
+
+// ---------- ações ----------
+app.addEventListener('click', (e) => {
+  const m = e.target.closest('[data-menu]');
+  if (m) { menuAberto = menuAberto === m.dataset.menu ? null : m.dataset.menu; confirmarApagar = null; render(); const p = app.querySelector('.menu-orc button'); if (p) p.focus(); return; }
+  const b = e.target.closest('button');
+  if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmarApagar = null; render(); if (!b) return; }
+  if (!b) return;
+  if (b.dataset.milhas) { KVShell.irPara({ janela: 'milhas', c: b.dataset.milhas }); sinc(); }
+  else if (b.dataset.livre) { livreAberto = b.dataset.livre; render(); app.querySelector(`[data-venda="${b.dataset.livre}"]`).focus(); }
+  else if (b.dataset.calc) { const c = o.combos.find((x) => x.id === b.dataset.calc); c.livre = null; livreAberto = null; render(); }
+  else if (b.dataset.renomear) { renomeando = b.dataset.renomear; menuAberto = null; render(); }
+  else if (b.dataset.dup) { O.novaCombo(o, o.combos.find((c) => c.id === b.dataset.dup)); menuAberto = null; render(); }
+  else if (b.dataset.pedeDel) { confirmarApagar = b.dataset.pedeDel; render(); }
+  else if (b.hasAttribute('data-cancela')) { confirmarApagar = null; render(); }
+  else if (b.dataset.del) { o.combos = o.combos.filter((c) => c.id !== b.dataset.del); menuAberto = confirmarApagar = null; render(); }
+  else if (b.hasAttribute('data-nova')) { const c = O.novaCombo(o); renomeando = c.id; render(); }
+  else if (b.dataset.trocar) { filtroTroca = 'todas'; KVShell.irPara({ janela: 'trocar', c: b.dataset.trocar, t: b.dataset.t }); sinc(); }
+  else if (b.hasAttribute('data-copiar')) { const txt = O.mensagem(o); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}); copiado = true; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); }
+  else if (b.hasAttribute('data-enviar')) { O.enviar(o); render(); }
+  else if (b.hasAttribute('data-perdeu')) { KVShell.irPara({ janela: 'perdeu' }); sinc(); }
+  else if (b.hasAttribute('data-reabrir')) { o.etapa = 'enviado'; o.historico.push({ quando: new Date(), quem: 'Dono', texto: 'Voltou pra Enviado' }); render(); }
+});
+app.addEventListener('change', (e) => {
+  if (e.target.dataset.vezes) { const c = o.combos.find((x) => x.id === e.target.dataset.vezes); c.vezes = +e.target.value; atualizarPreco(c); }
+});
+app.addEventListener('input', (e) => {
+  if (e.target.dataset.parc) { const c = o.combos.find((x) => x.id === e.target.dataset.parc); c.parcelado = lerNum(e.target.value); atualizarPreco(c); return; }
+  const id = e.target.dataset.venda; if (!id) return;
+  const c = o.combos.find((x) => x.id === id); c.livre = lerNum(e.target.value); atualizarPreco(c);
+});
+app.addEventListener('focusout', (e) => {
+  if (e.target.dataset.venda) { const c = o.combos.find((x) => x.id === e.target.dataset.venda); if (c.livre == null && livreAberto === c.id) { livreAberto = null; setTimeout(render); } else e.target.value = numCampo(c.livre); }
+  if (e.target.dataset.parc) { const c = o.combos.find((x) => x.id === e.target.dataset.parc); e.target.value = numCampo(c.parcelado); }
+  if (e.target.dataset.nome) { const c = o.combos.find((x) => x.id === e.target.dataset.nome); c.nome = e.target.value.trim() || c.nome; renomeando = null; setTimeout(render); }
+});
+app.addEventListener('keydown', (e) => {
+  if (e.target.dataset.nome && (e.key === 'Enter' || e.key === 'Escape')) { if (e.key === 'Escape') e.target.value = o.combos.find((x) => x.id === e.target.dataset.nome).nome; e.target.blur(); }
+  // Enter no preço vai pro preço da próxima combinação
+  if (e.target.dataset.venda && e.key === 'Enter') { const l = [...app.querySelectorAll('[data-venda]')]; const n = l[l.indexOf(e.target) + 1]; if (n) n.focus(); else e.target.blur(); }
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto && !dlg.open) { menuAberto = confirmarApagar = null; render(); } });
+
+render();
+sinc();
+KVShell.aoVoltar(() => { render(); sinc(); });
+</script>
+</body>
+</html>

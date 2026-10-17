@@ -228,3 +228,43 @@ td .combo-in { height: 38px; border-radius: 10px; border-color: transparent; fon
 .menu-orc p { margin: 6px 10px 8px; font-size: 13.5px; color: var(--text-2); white-space: normal; }
 @media (prefers-reduced-motion: no-preference) { .menu-orc { animation: kv-menu .16s cubic-bezier(.2, .8, .2, 1); transform-origin: top right; } @keyframes kv-menu { from { opacity: 0; transform: scale(.96) translateY(-4px); } } }
 .grade-ref .cartao-ref:has(.menu-orc) { z-index: 5; }
+
+/* ---------- atendimento: trilha das quatro telas e linhas de voo (rodada 9) ---------- */
+.trilha { display: flex; align-items: center; margin: 0 0 22px; overflow-x: auto; scrollbar-width: none; }
+.trilha::-webkit-scrollbar { display: none; }
+.trilha .passo { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 6px; border-radius: var(--r-pill); text-decoration: none; color: var(--text-2); font-weight: 700; font-size: 14px; white-space: nowrap; flex: none; }
+.trilha a.passo:hover { background: var(--surface-1); color: var(--text); }
+.trilha .bola { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font: 800 13px var(--font-brand); color: var(--text-2); }
+.trilha .bola svg.lucide { width: 15px; height: 15px; stroke-width: 2.6; }
+.trilha .feito .bola { background: var(--ok-bg); color: var(--ok); }
+.trilha .atual { background: var(--surface-1); color: var(--text); }
+.trilha .atual .bola { background: var(--orange); color: var(--orange-ink); }
+.trilha .bloq { opacity: .45; cursor: default; }
+.trilha .liga { flex: 0 0 18px; height: 2px; background: var(--line); border-radius: 2px; }
+@media (max-width: 760px) {
+  .trilha .passo:not(.atual) { padding: 0 6px; }
+  .trilha .passo:not(.atual) .nome { display: none; }
+  .trilha .liga { flex-basis: 10px; }
+}
+/* uma linha de voo dentro de uma combinação (proposta, fechamento, emissão) */
+.tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; width: 100%; padding: 12px 0; border: 0; border-top: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; container-type: inline-size; }
+.tr > span { display: grid; gap: 2px; min-width: 0; }
+.tr small { font-size: 12.5px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr b { font: 800 clamp(16px, 7.4cqi, 20px)/1.15 var(--font-brand); letter-spacing: -0.02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tr b sup { font: 700 11.5px var(--font); margin-left: 2px; opacity: .75; }
+button.tr { cursor: pointer; }
+.tr .troca { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); transition: background .15s, color .15s; }
+button.tr:hover .troca { background: var(--surface-3); color: var(--text); }
+.tr .troca svg.lucide { width: 16px; height: 16px; }
+.cartao-ref.cheio .tr { border-color: rgb(0 0 0 / .14); }
+.cartao-ref.cheio .tr small { color: var(--orange-ink); opacity: .72; }
+.cartao-ref.cheio .tr .troca { background: rgb(0 0 0 / .1); color: var(--orange-ink); }
+.sitio { display: inline-flex; align-items: center; gap: 6px; }
+.sitio::before { content: ''; width: 8px; height: 8px; border-radius: 3px; background: var(--c, var(--text-3)); flex: none; }
+.sitio[data-s="Smiles"] { --c: #F08A24; } .sitio[data-s="Latam"] { --c: #D1365B; } .sitio[data-s="TudoAzul"] { --c: #2F7FE0; } .sitio[data-s="Interline"] { --c: #69A7F0; } .sitio[data-s="Skyscanner"] { --c: #3CCB8B; }
+.cartao-ref.cheio .sitio::before { background: var(--orange-ink); }
+/* barra de ação presa embaixo (no celular fica acima do menu) */
+.barra-acao { position: sticky; bottom: 16px; z-index: 15; display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; margin-top: 28px; padding: 12px 12px 12px 20px; border-radius: 22px; background: var(--surface-2); box-shadow: var(--shadow-pop); }
+.barra-acao .resumo { display: grid; gap: 1px; min-width: 0; margin-right: auto; }
+.barra-acao .resumo b { font-size: 15px; } .barra-acao .resumo span { font-size: 13px; color: var(--text-2); }
+@media (max-width: 760px) { .barra-acao { bottom: 76px; padding: 12px; } .barra-acao .btn.primario { flex: 1; justify-content: center; } }

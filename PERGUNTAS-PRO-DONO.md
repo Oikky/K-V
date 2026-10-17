@@ -41,7 +41,7 @@ Dúvidas de negócio que só quem opera a K&V sabe responder. Enquanto não houv
 ## Orçamentos
 
 13. **O que vai pro cliente.** Quando o pesquisador acha várias idas e voltas, o que você manda pra pessoa no WhatsApp? Uma combinação só (a melhor), 2 ou 3 combinações com preços diferentes (ex.: "mais barata com escala" e "direto"), ou todas as opções pra ela escolher trecho por trecho?
-   _Provisório:_ 2 ou 3 combinações, cada uma com o seu preço de venda; no fechamento, marca-se a que a pessoa aceitou.
+   _Provisório:_ 2 ou 3 combinações, cada uma com um preço de venda pela viagem inteira (todos os passageiros); no fechamento, marca-se a que a pessoa aceitou.
 
 ## Clientes e passageiros
 

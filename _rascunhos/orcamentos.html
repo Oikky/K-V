@@ -94,6 +94,7 @@
 <script src="shared/dados.js?r=7"></script>
 <script src="shared/pessoas.js?r=1"></script>
 <script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/proposta.js?r=3"></script>
 <script src="shared/shell.js?r=10"></script>
 <script>
 const papel = KVShell.param('papel') === 'pesquisador' ? 'pesquisador' : 'dono';
@@ -118,7 +119,8 @@ const ordemFase = (o) => (AVANCO[o.etapa] === 0 ? 99 : AVANCO[o.etapa]);
 const AVANCO = { emitido: 6, fechado: 5, enviado: 4, pesquisado: 3, pesquisa: 2, novo: 1, cancelado: 0, perdido: 0 };
 const ETAPAS_TRILHA = ['novo', 'pesquisa', 'pesquisado', 'enviado', 'fechado'];
 const pontosEtapa = (o) => { const i = ETAPAS_TRILHA.indexOf(o.etapa); return `<span class="pontos" aria-label="Etapa ${O.etapa(o.etapa).nome}">${ETAPAS_TRILHA.map((e, k) => `<i class="${k < i ? 'feito' : k === i ? 'agora' : ''}"></i>`).join('')}</span>`; };
-const link = (o) => `orcamento.html?id=${o.id}${sufixo}`;
+// o dono vai direto pra tela do que falta fazer (proposta, emissão); o pesquisador sempre pra pesquisa
+const link = (o) => papel === 'dono' ? `${O.telaDa(o)}?id=${o.id}` : `orcamento.html?id=${o.id}${sufixo}`;
 // no recorte do canto: botão de 3 barras com as ações do orçamento
 const canto = (o) => `<span class="canto"><button data-menu="${o.id}" aria-haspopup="menu" aria-expanded="${menuAberto === o.id}" aria-label="Ações do orçamento #${o.numero}"><i data-lucide="menu"></i></button></span>${menuAberto === o.id ? menuHtml(o) : ''}`;
 let menuAberto = null, confirmarApagar = null;

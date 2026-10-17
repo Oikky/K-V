@@ -93,6 +93,7 @@
 <script src="shared/dados.js?r=7"></script>
 <script src="shared/pessoas.js?r=1"></script>
 <script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/proposta.js?r=3"></script>
 <script src="shared/shell.js?r=10"></script>
 <script>
 const papel = KVShell.param('papel') === 'pesquisador' ? 'pesquisador' : 'dono';
@@ -128,11 +129,12 @@ function topo() {
   let acoes = '';
   if (dono) acoes = `<label class="sel-pilula solta"><span class="escondido">Pesquisador</span><select id="passar" data-combo="nao">${[['', 'Na fila'], ['p1', 'Ana pesquisa'], ['p2', 'Lucas pesquisa']].map(([v, t]) => `<option value="${v}" ${(o.responsavel || '') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label class="sel-pilula solta"><span class="escondido">Etapa</span><select id="etapa" data-combo="nao">${O.etapas.map((e) => `<option value="${e.id}" ${e.id === o.etapa ? 'selected' : ''}>${e.nome}</option>`).join('')}</select></label>
-      <a class="btn redondo" href="#" title="Abriria a conversa no WhatsApp" aria-label="WhatsApp"><i data-lucide="message-circle"></i></a>`;
+      <a class="btn redondo" href="#" title="Abriria a conversa no WhatsApp" aria-label="WhatsApp"><i data-lucide="message-circle"></i></a>
+      ${['pesquisado', 'enviado'].includes(o.etapa) ? `<a class="btn primario" href="proposta.html?id=${o.id}"><i data-lucide="send"></i>${o.etapa === 'pesquisado' ? 'Montar proposta' : 'Proposta'}</a>` : ''}`;
   else if (o.etapa === 'novo') acoes = '<button class="btn primario" data-pegar><i data-lucide="hand"></i>Pegar</button>';
   else if (o.etapa === 'pesquisa' && o.responsavel === eu) acoes = '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>';
   else acoes = `<span class="etiqueta">${O.etapa(o.etapa).nome}</span>`;
-  return `<a class="voltar" href="orcamentos.html${dono ? '' : '?papel=pesquisador'}"><i data-lucide="arrow-left"></i>Orçamentos</a>
+  return `<a class="voltar" href="orcamentos.html${dono ? '' : '?papel=pesquisador'}"><i data-lucide="arrow-left"></i>Orçamentos</a>${dono ? O.trilha(o, 'pesquisa') : ''}
     <div class="topo-orc"><span class="quem">${dono ? o.contato.nome : o.contato.nome.split(' ')[0]} · #${o.numero}${dono && o.pessoaId ? ` · <a href="pessoa.html?id=${o.pessoaId}" style="color:var(--orange)">é cliente</a>` : ''}</span>
       <h1 style="--n:${cidades.join(' → ').length}">${cidades.join(' <span class="seta">→</span> ')}</h1>
       <div class="kpis"><span class="kpi"><b>${fmt.dataCurta(o.trechos[0].data)}</b><span>${o.trechos.length > 1 ? `a ${fmt.dataCurta(o.trechos[o.trechos.length - 1].data)}` : 'só ida'}</span></span>
