@@ -1,4 +1,5 @@
-/* Peças dos orçamentos usadas nas telas: aeroportos, etapas, rota, destino, datas e idade. */
+/* Peças dos orçamentos usadas nas telas: aeroportos, sites, etapas, rota, destino, datas, dinheiro e a trilha.
+   Dinheiro chega do servidor em centavos; valor da milha em milionésimos de real. */
 (function () {
   const AEROPORTOS = [
     ['GRU', 'São Paulo (Guarulhos)'], ['CGH', 'São Paulo (Congonhas)'], ['VCP', 'Campinas'], ['GIG', 'Rio de Janeiro (Galeão)'], ['SDU', 'Rio de Janeiro (Santos Dumont)'],
@@ -30,5 +31,65 @@
   const destino = (o) => { const ult = o.trechos[o.trechos.length - 1]; const volta = ult.para === o.trechos[0].de; const alvo = volta && o.trechos.length > 1 ? o.trechos[o.trechos.length - 2].para : ult.para; return cidadeCurta(alvo) + (o.trechos.length > 2 ? ` e mais ${o.trechos.length - 2}` : ''); };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  window.KVOrc = { aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc };
+  // site → como paga e de qual programa sai a milha (igual a src/acoes/pesquisa.js)
+  const SITES = [
+    { id: 'Smiles', forma: 'pontos', programa: 'smiles' }, { id: 'Latam', forma: 'pontos', programa: 'latam' },
+    { id: 'TudoAzul', forma: 'pontos', programa: 'azul' }, { id: 'Interline', forma: 'pontos', programa: 'azul' },
+    { id: 'Skyscanner', forma: 'dinheiro', programa: null },
+  ];
+  const site = (id) => SITES.find((s) => s.id === id) || { id, forma: 'dinheiro', programa: null };
+  const pad = (n) => String(n).padStart(2, '0');
+  const isoDia = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  // janela de datas: semana do dia pedido + semana seguinte (14 dias a partir da segunda)
+  function janelaDias(t) {
+    if (!t.janela) return [t.data];
+    const d = new Date(t.data + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return Array.from({ length: 14 }, (_, i) => { const x = new Date(d); x.setDate(d.getDate() + i); return isoDia(x); });
+  }
+  const diaCurto = (iso) => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(iso + 'T12:00').getDay()];
+  const pagantes = (o) => o.passageiros.adultos + o.passageiros.criancas;
+  const total = (o) => o.passageiros.adultos + o.passageiros.criancas + o.passageiros.bebes;
+  const fmtPax = (p) => [p.adultos && `${p.adultos} ${p.adultos > 1 ? 'adultos' : 'adulto'}`, p.criancas && `${p.criancas} ${p.criancas > 1 ? 'crianças' : 'criança'}`, p.bebes && `${p.bebes} ${p.bebes > 1 ? 'bebês' : 'bebê'}`].filter(Boolean).join(', ');
+
+  const fmt = {
+    brl: (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+    pts: (n) => Math.round(n).toLocaleString('pt-BR'),
+    milha: (v) => 'R$ ' + (v / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+    data: (s) => s.split('-').reverse().join('/'),
+    fone: (d) => !d ? '' : d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d,
+  };
+  // "1.234,56", "1234.5", "R$ 99" → centavos (ou null)
+  const lerReais = (t) => { const n = +String(t ?? '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? Math.round(n * 100) : null; };
+
+  // valor da milha padrão de cada programa (só o dono recebe); preenchido pela tela com o estado
+  let valoresMilha = {};
+  const usarProgramas = (lista) => { valoresMilha = Object.fromEntries((lista || []).filter((p) => p.valor_milha != null).map((p) => [p.id, p.valor_milha])); };
+  const valorMilhaPadrao = (prog) => valoresMilha[prog] || 0;
+  // custo pra K&V, em centavos, por pessoa: milhas × valor da milha + taxa, ou o preço em dinheiro
+  const custoPessoa = (op) => site(op.site).forma === 'pontos' ? Math.round(op.milhas * valorMilhaPadrao(site(op.site).programa) / 1e4) + op.taxa : op.preco;
+  const custo = (op, o) => custoPessoa(op) * pagantes(o);
+
+  // ---------- trilha: as quatro telas do atendimento, em ordem ----------
+  const PASSOS = [
+    { id: 'pesquisa', nome: 'Pesquisa', href: 'orcamento.html', desde: 'novo' },
+    { id: 'proposta', nome: 'Proposta', href: 'proposta.html', desde: 'pesquisado' },
+    { id: 'fechamento', nome: 'Fechamento', href: 'fechamento.html', desde: 'enviado' },
+    { id: 'emissao', nome: 'Emissão', href: 'emissao.html', desde: 'fechado' },
+  ];
+  const ORDEM = ['novo', 'pesquisa', 'pesquisado', 'enviado', 'fechado', 'emitido'];
+  const alcance = (o) => (o.etapa === 'cancelado' ? 5 : o.etapa === 'perdido' ? ORDEM.indexOf(o.antesDePerder || 'enviado') : ORDEM.indexOf(o.etapa));
+  // a tela certa pra abrir o orçamento, conforme a etapa (o dono vai direto pro que falta fazer)
+  const telaDa = (o) => ({ pesquisado: 'proposta.html', enviado: 'proposta.html', fechado: 'emissao.html', emitido: 'emissao.html', cancelado: 'emissao.html' })[o.etapa] || 'orcamento.html';
+  function trilha(o, atual) {
+    return `<nav class="trilha" aria-label="Caminho do orçamento">${PASSOS.map((p, i) => {
+      const ok = alcance(o) >= ORDEM.indexOf(p.desde), feito = ({ pesquisa: 2, proposta: 3, fechamento: 4, emissao: 5 })[p.id] <= alcance(o);
+      const conteudo = `<span class="bola">${feito ? '<i data-lucide="check"></i>' : i + 1}</span><span class="nome">${p.nome}</span>`;
+      if (p.id === atual) return `<span class="passo atual" aria-current="step">${conteudo}</span>`;
+      return ok ? `<a class="passo ${feito ? 'feito' : ''}" href="${p.href}?id=${o.id}">${conteudo}</a>` : `<span class="passo bloq" title="Ainda não chegou aqui">${conteudo}</span>`;
+    }).join('<i class="liga" aria-hidden="true"></i>')}</nav>`;
+  }
+
+  window.KVOrc = { aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc,
+    sites: SITES, site, janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
+    usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, telaDa };
 })();

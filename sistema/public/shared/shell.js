@@ -43,6 +43,16 @@
     Object.entries(mudancas).forEach(([k, v]) => (v == null ? p.delete(k) : p.set(k, v)));
     history.pushState({ kv: true }, '', '?' + p);
   }
+  // fecha um passo: se ele foi aberto aqui, volta no histórico; se a página já abriu nele, só tira da URL
+  function desfazer(mudancas, depois) {
+    if (history.state && history.state.kv) history.back();
+    else {
+      const p = new URLSearchParams(location.search);
+      Object.keys(mudancas).forEach((k) => p.delete(k));
+      history.replaceState(null, '', '?' + p);
+      depois();
+    }
+  }
   const aoVoltar = (fn) => addEventListener('popstate', fn);
   const param = (k) => new URLSearchParams(location.search).get(k);
 
@@ -56,5 +66,5 @@
     avisoTimer = setTimeout(() => el.remove(), erro ? 6000 : 3000);
   }
 
-  window.KVShell = { montar, irPara, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
+  window.KVShell = { montar, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
 })();
