@@ -13,3 +13,7 @@ node_modules/
 
 # Referências de terceiros (direitos autorais): só locais, não vão pro repositório público
 referencias/
+
+# Estado do modo live do impeccable (local)
+.impeccable/live/
+_rascunhos/.impeccable/

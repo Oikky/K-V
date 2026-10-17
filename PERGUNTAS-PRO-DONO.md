@@ -38,6 +38,11 @@ Dúvidas de negócio que só quem opera a K&V sabe responder. Enquanto não houv
 11. **Resultado do mês.** Como você enxerga o que sobrou de verdade no mês? O lucro de cada venda já desconta o valor da milha. Os gastos com clube e compra de pontos entram de novo como despesa, ou não?
    _Provisório:_ a visão financeira mostra vendas, lucro, custos de pontos e folha separados, sem somar num "resultado".
 
+## Orçamentos
+
+13. **O que vai pro cliente.** Quando o pesquisador acha várias idas e voltas, o que você manda pra pessoa no WhatsApp? Uma combinação só (a melhor), 2 ou 3 combinações com preços diferentes (ex.: "mais barata com escala" e "direto"), ou todas as opções pra ela escolher trecho por trecho?
+   _Provisório:_ 2 ou 3 combinações, cada uma com o seu preço de venda; no fechamento, marca-se a que a pessoa aceitou.
+
 ## Clientes e passageiros
 
 12. **Dados de cada pessoa.** Além de nome e CPF, o que vocês precisam guardar de quem voa e de quem paga? Data de nascimento? WhatsApp e e-mail? Passaporte e validade (pra voo internacional)? Observações (ex.: "prefere janela")?

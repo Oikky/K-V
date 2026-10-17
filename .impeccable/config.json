@@ -8,6 +8,12 @@
         "value": "montserrat",
         "createdAt": "2026-10-16T00:29:34.046Z",
         "reason": "user confirmed: Montserrat ExtraBold é a fonte do 'EASY TRAVELING' da logo, aprovada na direção visual (P26, 2026-10-15)"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "consolas",
+        "createdAt": "2026-10-17T15:33:30.667Z",
+        "reason": "agent: fonte monoespaçada de fallback só pro código de localizador (dado, não decoração)"
       }
     ]
   }

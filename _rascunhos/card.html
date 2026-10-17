@@ -1,0 +1,211 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Prancheta do cartão de orçamento: o usuário monta o cartão do jeito que quer
+     (arrasta peças pra dentro, muda tamanho/cor, rabisca com a caneta) e salva uma imagem pra mostrar. Nada vai pro sistema. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prancheta do cartão · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=11">
+<style>
+  body { overflow-x: hidden; }
+  .tela { display: grid; grid-template-columns: 250px 1fr; min-height: 100dvh; }
+  .lateral { border-right: 1px solid var(--line); padding: 18px 16px 40px; display: grid; gap: 16px; align-content: start; background: var(--bg); position: sticky; top: 0; height: 100dvh; overflow-y: auto; }
+  .lateral h1 { font-size: 22px; }
+  .lateral h2 { font-size: 13px; color: var(--text-3); font-weight: 700; margin-top: 4px; }
+  .lateral p { margin: 0; font-size: 13px; color: var(--text-2); }
+  .pecas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pecas button { height: 32px; padding: 0 11px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .pecas button:hover { color: var(--text); background: var(--surface-2); }
+  .ferr { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ferr button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .cores { display: flex; gap: 6px; }
+  .cores button { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; }
+  .cores button[aria-pressed="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
+  .lateral textarea { width: 100%; min-height: 90px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-1); color: var(--text); padding: 10px; font: 14px var(--font); resize: vertical; }
+
+  .area-desenho { position: relative; padding: 40px; overflow: auto; }
+  .prancha { position: relative; width: 980px; min-height: 760px; padding: 50px; background: var(--bg); border-radius: 24px; }
+  .prancha .dica { position: absolute; top: 14px; left: 50px; font-size: 13px; color: var(--text-3); }
+  /* o cartão (redimensionável pelo canto de baixo à direita) */
+  .card { position: relative; width: 380px; height: 300px; background: var(--surface-1); border-radius: 26px; resize: both; overflow: hidden; min-width: 200px; min-height: 140px; outline: 1px dashed transparent; }
+  .card.cheio { background: var(--orange); color: var(--orange-ink); }
+  .card.sel { outline-color: var(--text-3); }
+  .card.cheio .p.apagado { color: var(--orange-ink); opacity: .65; }
+  /* peças dentro do cartão */
+  .p { position: absolute; cursor: move; user-select: none; white-space: nowrap; touch-action: none; font-size: 14px; line-height: 1.2; }
+  .p.sel { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 6px; }
+  .p.apagado { color: var(--text-3); }
+  .p.laranja { color: var(--orange); }
+  .p.negrito { font-weight: 800; }
+  .p.marca { font-family: var(--font-brand); font-weight: 800; }
+  .p[contenteditable="true"] { cursor: text; outline: 2px solid var(--teal-soft); }
+  .p .avc { width: 42px; height: 42px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; color: var(--text); }
+  .p .seta { width: 44px; height: 44px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; }
+  .p .seta.redonda { border-radius: 50%; }
+  .p .etq { display: inline-flex; align-items: center; height: 28px; padding: 0 11px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: 12.5px; font-weight: 700; }
+  .card.cheio .p .etq, .card.cheio .p .avc, .card.cheio .p .seta { background: rgb(0 0 0 / .12); color: var(--orange-ink); border-color: transparent; }
+  .p .bol { display: inline-flex; gap: 5px; padding: 7px 9px; border-radius: 999px; background: var(--surface-2); }
+  .p .bol i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--teal-soft); } .p .bol i.a { background: var(--orange); } .p .bol i.n { background: var(--surface-3); }
+  .p .linha { display: block; width: 300px; height: 1px; background: var(--line); }
+  .p .caixa { display: block; width: 160px; height: 60px; border: 2px dashed var(--text-3); border-radius: 12px; }
+  /* barra da peça selecionada */
+  .barra-peca { position: fixed; left: 50%; bottom: 20px; translate: -50% 0; display: none; gap: 4px; padding: 6px; border-radius: 999px; background: var(--surface-3); box-shadow: var(--shadow-pop); z-index: 30; }
+  .barra-peca.on { display: flex; }
+  .barra-peca button { height: 36px; min-width: 36px; padding: 0 10px; border-radius: 999px; border: 0; background: var(--surface-1); color: var(--text); font-weight: 700; cursor: pointer; }
+  /* caneta por cima de tudo */
+  canvas.rabisco { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+  .modo-caneta canvas.rabisco { pointer-events: auto; cursor: crosshair; }
+  @media (max-width: 900px) { .tela { grid-template-columns: 1fr; } .lateral { position: static; height: auto; } .area-desenho { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="tela">
+  <aside class="lateral">
+    <div><h1>Prancheta do cartão</h1><p>Monte o cartão do orçamento do seu jeito e salve a imagem pra mandar.</p></div>
+    <div><h2>1. Peças (toque pra pôr no cartão)</h2><div class="pecas" id="pecas"></div></div>
+    <div><h2>2. Cartão</h2><div class="ferr"><button class="btn pequeno" id="b-cor">Cartão laranja</button><button class="btn pequeno" id="b-tam">Tamanho padrão</button></div>
+      <p style="margin-top:6px">Puxe o canto de baixo à direita do cartão pra mudar o tamanho.</p></div>
+    <div><h2>3. Caneta</h2><div class="ferr"><button class="btn pequeno" id="b-caneta" aria-pressed="false">Desenhar</button><button class="btn pequeno" id="b-limpar">Apagar rabiscos</button></div>
+      <div class="cores" id="cores" style="margin-top:8px"></div></div>
+    <div><h2>4. O que você quer (opcional)</h2><textarea id="notas" placeholder="Ex.: o telefone menor, a rota maior, as datas embaixo..."></textarea></div>
+    <div class="ferr"><button class="btn primario" id="b-salvar">Salvar imagem</button><button class="btn" id="b-zerar">Começar de novo</button></div>
+    <p>A imagem vai pra pasta <b>Downloads</b> como <b>cartao-orcamento.png</b>. Depois é só me avisar.</p>
+  </aside>
+  <main class="area-desenho">
+    <div class="prancha" id="prancha"><span class="dica">Arraste as peças pra posicionar · toque numa peça pra mudar tamanho e cor · dois toques num texto pra editar</span>
+      <div class="card" id="card" style="margin-top:20px"></div>
+      <canvas class="rabisco" id="rabisco"></canvas>
+    </div>
+  </main>
+</div>
+<div class="barra-peca" id="barra"><button data-a="menor" title="Menor">A−</button><button data-a="maior" title="Maior">A+</button><button data-a="negrito" title="Negrito">B</button><button data-a="marca" title="Fonte dos números">Mont</button><button data-a="cor" title="Trocar cor">Cor</button><button data-a="frente" title="Pra frente">↑</button><button data-a="apagar" title="Tirar do cartão">✕</button></div>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const seta = (cls = '') => `<span class="seta ${cls}"><i data-lucide="arrow-up-right"></i></span>`;
+// peças com conteúdo de um orçamento de exemplo
+const PECAS = [
+  ['Avatar', '<span class="avc">WC</span>'], ['Nome', 'Wesley Campos', 'negrito'], ['WhatsApp', '(62) 98922-2486', 'apagado'],
+  ['Rota', 'GRU → LIS', '', 26], ['Cidade', 'Lisboa', 'apagado'], ['Ida e volta', 'ida e volta', 'apagado'], ['Pessoas', '2 pessoas', 'apagado'],
+  ['Opções', '16 opções', 'apagado'], ['Data ida', '<span class="etq">23/12</span>'], ['Data volta', '<span class="etq">31/12</span>'],
+  ['Datas juntas', '23/12 a 31/12'], ['Etapa', 'Enviado', 'apagado'], ['Bolinhas', '<span class="bol"><i></i><i></i><i></i><i class="a"></i><i class="n"></i></span>'],
+  ['Etapa em pílula', '<span class="etq">Enviado ▾</span>'], ['Botão ↗', seta()], ['Botão ↗ redondo', seta('redonda')], ['Pesquisador', '<span class="avc" style="width:30px;height:30px;font-size:11px">AR</span>'],
+  ['Quem pesquisa', 'Ana pesquisa', 'apagado'], ['Há quanto tempo', 'há 24 dias', 'apagado'], ['Número', '#115', 'apagado'],
+  ['Rótulo "Datas"', 'Datas', 'apagado'], ['Linha', '<span class="linha"></span>'], ['Caixa', '<span class="caixa"></span>'], ['Texto livre', 'Escreva aqui'],
+];
+const CORES = ['#FF8911', '#F3F6FA', '#68ACBE', '#F5C451', '#FF6B6B'];
+const card = document.getElementById('card'), prancha = document.getElementById('prancha'), barra = document.getElementById('barra');
+let sel = null, n = 0, corCaneta = CORES[0];
+
+// ---------- peças ----------
+document.getElementById('pecas').innerHTML = PECAS.map(([nome], i) => `<button data-i="${i}">${nome}</button>`).join('');
+document.getElementById('pecas').onclick = (e) => { const b = e.target.closest('button'); if (b) addPeca(+b.dataset.i); };
+function addPeca(i, x, y, extra) {
+  const [nome, html, cls = '', tam] = PECAS[i];
+  const el = document.createElement('div');
+  el.className = 'p ' + cls; el.dataset.i = i; el.innerHTML = html;
+  if (tam) el.style.fontSize = tam + 'px';
+  el.style.left = (x ?? 20 + (n % 5) * 14) + 'px'; el.style.top = (y ?? 20 + (n % 8) * 18) + 'px'; n++;
+  if (extra) Object.assign(el.style, extra.style || {}), el.className = extra.cls, extra.html != null && (el.innerHTML = extra.html);
+  card.append(el); lucide.createIcons(); selecionar(el); salvarEstado();
+  return el;
+}
+function selecionar(el) {
+  document.querySelectorAll('.p.sel').forEach((x) => x.classList.remove('sel'));
+  sel = el; if (el) el.classList.add('sel');
+  barra.classList.toggle('on', !!el);
+}
+// arrastar dentro do cartão
+let arr = null;
+card.addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('.p'); if (!el) { selecionar(null); return; }
+  if (el.isContentEditable) return;
+  selecionar(el);
+  arr = { el, x: e.clientX, y: e.clientY, l: el.offsetLeft, t: el.offsetTop };
+  el.setPointerCapture(e.pointerId); e.preventDefault();
+});
+card.addEventListener('pointermove', (e) => { if (!arr) return; arr.el.style.left = arr.l + e.clientX - arr.x + 'px'; arr.el.style.top = arr.t + e.clientY - arr.y + 'px'; });
+card.addEventListener('pointerup', () => { if (arr) salvarEstado(); arr = null; });
+// dois toques: editar o texto
+card.addEventListener('dblclick', (e) => {
+  const el = e.target.closest('.p'); if (!el || el.querySelector('span')) return;
+  el.contentEditable = 'true'; el.focus(); document.getSelection().selectAllChildren(el);
+  el.onblur = () => { el.contentEditable = 'false'; salvarEstado(); };
+});
+// barra da peça
+const CICLO = ['', 'apagado', 'laranja'];
+barra.onclick = (e) => {
+  const b = e.target.closest('button'); if (!b || !sel) return;
+  const fs = parseFloat(getComputedStyle(sel).fontSize);
+  ({
+    menor: () => sel.style.fontSize = Math.max(9, fs - 2) + 'px',
+    maior: () => sel.style.fontSize = fs + 2 + 'px',
+    negrito: () => sel.classList.toggle('negrito'),
+    marca: () => sel.classList.toggle('marca'),
+    cor: () => { const atual = CICLO.find((c) => c && sel.classList.contains(c)) || ''; CICLO.forEach((c) => c && sel.classList.remove(c)); const prox = CICLO[(CICLO.indexOf(atual) + 1) % CICLO.length]; if (prox) sel.classList.add(prox); },
+    frente: () => card.append(sel),
+    apagar: () => { sel.remove(); selecionar(null); },
+  })[b.dataset.a]();
+  salvarEstado();
+};
+addEventListener('keydown', (e) => { if ((e.key === 'Delete' || e.key === 'Backspace') && sel && !sel.isContentEditable && document.activeElement.tagName !== 'TEXTAREA') { sel.remove(); selecionar(null); salvarEstado(); } });
+
+// ---------- cartão ----------
+document.getElementById('b-cor').onclick = () => { card.classList.toggle('cheio'); salvarEstado(); };
+document.getElementById('b-tam').onclick = () => { card.style.width = '380px'; card.style.height = '300px'; salvarEstado(); };
+new ResizeObserver(() => salvarEstado()).observe(card);
+
+// ---------- caneta ----------
+const cv = document.getElementById('rabisco'), ctx = cv.getContext('2d');
+let tracos = [];
+function ajustarCanvas() { cv.width = prancha.offsetWidth; cv.height = prancha.offsetHeight; desenhar(); }
+function desenhar() { ctx.clearRect(0, 0, cv.width, cv.height); ctx.lineCap = ctx.lineJoin = 'round'; ctx.lineWidth = 3;
+  tracos.forEach((t) => { ctx.strokeStyle = t.c; ctx.beginPath(); t.p.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); }); }
+document.getElementById('cores').innerHTML = CORES.map((c) => `<button style="background:${c}" data-c="${c}" aria-pressed="${c === corCaneta}" aria-label="Cor ${c}"></button>`).join('');
+document.getElementById('cores').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; corCaneta = b.dataset.c; document.querySelectorAll('#cores button').forEach((x) => x.setAttribute('aria-pressed', x === b)); };
+const bCaneta = document.getElementById('b-caneta');
+bCaneta.onclick = () => { const on = bCaneta.getAttribute('aria-pressed') !== 'true'; bCaneta.setAttribute('aria-pressed', on); prancha.classList.toggle('modo-caneta', on); bCaneta.textContent = on ? 'Desenhando (toque pra parar)' : 'Desenhar'; selecionar(null); };
+let atual = null;
+cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); atual = { c: corCaneta, p: [[e.clientX - r.left, e.clientY - r.top]] }; tracos.push(atual); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', (e) => { if (!atual) return; const r = cv.getBoundingClientRect(); atual.p.push([e.clientX - r.left, e.clientY - r.top]); desenhar(); });
+cv.addEventListener('pointerup', () => { atual = null; salvarEstado(); });
+document.getElementById('b-limpar').onclick = () => { tracos = []; desenhar(); salvarEstado(); };
+addEventListener('resize', ajustarCanvas);
+
+// ---------- guardar no navegador (pra não perder se recarregar) ----------
+const CHAVE = 'kv-prancha-cartao';
+function salvarEstado() {
+  try { localStorage.setItem(CHAVE, JSON.stringify({ cheio: card.classList.contains('cheio'), w: card.style.width, h: card.style.height, notas: document.getElementById('notas').value, tracos,
+    pecas: [...card.querySelectorAll('.p')].map((el) => ({ i: +el.dataset.i, cls: el.className.replace(' sel', ''), style: { left: el.style.left, top: el.style.top, fontSize: el.style.fontSize }, html: el.innerHTML })) })); } catch (e) {}
+}
+document.getElementById('notas').oninput = salvarEstado;
+function carregar() {
+  let s = null; try { s = JSON.parse(localStorage.getItem(CHAVE)); } catch (e) {}
+  if (!s) { modeloInicial(); return; }
+  card.classList.toggle('cheio', !!s.cheio); if (s.w) card.style.width = s.w; if (s.h) card.style.height = s.h;
+  document.getElementById('notas').value = s.notas || ''; tracos = s.tracos || [];
+  s.pecas.forEach((p) => addPeca(p.i, null, null, p)); selecionar(null);
+}
+// começa com o cartão atual montado, pra você mexer a partir dele
+function modeloInicial() {
+  const pos = [[0, 20, 22], [1, 72, 26], [2, 72, 46], [14, 316, 18], [3, 20, 92], [4, 20, 130], [5, 72, 130], [6, 170, 130], [20, 20, 190], [8, 20, 212], [9, 82, 212], [11, 290, 190], [12, 248, 214]];
+  pos.forEach(([i, x, y]) => addPeca(i, x, y)); selecionar(null);
+}
+document.getElementById('b-zerar').onclick = () => { card.querySelectorAll('.p').forEach((p) => p.remove()); card.classList.remove('cheio'); card.style.width = '380px'; card.style.height = '300px'; tracos = []; desenhar(); document.getElementById('notas').value = ''; modeloInicial(); salvarEstado(); };
+
+// ---------- salvar imagem ----------
+document.getElementById('b-salvar').onclick = async () => {
+  selecionar(null);
+  const notas = document.getElementById('notas').value.trim();
+  let nota = null;
+  if (notas) { nota = document.createElement('div'); nota.style.cssText = 'position:absolute;left:50px;bottom:30px;right:50px;font:15px var(--font);color:var(--text);white-space:pre-wrap;background:var(--surface-1);padding:14px 16px;border-radius:14px'; nota.textContent = 'O que eu quero: ' + notas; prancha.append(nota); }
+  const img = await html2canvas(prancha, { backgroundColor: '#010E1F', scale: 2 });
+  if (nota) nota.remove();
+  const a = document.createElement('a'); a.download = 'cartao-orcamento.png'; a.href = img.toDataURL('image/png'); a.click();
+};
+
+carregar();
+ajustarCanvas();
+</script>
+</body>
+</html>

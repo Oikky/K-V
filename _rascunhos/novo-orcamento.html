@@ -1,0 +1,223 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Novo orçamento (rodada 8): o dono anota o pedido que chegou pelo WhatsApp.
+     Quem pediu (acha clientes e pedidos antigos pelo WhatsApp), trechos com janela de 14 dias, passageiros,
+     pedido especial (vira item da lista de conferência) e quem pesquisa. Nada é salvo. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Novo orçamento · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=11">
+<style>
+  .form { max-width: 720px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .form .card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+  .form h2 { display: flex; align-items: center; gap: 10px; }
+  .form h2 .n { width: 26px; height: 26px; border-radius: 9px; background: var(--surface-3); display: grid; place-items: center; font-size: 13px; color: var(--text-2); }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .achados { display: grid; gap: 8px; }
+  .achado { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); flex-wrap: wrap; font-size: 14px; }
+  .achado .txt { flex: 1; min-width: 180px; }
+  .achado .txt b { display: block; }
+  .achado .txt span { color: var(--text-2); font-size: 13px; }
+  .achado.antigo { background: var(--warn-bg); }
+  .trecho { display: grid; grid-template-columns: 26px 1fr 1fr 150px auto; gap: 10px; align-items: end; padding: 12px 0; border-top: 1px solid var(--line); }
+  .trecho:first-of-type { border-top: 0; padding-top: 0; }
+  .trecho .n { width: 24px; height: 44px; display: grid; place-items: center; font-weight: 800; color: var(--text-3); }
+  .trecho .jan { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-2); cursor: pointer; }
+  .trecho .jan input { width: 18px; height: 18px; accent-color: var(--orange); }
+  .trecho .btn.icone { width: 44px; height: 44px; }
+  .steppers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .step { background: var(--surface-2); border-radius: 16px; padding: 10px 12px; display: grid; gap: 6px; justify-items: center; }
+  .step .r { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .step .r small { display: block; color: var(--text-3); font-weight: 500; font-size: 12px; text-align: center; }
+  .step .ctl { display: flex; align-items: center; gap: 10px; }
+  .step .ctl b { font: 800 24px var(--font-brand); min-width: 26px; text-align: center; }
+  .step .btn.icone { width: 38px; height: 38px; }
+  .chips-ped { display: flex; gap: 6px; flex-wrap: wrap; }
+  .conf { display: grid; gap: 2px; }
+  .conf label { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-radius: 10px; cursor: pointer; font-size: 14.5px; }
+  .conf label:hover { background: var(--surface-2); }
+  .conf input { width: 19px; height: 19px; accent-color: var(--orange); flex: none; }
+  .conf label .tag { font-size: 11.5px; color: var(--teal-soft); font-weight: 700; margin-left: auto; }
+  .conf-add { display: flex; gap: 8px; }
+  .conf-add input { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); padding: 0 12px; font-size: 16px; min-width: 0; }
+  .conf-det summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .conf-det summary::-webkit-details-marker { display: none; }
+  .conf-det[open] summary { margin-bottom: 4px; }
+  .barra-criar { position: sticky; bottom: 20px; display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 12px 16px; border-radius: 18px; background: var(--surface-3); box-shadow: var(--shadow-pop); flex-wrap: wrap; max-width: 720px; margin-top: 16px; z-index: 5; }
+  .barra-criar .res { font-size: 14px; color: var(--text-2); min-width: 0; }
+  .barra-criar .res b { color: var(--text); }
+  .erro-campo input, .erro-campo .combo-in { border-color: var(--danger) !important; }
+  @media (max-width: 760px) { .barra-criar { bottom: 132px; } }
+  @media (max-width: 600px) {
+    .duas { grid-template-columns: 1fr; }
+    .trecho { grid-template-columns: 22px 1fr 44px; }
+    .trecho .de, .trecho .para, .trecho .data { grid-column: 2 / 3; }
+    .trecho .rem { grid-column: 3; grid-row: 1; }
+    .trecho .n { grid-row: 1 / 3; }
+    .steppers { grid-template-columns: 1fr; gap: 8px; }
+    .step { grid-template-columns: 1fr auto; justify-items: start; align-items: center; padding: 10px 14px; }
+    .step .r small { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/pessoas.js?r=1"></script>
+<script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/shell.js?r=10"></script>
+<script src="shared/combo.js?r=7"></script>
+<script>
+const app = KVShell.montar('orcamentos');
+const O = KV.orc, PS = KV.pessoas, { fmt } = KV;
+const ESPECIAIS = ['Só voo direto', 'Até 1 escala', 'Com bagagem despachada', 'Só pontos', 'Saída de manhã'];
+const hoje = new Date(KV.hoje + 'T12:00');
+const emDias = (n) => { const d = new Date(hoje); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const st = {
+  nome: '', whatsapp: '', pessoaId: null, tipo: 'ida-volta',
+  trechos: [{ de: 'GRU', para: '', data: '', janela: true }, { de: '', para: 'GRU', data: '', janela: true, espelho: true }],
+  pax: { adultos: 1, criancas: 0, bebes: 0 }, especiais: [], obs: '',
+  padrao: O.conferenciaPadrao.map((t) => ({ texto: t, on: true })), extras: [], responsavel: '',
+};
+let criado = null, erros = [];
+const mascaraFone = (v) => { const d = v.replace(/\D/g, '').slice(0, 11); if (d.length <= 2) return d.length ? `(${d}` : ''; if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`; return `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}`; };
+const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const opAero = (sel) => `<option value="">Escolha</option>` + O.aeroportos.map((a) => `<option value="${a.cod}" ${a.cod === sel ? 'selected' : ''}>${a.cod} · ${a.cidade}</option>`).join('');
+
+// ida e volta: a volta espelha a ida (até ser mexida)
+function espelhar() {
+  if (st.tipo !== 'ida-volta') return;
+  const [ida, volta] = st.trechos;
+  if (volta.espelho) { volta.de = ida.para; volta.para = ida.de; }
+}
+
+// ---------- quem pediu: acha cliente e pedidos antigos ----------
+function achados() {
+  const dig = st.whatsapp.replace(/\D/g, ''), nome = tira(st.nome.trim());
+  const pessoas = PS.lista().filter((p) => p.whatsapp && ((dig.length >= 8 && p.whatsapp.replace(/\D/g, '').includes(dig)) || (nome.length >= 3 && tira(p.nome).includes(nome)))).slice(0, 3);
+  const antigos = dig.length >= 10 ? O.anteriores(st.whatsapp) : [];
+  if (st.pessoaId) { const p = PS.pessoa(st.pessoaId); return `<div class="achado"><i data-lucide="user-check" style="color:var(--ok)"></i><span class="txt"><b>${p.nome} é cliente</b><span>${PS.viagensDe(p.id).length} viagens · o orçamento fica ligado ao cadastro</span></span><button class="btn pequeno" data-desligar>Não é essa pessoa</button></div>` + antigosHtml(antigos); }
+  return pessoas.map((p) => `<div class="achado"><span class="txt"><b>${p.nome}</b><span>Cliente · ${p.whatsapp} · ${PS.viagensDe(p.id).length} viagens</span></span><button class="btn pequeno" data-usar="${p.id}"><i data-lucide="check"></i>É essa pessoa</button></div>`).join('') + antigosHtml(antigos);
+}
+const antigosHtml = (l) => l.length ? `<div class="achado antigo"><i data-lucide="history" style="color:var(--warn)"></i><span class="txt"><b>Já pediu ${l.length} ${l.length > 1 ? 'vezes' : 'vez'} antes</b><span>${l.map((o) => `#${o.numero} ${O.destino(o)} (${O.etapa(o.etapa).nome.toLowerCase()}${o.motivo ? ': ' + o.motivo.toLowerCase() : ''})`).join(' · ')}</span></span></div>` : '';
+
+function render() {
+  if (criado) return renderCriado();
+  espelhar();
+  const conf = [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras];
+  app.innerHTML = `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>
+    <div class="topo"><div><h1 style="font-size:34px;font-weight:600;letter-spacing:-0.02em">Novo orçamento</h1><div class="muted">O pedido que chegou no WhatsApp</div></div></div>
+    <div class="form">
+      <section class="card"><h2><span class="n">1</span>Quem pediu</h2>
+        <div class="duas"><div class="campo ${erros.includes('nome') ? 'erro-campo' : ''}"><label for="nome">Nome</label><input id="nome" autocomplete="off" value="${esc(st.nome)}" placeholder="Como aparece no WhatsApp"></div>
+          <div class="campo ${erros.includes('whatsapp') ? 'erro-campo' : ''}"><label for="zap">WhatsApp</label><input id="zap" inputmode="tel" value="${esc(st.whatsapp)}" placeholder="(11) 91234-5678"></div></div>
+        <div class="achados" data-achados>${achados()}</div></section>
+
+      <section class="card"><h2><span class="n">2</span>Viagem</h2>
+        <div class="seg" role="group" aria-label="Tipo de viagem">${[['ida', 'Só ida'], ['ida-volta', 'Ida e volta'], ['varios', 'Vários trechos']].map(([k, t]) => `<button data-tipo="${k}" aria-pressed="${st.tipo === k}">${t}</button>`).join('')}</div>
+        <div>${st.trechos.map((t, i) => `<div class="trecho"><span class="n">${i + 1}</span>
+          <div class="campo de ${erros.includes('de' + i) ? 'erro-campo' : ''}"><label for="de${i}">De</label><select id="de${i}" data-tr="${i}" data-k="de">${opAero(t.de)}</select></div>
+          <div class="campo para ${erros.includes('para' + i) ? 'erro-campo' : ''}"><label for="para${i}">Para</label><select id="para${i}" data-tr="${i}" data-k="para">${opAero(t.para)}</select></div>
+          <div class="campo data ${erros.includes('data' + i) ? 'erro-campo' : ''}"><label for="dt${i}">${i === 0 ? 'Dia' : st.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="dt${i}" type="date" data-tr="${i}" data-k="data" value="${t.data}" min="${KV.hoje}"></div>
+          ${st.tipo === 'varios' && st.trechos.length > 2 ? `<button class="btn icone fantasma rem" data-rem="${i}" aria-label="Tirar trecho ${i + 1}"><i data-lucide="x"></i></button>` : '<span></span>'}
+          <label class="jan"><input type="checkbox" data-tr="${i}" data-k="janela" ${t.janela ? 'checked' : ''}>Pesquisar a janela de 14 dias (semana do dia + a seguinte)</label></div>`).join('')}</div>
+        ${st.tipo === 'varios' ? '<button class="btn" data-add-trecho style="justify-self:start"><i data-lucide="plus"></i>Outro trecho</button>' : ''}</section>
+
+      <section class="card"><h2><span class="n">3</span>Passageiros</h2>
+        <div class="steppers">${[['adultos', 'Adultos', '12 anos ou mais', 1], ['criancas', 'Crianças', '2 a 11 anos', 0], ['bebes', 'Bebês', 'até 2 anos', 0]].map(([k, t, s, min]) => `<div class="step"><span class="r">${t}<small>${s}</small></span>
+          <span class="ctl"><button class="btn icone" data-pax="${k}" data-d="-1" ${st.pax[k] <= min ? 'disabled style="opacity:.4"' : ''} aria-label="Menos ${t.toLowerCase()}"><i data-lucide="minus"></i></button><b>${st.pax[k]}</b><button class="btn icone" data-pax="${k}" data-d="1" aria-label="Mais ${t.toLowerCase()}"><i data-lucide="plus"></i></button></span></div>`).join('')}</div></section>
+
+      <section class="card"><h2><span class="n">4</span>Pedido especial</h2>
+        <div class="chips-ped">${ESPECIAIS.map((e) => `<button class="pilula" data-esp="${e}" aria-pressed="${st.especiais.includes(e)}">${e}</button>`).join('')}</div>
+        <div class="campo"><label for="obs">Outro detalhe do pedido <span class="opc">opcional</span></label><textarea id="obs" rows="2" placeholder="Ex.: volta pode ser por Porto; vai com cadeira de rodas">${esc(st.obs)}</textarea></div>
+        <span class="faint" style="font-size:13px">O que você marcar aqui entra na lista de conferência do pesquisador e aparece como aviso nas opções que não batem.</span></section>
+
+      <details class="card conf-det" ${st.confAberta ? 'open' : ''}><summary><h2 style="display:inline-flex"><span class="n">5</span>Lista de conferência</h2> <span class="muted" style="font-size:14px">${conf.length} itens · ajustar</span></summary>
+        <div class="conf">${st.padrao.map((c, i) => `<label><input type="checkbox" data-padrao="${i}" ${c.on ? 'checked' : ''}><span>${c.texto}</span><span class="tag">padrão</span></label>`).join('')}
+          ${st.especiais.map((e) => `<label><input type="checkbox" checked disabled><span>${e}</span><span class="tag">do pedido</span></label>`).join('')}
+          ${st.extras.map((e, i) => `<label><input type="checkbox" checked data-extra="${i}"><span>${esc(e)}</span><span class="tag">seu</span></label>`).join('')}</div>
+        <div class="conf-add"><input id="item" placeholder="Outro item, ex.: conferir Interline" aria-label="Outro item da lista"><button class="btn" data-add-item><i data-lucide="plus"></i>Pôr</button></div></details>
+
+      <section class="card"><h2><span class="n">6</span>Quem pesquisa</h2>
+        <div class="seg" role="group" aria-label="Quem pesquisa">${[['', 'Deixar na fila'], ['p1', 'Ana'], ['p2', 'Lucas']].map(([v, t]) => `<button data-resp="${v}" aria-pressed="${st.responsavel === v}">${t}</button>`).join('')}</div>
+        <span class="faint" style="font-size:13px">${st.responsavel ? `Vai direto pra ${O.pesquisadores[st.responsavel].split(' ')[0]}; o outro vê que já tem responsável.` : 'Fica na fila de novos; quem pegar primeiro pesquisa.'}</span></section>
+    </div>
+    <div class="barra-criar"><span class="res" data-res>${resumo()}</span><button class="btn primario" data-criar><i data-lucide="plus"></i>Criar orçamento</button></div>`;
+  KVShell.icones();
+}
+function resumo() {
+  const t = st.trechos.filter((x) => x.de && x.para);
+  const pax = O.fmtPax(st.pax);
+  if (erros.length) return `<span style="color:var(--danger)">Falta preencher ${erros.some((e) => e === 'nome' || e === 'whatsapp') ? 'quem pediu' : 'os trechos'}.</span>`;
+  return t.length ? `<b>${t.map((x, i) => (i ? '' : x.de) + ' → ' + x.para).join(' ')}</b> · ${pax}` : `${pax} · escolha os trechos`;
+}
+
+function validar() {
+  erros = [];
+  if (st.nome.trim().length < 2) erros.push('nome');
+  if (st.whatsapp.replace(/\D/g, '').length < 10) erros.push('whatsapp');
+  st.trechos.forEach((t, i) => { if (!t.de) erros.push('de' + i); if (!t.para) erros.push('para' + i); if (!t.data) erros.push('data' + i); });
+  return !erros.length;
+}
+function renderCriado() {
+  const o = criado;
+  app.innerHTML = `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>
+    <div class="form"><section class="card"><div class="aviso ok" style="font-size:15px"><b>Orçamento #${o.numero} criado.</b> ${o.responsavel ? `Foi direto pra ${O.pesquisadores[o.responsavel].split(' ')[0]}.` : 'Está na fila de novos.'}</div>
+      <h2>${O.destino(o)}</h2><div class="muted">${o.contato.nome} · ${O.rota(o)} · ${O.fmtPax(o.passageiros)}</div>
+      <details><summary class="faint" style="cursor:pointer;font-size:13px">O que seria salvo</summary><div class="json" style="margin-top:8px">${esc(JSON.stringify({ ...o, historico: undefined, criadoEm: undefined }, null, 2))}</div></details>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="novo-orcamento.html"><i data-lucide="plus"></i>Criar outro</a><a class="btn primario" href="orcamentos.html">Ver a fila</a></div></section></div>`;
+  KVShell.icones();
+}
+
+// ---------- eventos ----------
+app.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.id === 'nome') { st.nome = t.value; st.pessoaId = null; app.querySelector('[data-achados]').innerHTML = achados(); KVShell.icones(); }
+  if (t.id === 'zap') { t.value = mascaraFone(t.value); st.whatsapp = t.value; st.pessoaId = null; app.querySelector('[data-achados]').innerHTML = achados(); KVShell.icones(); }
+  if (t.id === 'obs') st.obs = t.value;
+  if (t.dataset.tr != null && t.dataset.k === 'data') { st.trechos[+t.dataset.tr].data = t.value; if (erros.length) { validar(); } app.querySelector('[data-res]').innerHTML = resumo(); }
+});
+app.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.tr != null) {
+    const tr = st.trechos[+t.dataset.tr];
+    if (t.dataset.k === 'janela') tr.janela = t.checked;
+    else if (t.dataset.k === 'de' || t.dataset.k === 'para') { tr[t.dataset.k] = t.value; if (+t.dataset.tr === 1) tr.espelho = false; if (erros.length) validar(); render(); }
+  }
+  if (t.dataset.padrao != null) { st.padrao[+t.dataset.padrao].on = t.checked; render(); }
+  if (t.dataset.extra != null && !t.checked) { st.extras.splice(+t.dataset.extra, 1); render(); }
+});
+app.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.dataset.usar) { const p = PS.pessoa(b.dataset.usar); Object.assign(st, { pessoaId: p.id, nome: p.nome, whatsapp: p.whatsapp }); render(); }
+  else if (b.hasAttribute('data-desligar')) { st.pessoaId = null; render(); }
+  else if (b.dataset.tipo) {
+    st.tipo = b.dataset.tipo; const t0 = st.trechos[0];
+    if (st.tipo === 'ida') st.trechos = [t0];
+    if (st.tipo === 'ida-volta') st.trechos = [t0, { de: t0.para, para: t0.de, data: (st.trechos[1] || {}).data || '', janela: true, espelho: true }];
+    if (st.tipo === 'varios' && st.trechos.length < 2) st.trechos.push({ de: t0.para, para: '', data: '', janela: true });
+    st.trechos.forEach((t) => { if (st.tipo !== 'ida-volta') delete t.espelho; });
+    render();
+  }
+  else if (b.hasAttribute('data-add-trecho')) { const ult = st.trechos[st.trechos.length - 1]; st.trechos.push({ de: ult.para, para: '', data: '', janela: true }); render(); }
+  else if (b.dataset.rem != null) { st.trechos.splice(+b.dataset.rem, 1); render(); }
+  else if (b.dataset.pax) { st.pax[b.dataset.pax] += +b.dataset.d; render(); }
+  else if (b.dataset.esp) { const i = st.especiais.indexOf(b.dataset.esp); i < 0 ? st.especiais.push(b.dataset.esp) : st.especiais.splice(i, 1); render(); }
+  else if (b.hasAttribute('data-add-item')) { const v = app.querySelector('#item').value.trim(); if (v) { st.extras.push(v); render(); app.querySelector('#item').focus(); } }
+  else if (b.dataset.resp != null) { st.responsavel = b.dataset.resp; render(); }
+  else if (b.hasAttribute('data-criar')) {
+    if (!validar()) { render(); const pri = app.querySelector('.erro-campo input, .erro-campo .combo-in'); if (pri) pri.focus(); return; }
+    const pedido = [...st.especiais, ...(st.obs.trim() ? [st.obs.trim()] : [])].join(' · ');
+    criado = O.criar({ contato: { nome: st.nome.trim(), whatsapp: st.whatsapp }, pessoaId: st.pessoaId, responsavel: st.responsavel || null,
+      trechos: st.trechos.map(({ de, para, data, janela }) => ({ de, para, data, janela })), passageiros: { ...st.pax }, pedido,
+      conferencia: [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras].map((texto, k) => ({ id: 'c' + k, texto, feito: false })) });
+    scrollTo(0, 0); render();
+  }
+});
+app.addEventListener('toggle', (e) => { if (e.target.classList && e.target.classList.contains('conf-det')) st.confAberta = e.target.open; }, true);
+app.addEventListener('keydown', (e) => { if (e.target.id === 'item' && e.key === 'Enter') { e.preventDefault(); app.querySelector('[data-add-item]').click(); } });
+render();
+</script>
+</body>
+</html>

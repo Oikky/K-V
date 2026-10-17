@@ -237,6 +237,16 @@ Registro das escolhas feitas nos rascunhos (as variações descartadas ficam na 
 - **Ficha da pessoa:** **viagens no meio e coluna lateral** (como o detalhe da conta), com os dados, quem viaja junto e as contas de pontos em que o CPF já voou ou de que é titular. Cada viagem mostra trechos, passageiros, pontos ou dinheiro, localizador, venda e situação do pagamento. Avisa quando o passaporte vence menos de 6 meses depois de um voo internacional.
 - **Nova pessoa:** só pra quem já era cliente antes do sistema (no dia a dia, o cadastro acontece no fechamento). Se o CPF já existe, não deixa cadastrar de novo e oferece abrir o cadastro existente.
 
+**Rodada 8: orçamentos, fila e pesquisa (2026-10-17)**
+A primeira versão foi rejeitada ("informação demais, não parece com o resto, visual feio"). Foi refeita no jeito da referência do HubSpot e ajustada com o usuário, peça por peça:
+- **Fila (`orcamentos.html`):** números grandes no topo (abertos, pra revisar, esperando resposta, fechados); "Pra revisar" com o primeiro cartão em laranja cheio; "Todos os orçamentos" com pílulas por fase, na ordem do começo do caminho pro fim (Novo → Em pesquisa → Enviado → Fechado; perdidos e cancelados por último).
+- **Cartão da fila:** avatar com iniciais + nome e sobrenome + WhatsApp; rota em **siglas** (GRU → LIS; ida e volta mostra só a ida); cidade, tipo e pessoas embaixo; "Datas" e a etapa em bolinhas **grudadas no fundo** (todos os cartões com o mesmo formato). O cartão inteiro abre o orçamento. Rota que não cabe **anda sozinha** de um lado pro outro e para se arrastar.
+- **Recorte com 3 barras:** o canto de cima à direita de todo cartão é um recorte de verdade (60 × 60 px, curvas suaves) com um botão de 3 barras que abre as ações (fila: abrir, editar pedido, duplicar, WhatsApp, apagar com confirmação; opção de voo: abrir link do preço, editar, repetir, apagar).
+- **Orçamento (`orcamento.html`):** rota grande em uma linha (encolhe pra caber); datas, pessoas e opções em números grandes; pedido especial numa pílula; lista de conferência atrás de um botão ("Conferência 2/5"). Trechos em **abas grandes** e dias como **mini calendário** (só os dias com opção).
+- **Opção de voo:** horário grande numa linha só; **pontos + taxa** em destaque e o custo total pequeno embaixo (só o dono); etiquetas (escalas, mala, avisos do pedido) e valor grudados no fundo; etiquetas que não cabem andam sozinhas. Pro dono, a de menor custo fica em laranja.
+- **Nova opção / Editar:** painel lateral que fica aberto pra lançar várias seguidas (Enter salva; tecla N abre). Se mexeu e tenta sair sem salvar, pergunta "Salvar antes de sair?".
+- **Novo orçamento:** versão única (quem pediu, viagem, passageiros, pedido especial; a lista de conferência vem fechada).
+
 **Regras gerais de tela (2026-10-16)**
 - **Celular é prioridade:** o dono usa o sistema principalmente no **celular**; os pesquisadores, no **computador**. O celular precisa estar impecável.
 - **Lista longa vira busca:** toda seleção com muitas opções deixa digitar, e o que se escreve filtra as opções antes de escolher.

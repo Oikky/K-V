@@ -5,11 +5,11 @@
 
   const ITENS = [
     { id: 'painel', nome: 'Painel', icone: 'layout-dashboard' },
-    { id: 'orcamentos', nome: 'Orçamentos', icone: 'plane' },
+    { id: 'orcamentos', nome: 'Orçamentos', icone: 'plane', href: 'orcamentos.html', hrefPesquisador: 'orcamentos.html?papel=pesquisador' },
     { id: 'contas', nome: 'Contas de pontos', icone: 'wallet', href: 'contas.html' },
     { id: 'clientes', nome: 'Clientes', icone: 'users', href: 'clientes.html' },
     { id: 'financeiro', nome: 'Financeiro', icone: 'chart-column' },
-    { id: 'ponto', nome: 'Ponto', icone: 'timer', href: 'folha.html', hrefPesquisador: 'ponto.html' },
+    { id: 'ponto', nome: 'Ponto', icone: 'timer', href: 'folha.html', hrefPesquisador: 'ponto.html?papel=pesquisador' },
     { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html' },
   ];
 

@@ -1,0 +1,253 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Fila de orçamentos, rodada 8b, cartão A escolhido (refeita no jeito da referência HubSpot):
+     números grandes no topo, cartões com poucos dados e o botão ↗ no canto, o primeiro "pra revisar" em laranja cheio,
+     pílulas com contagem e a etapa trocada no próprio cartão. ?papel=pesquisador mostra a vista do pesquisador. Nada é salvo. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orçamentos · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=11">
+<style>
+  .cab-fila { display: flex; align-items: flex-end; gap: 18px 40px; flex-wrap: wrap; margin-bottom: 8px; }
+  .cab-fila h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .cab-fila .btn.primario { margin-left: auto; }
+  .busca-linha { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+  .busca-linha .busca { width: 260px; }
+  .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+  .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* cartões no espírito da referência */
+  .cartao-ref .nome { font: 400 26px/1.1 var(--font); letter-spacing: .01em; font-variant-numeric: tabular-nums; color: inherit; text-decoration: none; padding-right: 42px; display: block; }
+  .cartao-ref .nome:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  .cartao-ref .sub { display: block; font-size: 13px; color: var(--text-2); margin-top: 4px; }
+  .cartao-ref .rot { display: block; font-size: 12px; color: var(--text-3); font-weight: 600; margin-bottom: 6px; }
+  .cartao-ref.cheio .sub, .cartao-ref.cheio .rot, .cartao-ref.cheio small { color: var(--orange-ink); opacity: .72; }
+  .avc { width: 42px; height: 42px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; color: var(--text); flex: none; }
+  .cartao-ref.cheio .avc { background: rgb(0 0 0 / .12); color: var(--orange-ink); }
+  .grade-ref .ca:has(.menu-orc) { z-index: 5; }
+  .grade-ref .ca { display: flex; flex-direction: column; gap: 14px; padding-bottom: 18px; }
+  .ca .grupos { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: auto; padding-top: 4px; }
+  .ca .tags { display: flex; gap: 6px; }
+  .ca .dir { text-align: right; }
+  .pontos { display: inline-flex; gap: 5px; padding: 7px 9px; border-radius: var(--r-pill); background: var(--surface-2); }
+  .pontos i { width: 10px; height: 10px; border-radius: 50%; background: var(--surface-3); }
+  .pontos i.feito { background: var(--teal-soft); } .pontos i.agora { background: var(--orange); }
+  .cartao-ref.cheio .pontos { background: rgb(0 0 0 / .1); } .cartao-ref.cheio .pontos i { background: rgb(0 0 0 / .14); }
+  .cartao-ref.cheio .pontos i.feito { background: rgb(0 0 0 / .45); } .cartao-ref.cheio .pontos i.agora { background: var(--orange-ink); }
+  .cb { gap: 14px; }
+  .cb-topo { display: flex; align-items: center; gap: 10px; padding-right: 44px; min-width: 0; }
+  .cb-topo .avc { width: 36px; height: 36px; font-size: 12.5px; }
+  .cb-quem { min-width: 0; } .cb-quem b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .cb-quem small { font-size: 12px; color: var(--text-3); }
+  .cb .nome { font-size: 30px; padding-right: 0; }
+  .cb-linha { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
+  .cartao-ref.cheio .cb-linha { color: var(--orange-ink); }
+  .cb-status { padding-top: 12px; border-top: 1px solid var(--line); }
+  .cartao-ref.cheio .cb-status { border-color: rgb(0 0 0 / .14); }
+  .cb-fila { display: flex; gap: 8px; align-items: center; }
+  .cb-fila .sel-pilula { margin-left: 0; flex: 1; } .cb-fila .sel-pilula select { width: 100%; height: 40px; }
+  .cartao-ref.cheio .btn.redondo { background: var(--orange-ink); color: var(--orange); border-color: transparent; }
+  .cc { gap: 10px; }
+  .cc > .rot { margin: 0; }
+  .trilha { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 8px 0 4px; }
+  .trilha span { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: var(--orange); white-space: nowrap; min-width: 0; }
+  .trilha i { height: 6px; border-radius: 99px; background: var(--surface-3); }
+  .trilha .feito i { background: var(--teal-soft); } .trilha .agora i { background: var(--orange); }
+  .cartao-ref.cheio .trilha span { color: var(--orange-ink); } .cartao-ref.cheio .trilha i { background: rgb(0 0 0 / .14); }
+  .cartao-ref.cheio .trilha .feito i { background: rgb(0 0 0 / .4); } .cartao-ref.cheio .trilha .agora i { background: var(--orange-ink); }
+  .cc-pe { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-width: 0; }
+  .cc-pe .sub { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pilha { display: inline-flex; flex: none; } .pilha .avc { width: 34px; height: 34px; font-size: 12px; box-shadow: 0 0 0 3px var(--surface-1); }
+  .pilha .avc.pesq { margin-left: -10px; background: color-mix(in srgb, var(--teal) 35%, var(--surface-1)); color: var(--text); }
+  .cartao-ref.cheio .pilha .avc { box-shadow: 0 0 0 3px var(--orange); background: color-mix(in srgb, var(--orange) 78%, #000); color: var(--orange-ink); }
+  /* o cartão todo é clicável: o link das siglas cobre o cartão; botões e o ↗ ficam por cima */
+  .ca .cobre { position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+  .ca .titulo-op { min-width: 0; }
+  .ca .rolo { position: relative; z-index: 2; overflow-x: auto; scrollbar-width: none; cursor: grab; margin-right: 0; mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+  .ca .rolo.cabe { mask-image: none; cursor: pointer; }
+  .ca .rolo::-webkit-scrollbar { display: none; }
+  .ca .rolo.arrastando { cursor: grabbing; }
+  .ca .rolo .nome { display: inline-block; white-space: nowrap; padding-right: 28px; }
+  .ca .canto, .ca .rodape, .ca button, .ca select { position: relative; z-index: 2; }
+  .ca .canto { position: absolute; }
+  .ca { cursor: pointer; transition: background .15s; }
+  .ca:not(.cheio):hover { background: var(--surface-2); }
+  .ca.cheio:hover { filter: brightness(1.04); }
+  .ca .nome:hover { text-decoration: none; }
+  .ca-quem { display: flex; align-items: center; gap: 10px; padding-right: 48px; min-width: 0; }
+  .ca-quem > span:last-child { min-width: 0; }
+  .ca-quem b { display: block; font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ca-quem small { display: block; font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .cartao-ref.cheio .ca-quem small { color: var(--orange-ink); opacity: .72; }
+  mark { background: var(--orange-soft); color: inherit; border-radius: 3px; }
+  @media (max-width: 760px) {
+    .cab-fila h1 { font-size: 28px; }
+    .cab-fila .btn.primario { margin-left: 0; }
+    .kpi b { font-size: 28px; }
+    .busca-linha { width: 100%; margin-left: 0; } .busca-linha .busca { width: 100%; } .busca-linha .busca-wrap { flex: 1; }
+    .pilulas.rolar { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 4px; scrollbar-width: none; }
+    .pilulas.rolar .pilula { flex: none; }
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/pessoas.js?r=1"></script>
+<script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/shell.js?r=10"></script>
+<script>
+const papel = KVShell.param('papel') === 'pesquisador' ? 'pesquisador' : 'dono';
+const eu = KVShell.param('p') || 'p1';
+const app = KVShell.montar('orcamentos', { papel });
+const O = KV.orc, { fmt } = KV;
+const sufixo = papel === 'pesquisador' ? '&papel=pesquisador' : '';
+let textoBusca = '';
+const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const casa = (o) => { const q = tira(textoBusca.trim()); if (!q) return true; const d = q.replace(/\D/g, '');
+  return tira(o.contato.nome).includes(q) || tira(O.destino(o)).includes(q) || tira(O.rota(o)).includes(q) || String(o.numero) === q || (d.length >= 3 && o.contato.whatsapp.replace(/\D/g, '').includes(d)); };
+const realce = (t) => { const q = tira(textoBusca.trim()); if (!q) return t; const i = tira(t).indexOf(q); return i < 0 ? t : t.slice(0, i) + '<mark>' + t.slice(i, i + q.length) + '</mark>' + t.slice(i + q.length); };
+const datas = (o) => { const a = o.trechos[0].data, b = o.trechos[o.trechos.length - 1].data; return a === b ? fmt.dataCurta(a) : `${fmt.dataCurta(a)} a ${fmt.dataCurta(b)}`; };
+const iniciais = (n) => n.split(' ').filter((p) => p.length > 2).slice(0, 2).map((p) => p[0]).join('');
+const primeiro = (n) => n.split(' ')[0];
+const pessoas = (o) => o.passageiros.adultos + o.passageiros.criancas + o.passageiros.bebes;
+
+// cartão: quem pediu, pra onde, quando e quantos; embaixo, quem pesquisa e a etapa (trocável ali mesmo)
+// três jeitos de cartão, no espírito da referência (escolher pela barra branca)
+// quanto mais adiante no caminho, maior. A lista mostra do começo do caminho pro fim (novos primeiro); perdidos e cancelados sempre no fim
+const ordemFase = (o) => (AVANCO[o.etapa] === 0 ? 99 : AVANCO[o.etapa]);
+const AVANCO = { emitido: 6, fechado: 5, enviado: 4, pesquisado: 3, pesquisa: 2, novo: 1, cancelado: 0, perdido: 0 };
+const ETAPAS_TRILHA = ['novo', 'pesquisa', 'pesquisado', 'enviado', 'fechado'];
+const pontosEtapa = (o) => { const i = ETAPAS_TRILHA.indexOf(o.etapa); return `<span class="pontos" aria-label="Etapa ${O.etapa(o.etapa).nome}">${ETAPAS_TRILHA.map((e, k) => `<i class="${k < i ? 'feito' : k === i ? 'agora' : ''}"></i>`).join('')}</span>`; };
+const link = (o) => `orcamento.html?id=${o.id}${sufixo}`;
+// no recorte do canto: botão de 3 barras com as ações do orçamento
+const canto = (o) => `<span class="canto"><button data-menu="${o.id}" aria-haspopup="menu" aria-expanded="${menuAberto === o.id}" aria-label="Ações do orçamento #${o.numero}"><i data-lucide="menu"></i></button></span>${menuAberto === o.id ? menuHtml(o) : ''}`;
+let menuAberto = null, confirmarApagar = null;
+function menuHtml(o) {
+  if (confirmarApagar === o.id) return `<div class="menu-orc" role="menu"><p>Apagar o #${o.numero} de ${primeiro(o.contato.nome)}?</p><button role="menuitem" class="perigo" data-acao="apagar-sim"><i data-lucide="trash-2"></i>Sim, apagar</button><button role="menuitem" data-acao="apagar-nao"><i data-lucide="x"></i>Não</button></div>`;
+  const it = (acao, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" data-acao="${acao}"><i data-lucide="${icone}"></i>${texto}</button>`;
+  return `<div class="menu-orc" role="menu">${it('abrir', 'arrow-up-right', 'Abrir')}${papel === 'dono' ? it('editar', 'pencil', 'Editar pedido') + it('duplicar', 'copy', 'Duplicar') + it('whatsapp', 'message-circle', 'WhatsApp') + it('apagar', 'trash-2', 'Apagar', 'perigo') : ''}</div>`;
+}
+// título do cartão em siglas: ida e volta vira GRU → LIS (a volta fica no texto de baixo); vários trechos mostram a rota toda
+const idaEVolta = (o) => o.trechos.length === 2 && o.trechos[1].para === o.trechos[0].de && o.trechos[1].de === o.trechos[0].para;
+const siglas = (o) => idaEVolta(o) ? `${o.trechos[0].de} → ${o.trechos[0].para}` : O.rota(o);
+const tipoViagem = (o) => idaEVolta(o) ? 'ida e volta' : o.trechos.length === 1 ? 'só ida' : `${o.trechos.length} trechos`;
+const pes = (o) => `${pessoas(o)} ${pessoas(o) > 1 ? 'pessoas' : 'pessoa'}`;
+const periodo = (o) => { const d1 = o.trechos[0].data, d2 = o.trechos[o.trechos.length - 1].data; return `${fmt.dataCurta(d1)}${d1 !== d2 ? ` a ${fmt.dataCurta(d2)}` : ''}`; };
+// cartão escolhido (A da rodada 8b): quem pediu no topo, siglas grandes, datas e etapa em bolinhas. O cartão inteiro é o link.
+const doisNomes = (n) => n.split(' ').slice(0, 2).join(' ');
+function cartao(o, { cheio = false, rodape } = {}) {
+  const ehDono = papel === 'dono';
+  const d1 = o.trechos[0].data, d2 = o.trechos[o.trechos.length - 1].data;
+  return `<article class="cartao-ref ca ${cheio ? 'cheio' : ''}">${canto(o)}
+    <div class="ca-quem"><span class="avc">${iniciais(o.contato.nome)}</span><span><b>${realce(doisNomes(o.contato.nome))}</b><small>${ehDono ? o.contato.whatsapp : `#${o.numero} · ${O.idade(o.criadoEm)}`}</small></span></div>
+    <a class="cobre" href="${link(o)}" aria-label="Abrir orçamento #${o.numero}: ${siglas(o)}"></a>
+    <div class="titulo-op"><div class="rolo" data-link="${link(o)}" title="${O.destino(o)}"><span class="nome">${realce(siglas(o))}</span></div><span class="sub">${realce(O.destino(o))} · ${tipoViagem(o)} · ${pes(o)}${o.opcoes.length ? ` · ${o.opcoes.length} opções` : ''}</span></div>
+    <div class="grupos"><div><span class="rot">Datas</span><div class="tags"><span class="etiqueta">${fmt.dataCurta(d1)}</span>${d1 !== d2 ? `<span class="etiqueta">${fmt.dataCurta(d2)}</span>` : ''}</div></div>
+      <div class="dir"><span class="rot">${O.etapa(o.etapa).nome}</span>${pontosEtapa(o)}</div></div>
+    ${ehDono ? '' : `<div class="rodape">${rodape(o)}</div>`}</article>`;
+}
+const quemPesquisa = (o) => o.responsavel ? `<span class="ava" title="${O.pesquisadores[o.responsavel]}">${iniciais(O.pesquisadores[o.responsavel])}</span>` : '<span class="etiqueta">na fila</span>';
+const seletorEtapa = (o) => `<label class="sel-pilula"><span class="escondido">Etapa</span><select data-etapa-de="${o.id}" data-combo="nao">${O.etapas.map((e) => `<option value="${e.id}" ${e.id === o.etapa ? 'selected' : ''}>${e.nome}</option>`).join('')}</select></label>`;
+
+const FILTROS = [{ id: 'todos', nome: 'Todos' }, { id: 'novo', nome: 'Novos' }, { id: 'pesquisa', nome: 'Em pesquisa' }, { id: 'enviado', nome: 'Enviados' }, { id: 'fechado', nome: 'Fechados' }, { id: 'arquivo', nome: 'Arquivo' }];
+const passa = (f, o) => f === 'todos' ? ['novo', 'pesquisa', 'enviado', 'fechado'].includes(o.etapa) : f === 'arquivo' ? !O.etapa(o.etapa).aberta : o.etapa === f;
+const buscaHtml = () => `<div class="busca-linha"><div class="busca-wrap"><i data-lucide="search"></i><input class="busca" type="search" placeholder="Nome, destino ou nº" aria-label="Buscar orçamento" value="${textoBusca.replace(/"/g, '&quot;')}"></div></div>`;
+
+function vistaDono() {
+  const l = O.lista();
+  const revisar = l.filter((o) => o.etapa === 'pesquisado' && casa(o)).sort((a, b) => a.criadoEm - b.criadoEm);
+  const f = FILTROS.some((x) => x.id === KVShell.param('f')) ? KVShell.param('f') : 'todos';
+  const resto = l.filter((o) => passa(f, o) && casa(o)).sort((a, b) => ordemFase(a) - ordemFase(b) || a.criadoEm - b.criadoEm);
+  const n = (id) => l.filter((o) => o.etapa === id).length;
+  const quandoPesquisou = (x) => { const h = [...x.historico].reverse().find((y) => y.texto === 'Marcou como pesquisado'); return O.idade(h ? h.quando : x.criadoEm); };
+  app.innerHTML = `<div class="cab-fila"><h1>Orçamentos</h1>
+      <div class="kpis"><span class="kpi"><b>${l.filter((o) => O.etapa(o.etapa).aberta).length}</b><span>abertos</span></span><span class="kpi destaque"><b>${n('pesquisado')}</b><span>pra revisar</span></span><span class="kpi"><b>${n('enviado')}</b><span>esperando resposta</span></span><span class="kpi"><b>${n('fechado')}</b><span>fechados</span></span></div>
+      <a class="btn primario" href="novo-orcamento.html"><i data-lucide="plus"></i>Novo orçamento</a></div>
+    <div class="secao"><h2>Pra revisar</h2><span class="n">${revisar.length} pesquisados</span></div>
+    ${revisar.length ? `<div class="grade-ref">${revisar.map((o, i) => cartao(o, { cheio: i === 0, rodape: (x) => `${quemPesquisa(x)}<span class="pq">pesquisou ${quandoPesquisou(x)}</span>${seletorEtapa(x)}` })).join('')}</div>` : '<div class="vazio">Nada esperando você.</div>'}
+    <div class="secao"><h2>Todos os orçamentos</h2><span class="n">${resto.length}</span>${buscaHtml()}</div>
+    <div class="pilulas rolar" style="margin:-4px 0 18px">${FILTROS.map((x) => `<button class="pilula" data-f="${x.id}" aria-pressed="${x.id === f}">${x.nome} <span class="cont">${l.filter((o) => passa(x.id, o)).length}</span></button>`).join('')}</div>
+    ${resto.length ? `<div class="grade-ref">${resto.map((o) => cartao(o, { rodape: (x) => `${quemPesquisa(x)}<span class="pq">${O.idade(x.criadoEm)}</span>${seletorEtapa(x)}` })).join('')}</div>` : '<div class="vazio">Nenhum orçamento aqui.</div>'}`;
+}
+
+function vistaPesquisador() {
+  const l = O.lista();
+  const meus = l.filter((o) => o.responsavel === eu && o.etapa === 'pesquisa' && casa(o));
+  const novos = l.filter((o) => o.etapa === 'novo' && (!o.responsavel || o.responsavel === eu) && casa(o)).sort((a, b) => (b.responsavel === eu) - (a.responsavel === eu) || a.criadoEm - b.criadoEm);
+  const outro = eu === 'p1' ? 'p2' : 'p1';
+  const doOutro = l.filter((o) => o.responsavel === outro && ['novo', 'pesquisa'].includes(o.etapa)).length;
+  const conf = (o) => { const f = o.conferencia.filter((c) => c.feito).length; return `<span class="etiqueta"><i data-lucide="list-checks"></i>${f}/${o.conferencia.length} conferidos</span>`; };
+  app.innerHTML = `<div class="cab-fila"><h1>Orçamentos</h1>
+      <div class="kpis"><span class="kpi destaque"><b>${meus.length}</b><span>com você</span></span><span class="kpi"><b>${novos.length}</b><span>na fila</span></span><span class="kpi"><b>${doOutro}</b><span>com ${primeiro(O.pesquisadores[outro])}</span></span></div></div>
+    <div class="secao"><h2>Com você</h2><span class="n">${meus.length}</span>${buscaHtml()}</div>
+    ${meus.length ? `<div class="grade-ref">${meus.map((o, i) => cartao(o, { cheio: i === 0, rodape: (x) => `${conf(x)}${x.pedido ? `<span class="etiqueta">${x.pedido.split(' · ')[0]}</span>` : ''}` })).join('')}</div>` : '<div class="vazio">Nenhum com você. Pegue um da fila.</div>'}
+    <div class="secao"><h2>Fila de novos</h2><span class="n">${novos.length}</span></div>
+    ${novos.length ? `<div class="grade-ref">${novos.map((o) => cartao(o, { rodape: (x) => `${x.responsavel === eu ? '<span class="etiqueta warn">o dono passou pra você</span>' : `<span class="pq">${O.idade(x.criadoEm)}</span>`}<button class="btn primario" data-pegar="${x.id}" style="margin-left:auto;height:36px"><i data-lucide="hand"></i>Pegar</button>` })).join('')}</div>` : '<div class="vazio">Fila vazia.</div>'}`;
+}
+
+// menu do cartão: abrir, editar, duplicar, WhatsApp, apagar (com confirmação)
+app.addEventListener('click', (e) => {
+  const m = e.target.closest('[data-menu]');
+  if (m) { e.preventDefault(); menuAberto = menuAberto === m.dataset.menu ? null : m.dataset.menu; confirmarApagar = null; render(); const pri = app.querySelector('.menu-orc button'); if (pri) pri.focus(); return; }
+  const a = e.target.closest('[data-acao]');
+  if (a) {
+    e.preventDefault();
+    const o = O.get(menuAberto), acao = a.dataset.acao;
+    if (acao === 'abrir' || acao === 'editar') { location = link(o); return; }
+    if (acao === 'whatsapp') { menuAberto = null; render(); return; }
+    if (acao === 'duplicar') { O.criar({ contato: { ...o.contato }, pessoaId: o.pessoaId, responsavel: null, trechos: o.trechos.map((t) => ({ ...t })), passageiros: { ...o.passageiros }, pedido: o.pedido, conferencia: o.conferencia.map((c) => ({ ...c, feito: false })) }); menuAberto = null; render(); return; }
+    if (acao === 'apagar') { confirmarApagar = o.id; render(); return; }
+    if (acao === 'apagar-sim') { O.lista().splice(O.lista().indexOf(o), 1); menuAberto = confirmarApagar = null; render(); return; }
+    if (acao === 'apagar-nao') { confirmarApagar = null; render(); return; }
+  }
+  if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmarApagar = null; render(); if (!e.target.closest('.cobre, .rolo')) return; }
+}, true);
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto) { const id = menuAberto; menuAberto = confirmarApagar = null; render(); const b = app.querySelector(`[data-menu="${id}"]`); if (b) b.focus(); } });
+app.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.f && b.dataset.f !== (KVShell.param('f') || 'todos')) { KVShell.irPara({ f: b.dataset.f === 'todos' ? null : b.dataset.f }); render(); }
+  if (b.dataset.pegar) { O.pegar(O.get(b.dataset.pegar), eu); location = `orcamento.html?id=${b.dataset.pegar}${sufixo}&pegou=${eu}`; }
+});
+app.addEventListener('change', (e) => {
+  if (e.target.dataset.etapaDe) { const o = O.get(e.target.dataset.etapaDe); O.mudarEtapa(o, e.target.value, 'Dono'); render(); }
+});
+app.addEventListener('input', (e) => {
+  if (!e.target.classList.contains('busca')) return;
+  textoBusca = e.target.value; const pos = e.target.selectionStart; render();
+  const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos);
+});
+
+// ---------- títulos que não cabem: andam devagar de um lado pro outro; arrastar (ou rolar) para no ponto escolhido ----------
+const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function ligarRolos() {
+  app.querySelectorAll('.rolo').forEach((r) => {
+    const cabe = r.scrollWidth <= r.clientWidth + 2;
+    r.classList.toggle('cabe', cabe);
+    if (cabe) return;
+    let pos = null, dir = 1, pausa = 1500, ultimo = null, parado = false, inicioX = 0, inicioScroll = 0, moveu = false, apertado = false;
+    // anda por tempo (30px por segundo, pausa de 1,5s nas pontas), não por quadro: fica igual em qualquer tela
+    const passo = (t) => {
+      if (!r.isConnected || parado) return;
+      const dt = ultimo == null ? 16 : Math.min(64, t - ultimo); ultimo = t;
+      if (pausa > 0) pausa -= dt;
+      else {
+        pos = (pos ?? r.scrollLeft) + dir * dt * 0.03; r.scrollLeft = pos;
+        const fim = r.scrollWidth - r.clientWidth;
+        if ((dir > 0 && pos >= fim) || (dir < 0 && pos <= 0)) { pos = Math.max(0, Math.min(fim, pos)); dir *= -1; pausa = 1500; }
+      }
+      requestAnimationFrame(passo);
+    };
+    if (!calmo) requestAnimationFrame(passo);
+    r.addEventListener('pointerdown', (e) => { apertado = true; moveu = false; inicioX = e.clientX; inicioScroll = r.scrollLeft; r.setPointerCapture(e.pointerId); });
+    r.addEventListener('pointermove', (e) => { if (!apertado) return; const dx = e.clientX - inicioX; if (Math.abs(dx) > 4) { moveu = true; parado = true; r.classList.add('arrastando'); } if (moveu) r.scrollLeft = inicioScroll - dx; });
+    r.addEventListener('pointerup', () => { apertado = false; r.classList.remove('arrastando'); });
+    r.addEventListener('wheel', () => { parado = true; }, { passive: true });
+    r.addEventListener('click', (e) => { if (moveu) { e.preventDefault(); moveu = false; return; } location = r.dataset.link; });
+  });
+}
+function render() { papel === 'pesquisador' ? vistaPesquisador() : vistaDono(); KVShell.icones(); ligarRolos(); }
+render();
+KVShell.aoVoltar(render);
+</script>
+</body>
+</html>

@@ -16,8 +16,9 @@ Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do S
 - [x] Configurações dos programas: escolhida a B da rodada 5 (um programa por vez, com − e +).
 - [x] Ponto do pesquisador: `ponto.html` (cronômetro ao lado da semana) e `folha.html` (cartão por pesquisador), rodada 6.
 - [x] Clientes e passageiros: `clientes.html` (por cliente + tabela) e `pessoa.html` (viagens + coluna lateral), rodada 7.
-- [ ] Financeiro.
-- [ ] Atendimento (por último entre os rascunhos): fila de orçamentos, lançamento de opções de voo, decisão do dono, emissão.
+- [x] Atendimento, rodada 8: fila, novo orçamento e pesquisa (opções de voo), refeitos no jeito da referência.
+- [ ] Atendimento, rodada 9: decisão do dono (proposta e preço de venda), fechamento e emissão. Depende da pergunta 13 pro dono.
+- [ ] Financeiro (depois do atendimento, porque usa vendas e recebimentos).
 - [ ] Admin de verdade (depois dos rascunhos aprovados), e só então o site dos clientes.
 - [ ] **Recibo:** estudar o layout do modelo atual (https://oikky.github.io/recibo-kv/) e adaptar pro sistema novo, com melhorias. O recibo é gerado a partir da emissão e salvo em PDF pelo navegador.
 - [ ] **Próximos voos:** lista no painel do dono com os lembretes de revisão, check-in e dia do voo (substitui o Google Agenda por enquanto).

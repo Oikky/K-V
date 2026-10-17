@@ -170,3 +170,61 @@ td .combo-in { height: 38px; border-radius: 10px; border-color: transparent; fon
 .campo .opc { font-weight: 500; font-size: 12px; color: var(--text-3); margin-left: 4px; }
 .campo input[readonly] { color: var(--text-2); background: transparent; }
 @media (max-width: 480px) { .form-pessoa { grid-template-columns: 1fr; } }
+
+/* ---------- peças no jeito da referência (rodada 8b) ---------- */
+/* números grandes no topo, com selo pequeno */
+.kpis { display: flex; gap: 8px 28px; flex-wrap: wrap; align-items: flex-end; }
+.kpi { display: flex; align-items: baseline; gap: 6px; position: relative; }
+.kpi b { font: 800 34px/1 var(--font-brand); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 14px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+.kpi.destaque b { color: var(--orange); }
+/* cartão grande com o botão redondo no canto (o "recorte" é um anel da cor do fundo) */
+.cartao-ref { position: relative; display: grid; gap: 12px; align-content: start; background: var(--surface-1); border-radius: 26px; padding: 20px; text-decoration: none; color: var(--text); min-width: 0; }
+.cartao-ref.cheio { background: var(--orange); color: var(--orange-ink); }
+.cartao-ref .canto { position: absolute; top: 0; right: 0; width: 60px; height: 60px; border-radius: 0 0 0 18px; background: var(--bg); display: grid; place-items: start end; z-index: 3; }
+.cartao-ref .canto::before, .cartao-ref .canto::after { content: ''; position: absolute; width: 16px; height: 16px; background: radial-gradient(circle at 0 100%, transparent 15.5px, var(--bg) 16px); pointer-events: none; }
+.cartao-ref .canto::before { left: -16px; top: 0; }
+.cartao-ref .canto::after { left: 44px; top: 60px; }
+.cartao-ref .canto a, .cartao-ref .canto button { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; background: var(--surface-1); border: 1px solid var(--line); color: var(--text); text-decoration: none; cursor: pointer; padding: 0; transition: background .15s, rotate .2s; }
+.cartao-ref .canto a:hover { background: var(--surface-3); rotate: 45deg; }
+.cartao-ref .canto button:hover, .cartao-ref .canto button[aria-expanded="true"] { background: var(--surface-3); }
+.cartao-ref .canto svg.lucide { width: 18px; height: 18px; }
+.cartao-ref .pq { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.cartao-ref.cheio .pq, .cartao-ref.cheio .faint, .cartao-ref.cheio .muted { color: var(--orange-ink); opacity: .72; }
+.cartao-ref .grande { font: 800 22px/1.15 var(--font-brand); letter-spacing: -0.02em; padding-right: 40px; }
+.cartao-ref .rodape { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.etiqueta { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.etiqueta svg.lucide { width: 14px; height: 14px; }
+.etiqueta.warn { background: var(--warn-bg); color: var(--warn); }
+.cartao-ref.cheio .etiqueta { background: rgb(0 0 0 / .1); color: var(--orange-ink); }
+.ava { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-3); display: inline-grid; place-items: center; font-size: 11.5px; font-weight: 800; color: var(--text); flex: none; }
+.cartao-ref.cheio .ava { background: rgb(0 0 0 / .14); color: var(--orange-ink); }
+/* seletor em pílula dentro do cartão (troca a situação ali mesmo) */
+.sel-pilula { position: relative; display: inline-flex; align-items: center; margin-left: auto; }
+.sel-pilula select { appearance: none; height: 36px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2); padding: 0 34px 0 14px; font-weight: 700; font-size: 13.5px; color: var(--text); cursor: pointer; }
+.sel-pilula::after { content: ''; position: absolute; right: 14px; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; rotate: 45deg; translate: 0 -2px; pointer-events: none; opacity: .6; }
+.cartao-ref.cheio .sel-pilula select { background: rgb(0 0 0 / .1); border-color: transparent; color: var(--orange-ink); }
+.cartao-ref.cheio .sel-pilula { color: var(--orange-ink); }
+.secao { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 34px 0 16px; }
+.secao h2 { font-size: 22px; font-weight: 600; white-space: nowrap; }
+.secao .n { white-space: nowrap; font-size: 13px; color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.btn.redondo { width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 50%; }
+.grade-ref { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 16px 14px; }
+/* janela lateral (no celular continua subindo de baixo) */
+@media (min-width: 761px) {
+  .janela.lateral { margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; width: min(440px, 100vw); border-radius: 26px 0 0 26px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .janela.lateral[open] { animation: kv-entra .26s cubic-bezier(.2, .8, .2, 1); }
+    @keyframes kv-entra { from { opacity: 0; transform: translateX(32px); } }
+  }
+}
+
+/* menu das 3 barras (no recorte do canto dos cartões) */
+.menu-orc { position: absolute; top: 64px; right: 0; z-index: 10; min-width: 190px; padding: 6px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); box-shadow: var(--shadow-pop); display: grid; gap: 2px; }
+.menu-orc button { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer; text-align: left; white-space: nowrap; }
+.menu-orc button:hover, .menu-orc button:focus-visible { background: var(--surface-3); }
+.menu-orc button svg.lucide { width: 16px; height: 16px; color: var(--text-2); }
+.menu-orc .perigo, .menu-orc .perigo svg.lucide { color: var(--danger); }
+.menu-orc p { margin: 6px 10px 8px; font-size: 13.5px; color: var(--text-2); white-space: normal; }
+@media (prefers-reduced-motion: no-preference) { .menu-orc { animation: kv-menu .16s cubic-bezier(.2, .8, .2, 1); transform-origin: top right; } @keyframes kv-menu { from { opacity: 0; transform: scale(.96) translateY(-4px); } } }
+.grade-ref .cartao-ref:has(.menu-orc) { z-index: 5; }
