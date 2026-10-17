@@ -14,8 +14,8 @@ O que está combinado fazer, em ordem de etapa do projeto.
 Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do Sunnify).
 - [x] Gestão de contas: lista, detalhe, entrada, saída, nova conta (rodadas 1 a 5).
 - [x] Configurações dos programas: escolhida a B da rodada 5 (um programa por vez, com − e +).
-- [ ] Atendimento: fila de orçamentos, lançamento de opções de voo, decisão do dono, emissão.
 - [ ] Clientes e passageiros, financeiro, ponto do pesquisador.
+- [ ] Atendimento (por último entre os rascunhos): fila de orçamentos, lançamento de opções de voo, decisão do dono, emissão.
 - [ ] Admin de verdade (depois dos rascunhos aprovados), e só então o site dos clientes.
 - [ ] **Recibo:** estudar o layout do modelo atual (https://oikky.github.io/recibo-kv/) e adaptar pro sistema novo, com melhorias. O recibo é gerado a partir da emissão e salvo em PDF pelo navegador.
 - [ ] **Próximos voos:** lista no painel do dono com os lembretes de revisão, check-in e dia do voo (substitui o Google Agenda por enquanto).
