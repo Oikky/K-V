@@ -1,10 +1,10 @@
 // Worker único do sistema K&V: telas (public/), API (/api/*) e bot (/telegram).
-// Segredos (nunca no repositório): wrangler secret put TELEGRAM_TOKEN | TELEGRAM_SECRET | ANTHROPIC_API_KEY
+// Códigos e senhas ficam em sistema/.env (fora do git; modelo em .env.exemplo) e sobem com:
+//   node node_modules/wrangler/bin/wrangler.js secret bulk .env
+// No PC, o wrangler dev usa o .dev.vars (só o DEV_EMAIL).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kv-sistema",
-  // conta da Cloudflare da K&V (ikkysousa5). Fixa aqui pra nunca publicar em outra conta logada.
-  "account_id": "6a7c4b984cd4f598b304ba6eab653b66",
   "main": "src/index.js",
   "compatibility_date": "2026-10-01",
   "assets": {
@@ -16,10 +16,5 @@
     { "binding": "DB", "database_name": "kv", "database_id": "62874e00-330a-4561-ac11-d5db25ecdd36", "migrations_dir": "migrations" }
   ],
   "ai": { "binding": "AI" },
-  "vars": {
-    // time do Cloudflare Access (ex.: kv-viagens.cloudflareaccess.com) e o AUD da aplicação
-    "ACCESS_TEAM": "kv-viagens.cloudflareaccess.com",
-    "ACCESS_AUD": ""
-  },
   "observability": { "enabled": true }
 }
