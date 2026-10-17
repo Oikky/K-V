@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-HTML, CSS e JavaScript puros, abertos no navegador ou num servidor local (`python -m http.server`). Custo zero: sem Firebase, Cloudflare, domínio, deploy nem API paga. Os dados são fictícios, em memória ou em JSON, e o acesso a eles fica num módulo separado, pra ser trocado por um backend de verdade no futuro.
+HTML, CSS e JavaScript puros. Os rascunhos (`_rascunhos/`) usam dados fictícios em memória. O sistema de verdade (`sistema/`, decidido em 2026-10-17) roda na Cloudflare, no plano grátis: um Worker serve as telas, a API e o bot do Telegram; os dados ficam no D1; o login é pelo Cloudflare Access. O único custo é a API da Claude, no bot. Detalhes em `docs/arquitetura.md`.
 
 ## Users
 

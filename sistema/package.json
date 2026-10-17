@@ -1,0 +1,14 @@
+{
+  "name": "kv-sistema",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node node_modules/wrangler/bin/wrangler.js dev",
+    "banco:local": "node node_modules/wrangler/bin/wrangler.js d1 migrations apply kv --local",
+    "banco:nuvem": "node node_modules/wrangler/bin/wrangler.js d1 migrations apply kv --remote",
+    "deploy": "node node_modules/wrangler/bin/wrangler.js deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  }
+}
