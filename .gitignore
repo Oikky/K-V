@@ -2,6 +2,7 @@
 dados-reais/
 *.local.json
 .env*
+!.env.exemplo
 
 # Sistema / editor
 Thumbs.db
@@ -17,3 +18,6 @@ referencias/
 # Estado do modo live do impeccable (local)
 .impeccable/live/
 _rascunhos/.impeccable/
+
+# Pedidos que chegam pelo bot do Telegram (podem ter nome e telefone de cliente de verdade)
+_rascunhos/dados/

@@ -122,6 +122,22 @@
   if (perdido && novo) novo.contato = { ...perdido.contato };
   orcamentos.forEach((o) => o.historico.sort((a, b) => a.quando - b.quando));
 
+  // pedidos que chegaram pelo bot do Telegram (bot/bot.py grava em dados/pedidos.json); entram na fila como Novo
+  let temBot = false;
+  function doBot() {
+    try { const x = new XMLHttpRequest(); x.open('GET', 'dados/pedidos.json?t=' + Date.now(), false); x.send(); if (x.status !== 200) return []; temBot = true; return JSON.parse(x.responseText); } catch (e) { return []; }
+  }
+  doBot().forEach((p) => {
+    const criado = new Date(p.criadoEm), n = orcamentos.length;
+    orcamentos.push({
+      id: p.id, numero: 101 + n, contato: p.contato, pessoaId: null, criadoEm: criado, etapa: 'novo', responsavel: null,
+      trechos: p.trechos, passageiros: p.passageiros, pedido: p.pedido,
+      conferencia: [...CONFERENCIA_PADRAO, ...(p.especiais || [])].map((texto, k) => ({ id: 'c' + k, texto, feito: false })),
+      opcoes: [], origem: 'telegram', audio: p.audio, textoOriginal: p.textoOriginal, observacao: p.observacao, faltando: p.faltando || [],
+      historico: [{ quando: criado, quem: 'Bot do Telegram', texto: p.audio ? 'Anotou o pedido a partir de um áudio do dono' : 'Anotou o pedido a partir de uma mensagem do dono' }],
+    });
+  });
+
   // ---------- contas ----------
   const pagantes = (o) => o.passageiros.adultos + o.passageiros.criancas;
   const valorMilha = (programa) => (KV.programa(programa) || {}).valorMilha || 0;
@@ -137,7 +153,7 @@
   const soDig = (s) => String(s || '').replace(/\D/g, '');
 
   window.KV.orc = {
-    agora: () => AGORA, aeroportos: AEROPORTOS, aeroporto, cidadeCurta, sites: SITES, site, etapas: ETAPAS, etapa, pesquisadores: PESQUISADORES,
+    agora: () => AGORA, temBot: () => temBot, aeroportos: AEROPORTOS, aeroporto, cidadeCurta, sites: SITES, site, etapas: ETAPAS, etapa, pesquisadores: PESQUISADORES,
     conferenciaPadrao: CONFERENCIA_PADRAO, janelaDias, pagantes, custo, custoPessoa, idade, fmtPax, rota, destino,
     lista: () => orcamentos, get: (id) => orcamentos.find((o) => o.id === id),
     // orçamentos antigos do mesmo WhatsApp (é por ele que se acha quem já pediu)

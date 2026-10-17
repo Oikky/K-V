@@ -69,6 +69,11 @@
   .op.nova { animation: kv-acende 1.4s ease-out; }
   @keyframes kv-acende { from { box-shadow: 0 0 0 2px var(--orange); } }
   @media (prefers-reduced-motion: reduce) { .op.nova { animation: none; } }
+  .bot-orc { display: grid; gap: 10px; margin: 18px 0 0; padding: 18px 20px; border-radius: 22px; background: var(--surface-1); max-width: 760px; }
+  .bot-cab { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--teal-soft); }
+  .bot-cab svg.lucide { width: 16px; height: 16px; }
+  .bot-txt { margin: 0; font-size: 16px; line-height: 1.5; }
+  .bot-obs { margin: 0; font-size: 14px; color: var(--text-2); }
   .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
   .conf-lista { display: grid; gap: 2px; }
   .conf-lista label { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-radius: 12px; cursor: pointer; font-size: 15px; }
@@ -92,7 +97,7 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="shared/dados.js?r=7"></script>
 <script src="shared/pessoas.js?r=1"></script>
-<script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/orcamentos.js?r=2"></script>
 <script src="shared/proposta.js?r=3"></script>
 <script src="shared/shell.js?r=10"></script>
 <script>
@@ -204,8 +209,17 @@ function ligarRolos() {
     r.addEventListener('wheel', () => { parado = true; }, { passive: true });
   });
 }
+// pedido que veio pelo bot do Telegram: o que o dono disse, o que falta perguntar e observações
+function doBot() {
+  if (o.origem !== 'telegram') return '';
+  const esc = (t) => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  return `<div class="bot-orc"><span class="bot-cab"><i data-lucide="${o.audio ? 'mic' : 'send'}"></i>Anotado pelo bot do Telegram${o.audio ? ', a partir de um áudio' : ''}</span>
+    <p class="bot-txt">“${esc(o.textoOriginal)}”</p>
+    ${o.observacao ? `<p class="bot-obs"><b>Obs.:</b> ${esc(o.observacao)}</p>` : ''}
+    ${o.faltando && o.faltando.length ? `<div class="aviso warn">Falta perguntar ao cliente: ${o.faltando.map(esc).join('; ')}</div>` : ''}</div>`;
+}
 function render() {
-  app.innerHTML = topo() + filtros() + opcoes();
+  app.innerHTML = topo() + doBot() + filtros() + opcoes();
   document.title = `#${o.numero} ${O.destino(o)} · Rascunho K&V`;
   KVShell.icones();
   ligarRolos();

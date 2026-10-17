@@ -93,7 +93,7 @@
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="shared/dados.js?r=7"></script>
 <script src="shared/pessoas.js?r=1"></script>
-<script src="shared/orcamentos.js?r=1"></script>
+<script src="shared/orcamentos.js?r=2"></script>
 <script src="shared/proposta.js?r=3"></script>
 <script src="shared/shell.js?r=10"></script>
 <script>
@@ -190,7 +190,14 @@ function vistaPesquisador() {
 // menu do cartão: abrir, editar, duplicar, WhatsApp, apagar (com confirmação)
 app.addEventListener('click', (e) => {
   const m = e.target.closest('[data-menu]');
-  if (m) { e.preventDefault(); menuAberto = menuAberto === m.dataset.menu ? null : m.dataset.menu; confirmarApagar = null; render(); const pri = app.querySelector('.menu-orc button'); if (pri) pri.focus(); return; }
+  if (m) { e.preventDefault(); menuAberto = menuAberto === m.dataset.menu ? null : m.dataset.menu; confirmarApagar = null; render();
+// pedidos do bot do Telegram: quando chega um novo, a fila se atualiza sozinha
+if (O.temBot()) {
+  let nBot = null;
+  setInterval(() => fetch('dados/pedidos.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((l) => {
+    if (!l) return; if (nBot != null && l.length !== nBot) location.reload(); nBot = l.length;
+  }), 3000);
+} const pri = app.querySelector('.menu-orc button'); if (pri) pri.focus(); return; }
   const a = e.target.closest('[data-acao]');
   if (a) {
     e.preventDefault();
