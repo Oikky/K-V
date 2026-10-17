@@ -35,7 +35,8 @@ Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do S
 - [x] Base: Worker, desenho do banco (D1), login pelo Access, papéis, ações com histórico e sem lançamento em dobro. Testado no PC.
 - [x] Publicado: https://kv-sistema.ikkysousa5.workers.dev, login com Google pelo Access (só os e-mails da equipe).
 - [x] Bot na nuvem (Worker kv-bot): webhook, Whisper da Cloudflare, Claude, Confirmar/Cancelar. O bot/bot.py antigo foi aposentado.
-- [ ] **Próximo:** fila de orçamentos lendo do banco (os pedidos do bot já estão lá, mas ainda não aparecem). Depois, o resto do atendimento.
+- [x] Fila de orçamentos lendo do banco: pegar, mudar etapa, duplicar, apagar; atualiza sozinha a cada 15 s. `orcamento.html` por enquanto só mostra o pedido.
+- [ ] **Próximo:** pesquisa de voos (orcamento.html dos rascunhos) no banco; depois proposta, fechamento e emissão.
 - [ ] Contas de pontos, clientes e ponto no banco.
 - [ ] Trazer os dados do Superhuman Docs.
 

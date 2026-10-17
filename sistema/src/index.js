@@ -3,6 +3,7 @@
 import { usuarioDa } from './auth.js';
 import { executar, Recusa } from './acoes.js';
 import { estado } from './estado.js';
+import { listarOrcamentos } from './orcamentos.js';
 import './acoes/base.js';
 import './acoes/orcamentos.js';
 
@@ -19,6 +20,7 @@ export default {
       if (!usuario) return json({ erro: 'Seu e-mail não tem acesso ao sistema.' }, 403);
       try {
         if (url.pathname === '/api/estado' && req.method === 'GET') return json(await estado(env, usuario));
+        if (url.pathname === '/api/orcamentos' && req.method === 'GET') return json(await listarOrcamentos(env, usuario));
         if (url.pathname === '/api/acao' && req.method === 'POST') {
           return json({ ok: true, resultado: await executar(env, usuario, await req.json()) });
         }

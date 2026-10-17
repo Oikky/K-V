@@ -1,4 +1,4 @@
-// Ações dos orçamentos. Por enquanto só criar (usada pelo bot e, depois, pela tela de novo orçamento).
+// Ações dos orçamentos: criar (bot e, depois, a tela de novo orçamento), pegar, mudar a etapa, duplicar e apagar.
 import { acao, Recusa } from '../acoes.js';
 
 export const CONFERENCIA_PADRAO = ['Janela de 14 dias pesquisada', 'Bagagem conferida', 'Link de cada preço', 'Pontos e dinheiro pesquisados'];
@@ -10,7 +10,9 @@ const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 
 // dados: { contato: {nome, whatsapp}, trechos: [{de, para, data, janela}], passageiros: {adultos, criancas, bebes},
 //          especiais: [], observacao, faltando: [], origem, textoOriginal, audio, chat }
-acao('orc.criar', ['dono'], async ({ db, usuario, quando }, d) => {
+acao('orc.criar', ['dono'], (ctx, d) => criar(ctx, d));
+
+async function criar({ db, usuario, quando }, d) {
   const nome = String(d.contato?.nome || '').trim();
   const whatsapp = soDigitos(d.contato?.whatsapp);
   if (!nome) throw new Recusa('Falta o nome de quem pediu');
@@ -44,7 +46,7 @@ acao('orc.criar', ['dono'], async ({ db, usuario, quando }, d) => {
     ? (d.audio ? 'Anotou o pedido a partir de um áudio' : 'Anotou o pedido a partir de uma mensagem')
     : 'Criou o orçamento';
   return { resultado: { id }, comandos, eventos: [{ entidade: 'orcamento', id, texto, depois: { contato: nome, trechos } }] };
-});
+}
 
 // apaga um orçamento que acabou de chegar pelo bot e ainda ninguém mexeu (o /desfazer do Telegram)
 acao('orc.desfazerBot', ['dono'], async ({ db }, { id }) => {
@@ -58,5 +60,72 @@ acao('orc.desfazerBot', ['dono'], async ({ db }, { id }) => {
     comandos: ['conferencia', 'trechos'].map((t) => db.prepare(`DELETE FROM ${t} WHERE orcamento_id = ?`).bind(id))
       .concat(db.prepare('DELETE FROM orcamentos WHERE id = ?').bind(id)),
     eventos: [{ entidade: 'orcamento', id, texto: 'Apagou pelo /desfazer do bot', antes: o }],
+  };
+});
+
+const ETAPAS = { novo: 'Novo', pesquisa: 'Em pesquisa', pesquisado: 'Pesquisado', enviado: 'Enviado', fechado: 'Fechado', emitido: 'Emitido', perdido: 'Perdido', cancelado: 'Cancelado' };
+
+async function orcamento(db, id) {
+  const o = Number.isInteger(id) ? await db.prepare('SELECT * FROM orcamentos WHERE id = ?').bind(id).first() : null;
+  if (!o) throw new Recusa('Orçamento não encontrado', 404);
+  return o;
+}
+
+// quem pesquisa pega um orçamento novo da fila (ou um que o dono passou pra ele)
+acao('orc.pegar', ['dono', 'pesquisa'], async ({ db, usuario }, { id }) => {
+  const o = await orcamento(db, id);
+  if (o.responsavel && o.responsavel !== usuario.email) {
+    const quem = await db.prepare('SELECT nome FROM usuarios WHERE email = ?').bind(o.responsavel).first();
+    throw new Recusa(`${quem ? quem.nome : 'Outra pessoa'} já pegou esse orçamento`, 409);
+  }
+  if (!['novo', 'pesquisa'].includes(o.etapa)) throw new Recusa('Esse orçamento já saiu da pesquisa', 409);
+  return {
+    resultado: { id },
+    // o "AND" protege de duas pessoas pegarem no mesmo instante: só a primeira gravação vale
+    comandos: [db.prepare("UPDATE orcamentos SET responsavel = ?1, etapa = 'pesquisa' WHERE id = ?2 AND (responsavel IS NULL OR responsavel = ?1)").bind(usuario.email, id)],
+    eventos: [{ entidade: 'orcamento', id, texto: 'Pegou o orçamento', antes: { etapa: o.etapa, responsavel: o.responsavel } }],
+  };
+});
+
+// o dono troca a etapa direto no cartão
+acao('orc.etapa', ['dono'], async ({ db }, { id, etapa }) => {
+  const o = await orcamento(db, id);
+  if (!ETAPAS[etapa]) throw new Recusa('Etapa inválida');
+  if (etapa === o.etapa) return { resultado: { id } };
+  const perder = ['perdido', 'cancelado'].includes(etapa);
+  return {
+    resultado: { id },
+    comandos: [db.prepare('UPDATE orcamentos SET etapa = ?, antes_de_perder = ? WHERE id = ?')
+      .bind(etapa, perder ? (o.antes_de_perder || o.etapa) : null, id)],
+    eventos: [{ entidade: 'orcamento', id, texto: etapa === 'pesquisado' ? 'Marcou como pesquisado' : `Mudou pra ${ETAPAS[etapa]}`, antes: { etapa: o.etapa }, depois: { etapa } }],
+  };
+});
+
+// novo orçamento com o mesmo contato, trechos, passageiros e pedido (sem opções, sem responsável)
+acao('orc.duplicar', ['dono'], async (ctx, { id }) => {
+  const o = await orcamento(ctx.db, id);
+  const trechos = (await ctx.db.prepare('SELECT de, para, data, janela FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
+  const r = await criar(ctx, {
+    contato: { nome: o.contato_nome, whatsapp: o.contato_whatsapp },
+    trechos: trechos.map((t) => ({ ...t, janela: !!t.janela })),
+    passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
+    especiais: o.pedido ? o.pedido.split(' · ') : [],
+    observacao: o.observacao,
+  });
+  r.eventos[0].texto = `Duplicou o #${id}`;
+  return r;
+});
+
+// apaga de vez (o histórico fica nos eventos). Emitido não se apaga: tem pontos e passageiros ligados.
+acao('orc.apagar', ['dono'], async ({ db }, { id }) => {
+  const o = await orcamento(db, id);
+  const emitiu = await db.prepare('SELECT 1 FROM emissoes WHERE orcamento_id = ? LIMIT 1').bind(id).first();
+  if (emitiu) throw new Recusa('Esse orçamento tem voo emitido; não dá pra apagar', 409);
+  return {
+    resultado: { id },
+    comandos: ['conferencia', 'trechos', 'opcoes', 'combos', 'orcamento_passageiros']
+      .map((t) => db.prepare(`DELETE FROM ${t} WHERE orcamento_id = ?`).bind(id))
+      .concat(db.prepare('DELETE FROM orcamentos WHERE id = ?').bind(id)),
+    eventos: [{ entidade: 'orcamento', id, texto: 'Apagou o orçamento', antes: o }],
   };
 });

@@ -1,0 +1,69 @@
+<!doctype html>
+<!-- Orçamento: por enquanto só o pedido (o que o bot anotou). A pesquisa de voos (orcamento.html dos rascunhos) vem depois. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orçamento · K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=1">
+<style>
+  .pedido { display: grid; gap: 14px; max-width: 760px; }
+  .pedido .card { display: grid; gap: 10px; }
+  .pedido h2 { font-size: 15px; color: var(--text-2); font-weight: 700; }
+  .trecho { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .trecho b { font: 800 20px var(--font-brand); }
+  .trecho span { color: var(--text-2); font-size: 14px; }
+  .faltando li { margin-left: 18px; }
+  .linha-cab { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .linha-cab h1 { font-size: 30px; font-weight: 600; }
+  .linha-cab .btn { margin-left: auto; }
+  .carregando { color: var(--text-3); padding: 40px 2px; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/api.js?r=1"></script>
+<script src="shared/orc.js?r=1"></script>
+<script src="shared/shell.js?r=1"></script>
+<script>
+const O = KVOrc, { esc } = KVOrc;
+const id = Number(KVShell.param('id'));
+const pax = (p) => [p.adultos && `${p.adultos} ${p.adultos > 1 ? 'adultos' : 'adulto'}`, p.criancas && `${p.criancas} ${p.criancas > 1 ? 'crianças' : 'criança'}`, p.bebes && `${p.bebes} ${p.bebes > 1 ? 'bebês' : 'bebê'}`].filter(Boolean).join(', ');
+
+(async function () {
+  document.body.insertAdjacentHTML('afterbegin', '<p class="carregando area">Carregando…</p>');
+  try {
+    const [est, lista] = await Promise.all([KVApi.estado(), KVApi.orcamentos()]);
+    const dono = est.eu.papel === 'dono' || est.eu.papel === 'admin';
+    document.querySelector('.carregando').remove();
+    const app = KVShell.montar('orcamentos', { dono });
+    const o = lista.find((x) => x.id === id);
+    const voltar = '<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>';
+    if (!o) { app.innerHTML = `${voltar}<p class="carregando">Orçamento não encontrado (ou já saiu da sua fila).</p>`; KVShell.icones(); return; }
+    const nome = (e) => (est.usuarios.find((u) => u.email === e) || {}).nome || e;
+    const podePegar = o.etapa === 'novo' && (!o.responsavel || o.responsavel === est.eu.email) && (!dono || est.eu.pesquisa);
+    app.innerHTML = `${voltar}
+      <div class="linha-cab"><h1>#${o.id} · ${esc(O.destino(o))}</h1><span class="etiqueta">${O.etapa(o.etapa).nome}</span>
+        ${podePegar ? '<button class="btn primario" id="pegar"><i data-lucide="hand"></i>Pegar</button>' : ''}</div>
+      <div class="pedido">
+        <div class="card"><h2>Quem pediu</h2><div>${esc(o.contato.nome)}${dono && o.contato.whatsapp ? ` · ${esc(o.contato.whatsapp)}` : ''}</div>
+          <div class="muted">${pax(o.passageiros)} · pedido ${O.idade(o.criadoEm)}${o.origem === 'telegram' ? (o.audio ? ' por áudio no bot' : ' pelo bot') : ''}${o.responsavel ? ` · com ${esc(nome(o.responsavel))}` : ''}</div></div>
+        <div class="card"><h2>Trechos</h2>${o.trechos.map((t) => `<div class="trecho"><b>${t.de} → ${t.para}</b><span>${esc(O.cidadeCurta(t.de))} → ${esc(O.cidadeCurta(t.para))} · ${O.dataCurta(t.data)}${t.janela ? ' · janela de 14 dias' : ' · data exata'}</span></div>`).join('')}</div>
+        ${o.pedido ? `<div class="card"><h2>Pedido especial</h2><div>${esc(o.pedido)}</div></div>` : ''}
+        ${o.faltando.length ? `<div class="card"><h2>Falta perguntar ao cliente</h2><ul class="faltando">${o.faltando.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : ''}
+        ${o.observacao ? `<div class="card"><h2>Observação</h2><div>${esc(o.observacao)}</div></div>` : ''}
+        <p class="faint">A pesquisa de voos desta tela ainda está nos rascunhos e entra no sistema na próxima etapa.</p>
+      </div>`;
+    KVShell.icones();
+    const b = document.getElementById('pegar');
+    if (b) b.onclick = async () => {
+      b.disabled = true;
+      try { await KVApi.acao('orc.pegar', { id }); location.reload(); }
+      catch (e) { KVShell.aviso(e.message, { erro: true }); b.disabled = false; }
+    };
+  } catch (e) {
+    const c = document.querySelector('.carregando'); if (c) c.textContent = e.message;
+  }
+})();
+</script>
+</body>
+</html>
