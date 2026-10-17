@@ -209,11 +209,35 @@ AJUDA = ("Oi! Sou o bot da K&V. Me mande o pedido do cliente, escrito ou em áud
 
 
 # ---------- laço principal ----------
+EU = {}  # o próprio bot (getMe): nome e id, pra saber quando falam com ele num grupo
+
+
+def falou_comigo(msg, texto):
+    """Num grupo, o bot só age quando é com ele: comando, menção (@KVtravelbot) ou resposta a uma mensagem dele.
+    Assim a conversa normal do grupo não vai pra IA."""
+    if texto.startswith("/"):
+        return True
+    if f"@{EU.get('username', '')}".lower() in texto.lower():
+        return True
+    resp = msg.get("reply_to_message") or {}
+    return (resp.get("from") or {}).get("id") == EU.get("id")
+
+
 def tratar(msg):
     chat_id = msg["chat"]["id"]
-    texto = (msg.get("text") or "").strip()
+    texto = (msg.get("text") or msg.get("caption") or "").strip()
+    grupo = msg["chat"]["type"] in ("group", "supergroup")
+    if grupo:
+        if not falou_comigo(msg, texto):
+            return
+        texto = texto.replace(f"@{EU.get('username', '')}", "").strip()
     if texto.startswith("/start") or texto.startswith("/ajuda"):
-        responder(chat_id, AJUDA + (f"\n\nSeu número de chat: {chat_id}" if str(chat_id) not in CHATS else ""))
+        extra = ""
+        if str(chat_id) not in CHATS:
+            extra = f"\n\nNúmero deste {'grupo' if grupo else 'chat'}: {chat_id}"
+        if grupo:
+            extra += f"\n\nNo grupo, me chame com @{EU.get('username')} na mensagem ou responda a uma mensagem minha (vale com áudio também)."
+        responder(chat_id, AJUDA + extra)
         return
     if CHATS and str(chat_id) not in CHATS:
         responder(chat_id, "Este bot é só pra equipe da K&V.")
@@ -277,6 +301,7 @@ def main():
     if not cliente_ia:
         sys.exit("Falta ANTHROPIC_API_KEY no bot/.env.")
     eu = telegram("getMe")
+    EU.update(eu)
     print(f"Bot @{eu['username']} ligado. Modelo: {MODELO}. Chats liberados: {', '.join(CHATS) or 'nenhum ainda'}. Ctrl+C pra parar.")
     offset = None
     while True:
