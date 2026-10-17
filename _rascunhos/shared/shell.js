@@ -9,17 +9,21 @@
     { id: 'contas', nome: 'Contas de pontos', icone: 'wallet', href: 'contas.html' },
     { id: 'clientes', nome: 'Clientes', icone: 'users' },
     { id: 'financeiro', nome: 'Financeiro', icone: 'chart-column' },
-    { id: 'ponto', nome: 'Ponto', icone: 'timer' },
+    { id: 'ponto', nome: 'Ponto', icone: 'timer', href: 'folha.html', hrefPesquisador: 'ponto.html' },
     { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html' },
   ];
 
-  function montar(ativo) {
+  // papel: 'dono' (tudo) ou 'pesquisador' (só orçamentos e o próprio ponto)
+  const DO_PESQUISADOR = ['orcamentos', 'ponto'];
+  function montar(ativo, { papel = 'dono' } = {}) {
+    const itens = ITENS.filter((i) => papel === 'dono' || DO_PESQUISADOR.includes(i.id))
+      .map((i) => ({ ...i, href: papel === 'pesquisador' && i.hrefPesquisador ? i.hrefPesquisador : i.href }));
     const shell = document.createElement('div');
     shell.className = 'shell';
     shell.innerHTML = `
       <nav class="rail" aria-label="Menu">
         <div class="marca">K<b>&amp;</b>V</div>
-        ${ITENS.map((i) => `<a href="${i.href || '#'}" ${i.id === ativo ? 'aria-current="page"' : ''} ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">
+        ${itens.map((i) => `<a href="${i.href || '#'}" data-item="${i.id}" ${i.id === ativo ? 'aria-current="page"' : ''} ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">
           <i data-lucide="${i.icone}"></i><span class="dica">${i.nome}${i.href ? '' : ' (em breve)'}</span></a>`).join('')}
         <a href="#" class="baixo" id="tema" aria-label="Trocar tema"><i data-lucide="sun-moon"></i><span class="dica">Trocar tema</span></a>
       </nav>

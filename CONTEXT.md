@@ -27,6 +27,12 @@ Horas de referência por dia (hoje 4h). Não há dias fixos: o pesquisador traba
 **Fechamento semanal**:
 O pagamento do pesquisador é calculado por semana: horas cronometradas × valor da hora. O pesquisador vê quanto já ganhou na semana e a previsão até o fim dela, pela jornada.
 
+**Correção do ponto** (decidido em 2026-10-16):
+Se o pesquisador esquece o cronômetro ligado (ou esquece de ligar), ele mesmo corrige a hora ou lança as horas à mão. Nada trava: o trecho fica marcado como **corrigido** (com a hora original) ou **lançado à mão**, e o dono vê isso na folha.
+
+**Pagamento da semana** (decidido em 2026-10-16):
+O dono marca a semana como **paga**, com data e valor. O pesquisador vê "Paga em ...". Semanas fechadas e não pagas ficam em destaque pro dono.
+
 ## Pontos e programas
 
 **Programa** *(vault)*:
@@ -217,6 +223,11 @@ Registro das escolhas feitas nos rascunhos (as variações descartadas ficam na 
 **Rodada 5: programas e lista de contas (2026-10-16)**
 - **Configurações dos programas:** **um programa por vez** (abas Smiles, Latam Pass, TudoAzul), com botões **− e +** pro ajuste fino do valor da milha, régua, exemplo de emissão e as regras de beneficiário na mesma tela. Motivo: bom de usar no celular, que é onde o dono mais mexe.
 - **Tabela de contas:** a vista **por titular** continua sendo a principal; a tabela é secundária. Na tabela, a ordem padrão é **titular de A a Z** e, no mesmo titular, **programa de A a Z**, então as contas da mesma pessoa ficam uma embaixo da outra. Clicar no nome das colunas **ordena por várias delas**, na ordem dos cliques: ex.: Programa e depois Saldo agrupa por programa e, dentro dele, do maior saldo pro menor. O cabeçalho mostra a prioridade (1, 2...). 1º clique: texto de A a Z, número do maior pro menor; 2º inverte; 3º tira a coluna. Um botão "Ordem: ..." limpa tudo e volta pro A a Z. No celular a tabela é a mesma do PC (rola pro lado, com o titular fixo à esquerda), não vira cartões.
+
+**Rodada 6: ponto do pesquisador (2026-10-17)**
+- **Ponto (pesquisador):** **cronômetro ao lado da semana**. O cronômetro fica fixo à esquerda (no celular, em cima) e a semana aparece em barras por dia, com a jornada de 4h tracejada e os dias que faltam desenhados como previsão. Tocar num dia mostra os trechos dele, com "Corrigir" e "Esqueci de ligar". Depois de 10h ligado, aparece o aviso "Esqueceu de pausar?". O menu do pesquisador mostra só Orçamentos e Ponto, com um mini cronômetro.
+- **Folha (dono):** **um cartão por pesquisador**, com quem está trabalhando agora, a semana dia a dia, as correções (hora original e quanto mudou) e "Marcar como pago" com valor e data. A janela de pagamento lista as correções da semana pra conferir antes. Motivo: bom no celular.
+- **Valor da hora:** o novo valor vale a partir do dia da mudança; as horas já trabalhadas ficam com o valor antigo (suposição, a confirmar).
 
 **Regras gerais de tela (2026-10-16)**
 - **Celular é prioridade:** o dono usa o sistema principalmente no **celular**; os pesquisadores, no **computador**. O celular precisa estar impecável.
