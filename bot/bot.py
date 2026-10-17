@@ -12,6 +12,7 @@ Config: bot/.env (ver bot/.env.exemplo). O .env nunca vai pro git: o repositóri
 import datetime
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -205,10 +206,12 @@ def resumo(o):
 
 AJUDA = ("Oi! Sou o bot da K&V. Me mande o pedido do cliente, escrito ou em áudio, do jeito que você falaria. "
          "Ex.: \"A Maria Souza, (11) 91234-5678, quer ir pra Lisboa dia 12/11 com o marido, volta dia 26, só voo direto.\"\n\n"
+         "Nome e WhatsApp do cliente são obrigatórios: sem eles eu pergunto antes de anotar.\n\n"
          "Eu anoto como orçamento novo na fila dos pesquisadores.\n/desfazer apaga o último que você mandou.")
 
 
 # ---------- laço principal ----------
+PENDENTES = {}  # (chat, pessoa) → pedido que espera o nome e o WhatsApp do cliente
 EU = {}  # o próprio bot (getMe): nome e id, pra saber quando falam com ele num grupo
 
 
@@ -275,6 +278,14 @@ def tratar(msg):
             responder(chat_id, "Me mande o pedido em texto ou áudio.")
         return
 
+    # pedido que ficou esperando nome e WhatsApp: a mensagem nova completa o anterior
+    chave = (chat_id, (msg.get("from") or {}).get("id"))
+    anterior = PENDENTES.pop(chave, None)
+    if anterior and time.time() - anterior["quando"] < 15 * 60:
+        texto = f"{anterior['texto']}\n{texto}"
+        voz = voz or anterior["voz"]
+        chamado = True
+
     if chamado or voz:
         telegram("sendChatAction", chat_id=chat_id, action="typing")
     try:
@@ -296,6 +307,17 @@ def tratar(msg):
         if not chamado and not voz:
             return  # conversa normal do grupo: fica quieto
         responder(chat_id, "Não entendi isso como um pedido de viagem. Me diga pra onde, quando e quantas pessoas.")
+        return
+    # nome e WhatsApp são obrigatórios: sem eles o pedido não entra na fila, fica esperando o complemento
+    falta = []
+    if not (p.nome_contato or "").strip():
+        falta.append("o nome do cliente")
+    if len(re.sub(r"\D", "", p.whatsapp or "")) < 10:
+        falta.append("o WhatsApp com DDD")
+    if falta:
+        PENDENTES[chave] = {"texto": texto, "voz": bool(voz), "quando": time.time()}
+        responder(chat_id, f"Entendi o pedido, mas falta {' e '.join(falta)}. Me manda que eu completo e anoto. "
+                           "Ex.: \"Maria Souza, (11) 91234-5678\"")
         return
     o = salvar(p, texto, chat_id, bool(voz))
     responder(chat_id, resumo(o))
