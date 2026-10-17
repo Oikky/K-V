@@ -7,7 +7,8 @@
 CREATE TABLE usuarios (
   email      TEXT PRIMARY KEY,               -- o mesmo e-mail do login (Cloudflare Access)
   nome       TEXT NOT NULL,
-  papel      TEXT NOT NULL CHECK (papel IN ('dono', 'pesquisador')),
+  papel      TEXT NOT NULL CHECK (papel IN ('dono', 'pesquisador', 'admin')), -- admin: o programador; pode o mesmo que o dono
+  pesquisa   INTEGER NOT NULL DEFAULT 0,     -- 1 = pesquisa voos: pega orçamentos, bate ponto e entra na folha
   ativo      INTEGER NOT NULL DEFAULT 1
 );
 

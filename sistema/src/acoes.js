@@ -10,8 +10,13 @@ export class Recusa extends Error {
 
 const ACOES = {};
 
-// registra uma ação: papeis = ['dono'] ou ['dono', 'pesquisador']
+// registra uma ação. Quem pode: 'dono' (o dono e o admin) e/ou 'pesquisa' (quem pesquisa voos:
+// os pesquisadores e o dono que também pesquisa). Ex.: ['dono'] ou ['dono', 'pesquisa'].
 export function acao(nome, papeis, fn) { ACOES[nome] = { papeis, fn }; }
+
+export const ehDono = (u) => u.papel === 'dono' || u.papel === 'admin';
+export const pesquisa = (u) => u.papel === 'pesquisador' || !!u.pesquisa;
+const pode = (u, papeis) => (papeis.includes('dono') && ehDono(u)) || (papeis.includes('pesquisa') && pesquisa(u));
 
 export const agora = () => new Date().toISOString();
 
@@ -19,7 +24,7 @@ export async function executar(env, usuario, corpo) {
   const { acao: nome, dados = {}, chave } = corpo || {};
   const a = ACOES[nome];
   if (!a) throw new Recusa(`Ação desconhecida: ${nome}`);
-  if (!a.papeis.includes(usuario.papel)) throw new Recusa('Seu papel não pode fazer isso', 403);
+  if (!pode(usuario, a.papeis)) throw new Recusa('Seu papel não pode fazer isso', 403);
   if (!chave || typeof chave !== 'string' || chave.length > 100) throw new Recusa('Falta a chave da ação');
 
   const ja = await env.DB.prepare('SELECT resultado FROM idempotencia WHERE chave = ?').bind(chave).first();

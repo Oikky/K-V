@@ -1,23 +1,26 @@
 // Ações de configuração: quem usa o sistema e o valor da milha de cada programa.
 import { acao, Recusa } from '../acoes.js';
 
-const PAPEIS = ['dono', 'pesquisador'];
+const PAPEIS = ['dono', 'pesquisador', 'admin'];
 
 // cadastra ou altera alguém da equipe (o e-mail precisa estar liberado também no Access)
-acao('usuario.salvar', ['dono'], async ({ db, usuario }, { email, nome, papel, ativo = true }) => {
+acao('usuario.salvar', ['dono'], async ({ db, usuario }, { email, nome, papel, pesquisa = false, ativo = true }) => {
   email = String(email || '').trim().toLowerCase();
   nome = String(nome || '').trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Recusa('E-mail inválido');
   if (!nome) throw new Recusa('Falta o nome');
   if (!PAPEIS.includes(papel)) throw new Recusa('Papel inválido');
-  if (email === usuario.email && (papel !== 'dono' || !ativo)) throw new Recusa('Você não pode tirar o seu próprio acesso de dono');
-  const antes = await db.prepare('SELECT nome, papel, ativo FROM usuarios WHERE email = ?').bind(email).first();
+  if (papel === 'admin' && usuario.papel !== 'admin') throw new Recusa('Só o admin cadastra outro admin', 403);
+  if (papel === 'pesquisador') pesquisa = true;
+  if (email === usuario.email && (papel !== usuario.papel || !ativo)) throw new Recusa('Você não pode mudar o seu próprio acesso');
+  const antes = await db.prepare('SELECT nome, papel, pesquisa, ativo FROM usuarios WHERE email = ?').bind(email).first();
+  if (antes && antes.papel === 'admin' && usuario.papel !== 'admin') throw new Recusa('Só o admin altera o admin', 403);
   return {
     resultado: { email },
     comandos: [db.prepare(
-      'INSERT INTO usuarios (email, nome, papel, ativo) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(email) DO UPDATE SET nome = ?2, papel = ?3, ativo = ?4',
-    ).bind(email, nome, papel, ativo ? 1 : 0)],
-    eventos: [{ entidade: 'usuario', id: email, texto: antes ? `Alterou ${nome}` : `Cadastrou ${nome}`, antes, depois: { nome, papel, ativo } }],
+      'INSERT INTO usuarios (email, nome, papel, pesquisa, ativo) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(email) DO UPDATE SET nome = ?2, papel = ?3, pesquisa = ?4, ativo = ?5',
+    ).bind(email, nome, papel, pesquisa ? 1 : 0, ativo ? 1 : 0)],
+    eventos: [{ entidade: 'usuario', id: email, texto: antes ? `Alterou ${nome}` : `Cadastrou ${nome}`, antes, depois: { nome, papel, pesquisa: !!pesquisa, ativo } }],
   };
 });
 

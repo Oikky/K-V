@@ -35,7 +35,7 @@ async function emailDoToken(token, env) {
   return String(p.email || '').toLowerCase() || null;
 }
 
-// devolve { email, nome, papel } ou null (não entra)
+// devolve { email, nome, papel, pesquisa } ou null (não entra)
 export async function usuarioDa(req, env) {
   let email = null;
   if (env.ACCESS_TEAM && env.ACCESS_AUD) {
@@ -45,5 +45,5 @@ export async function usuarioDa(req, env) {
     email = env.DEV_EMAIL.toLowerCase();
   }
   if (!email) return null;
-  return env.DB.prepare('SELECT email, nome, papel FROM usuarios WHERE email = ? AND ativo = 1').bind(email).first();
+  return env.DB.prepare('SELECT email, nome, papel, pesquisa FROM usuarios WHERE email = ? AND ativo = 1').bind(email).first();
 }
