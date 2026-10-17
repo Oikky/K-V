@@ -230,9 +230,16 @@ def tratar(msg):
     chat_id = msg["chat"]["id"]
     texto = (msg.get("text") or msg.get("caption") or "").strip()
     grupo = msg["chat"]["type"] in ("group", "supergroup")
-    # num grupo liberado (feito pra mandar pedidos), toda mensagem e todo áudio vão pro bot, sem precisar marcar.
-    # Se não for pedido de viagem e ninguém chamou o bot, ele fica quieto em vez de responder "não entendi".
-    chamado = not grupo or falou_comigo(msg, texto)
+    # o grupo liberado é só do bot: toda mensagem é com ele e sempre tem resposta (mesmo "não entendi").
+    # Em grupo não liberado, só responde quando o chamam (pra mostrar o número do grupo no /start).
+    chamado = not grupo or str(chat_id) in CHATS or falou_comigo(msg, texto)
+    # avisos do próprio Telegram (alguém entrou, saiu, mudou o nome do grupo): só dá boas-vindas a quem entra
+    if msg.get("new_chat_members"):
+        if str(chat_id) in CHATS:
+            responder(chat_id, AJUDA)
+        return
+    if any(k in msg for k in ("left_chat_member", "new_chat_title", "new_chat_photo", "pinned_message", "group_chat_created")):
+        return
     if grupo:
         if str(chat_id) not in CHATS and not chamado:
             return
