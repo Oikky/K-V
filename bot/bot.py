@@ -44,7 +44,7 @@ def carregar_env():
 carregar_env()
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # o console do Windows não mostra → e acentos sem isso
 TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
-MODELO = os.environ.get("KV_MODELO", "claude-opus-5")
+MODELO = os.environ.get("KV_MODELO", "claude-sonnet-5")
 CHATS = {c.strip() for c in os.environ.get("KV_CHATS", "").split(",") if c.strip()}
 URL_RASCUNHOS = os.environ.get("KV_RASCUNHOS_URL", "http://127.0.0.1:8790").rstrip("/")
 MODELO_WHISPER = os.environ.get("KV_WHISPER", "large-v3")
