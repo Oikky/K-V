@@ -17,6 +17,7 @@
     estado: () => pedir('/api/estado'),
     orcamentos: () => pedir('/api/orcamentos'),
     pessoas: () => pedir('/api/pessoas'),
+    clientes: () => pedir('/api/clientes'),
     juntos: (id) => pedir('/api/pessoas/juntos?id=' + encodeURIComponent(id)),
     contas: (programa) => pedir('/api/contas' + (programa ? '?programa=' + encodeURIComponent(programa) : '')),
     conta: (id) => pedir('/api/conta?id=' + encodeURIComponent(id)),

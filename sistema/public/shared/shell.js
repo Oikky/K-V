@@ -8,7 +8,7 @@
     { id: 'painel', nome: 'Painel', icone: 'layout-dashboard' },
     { id: 'orcamentos', nome: 'Orçamentos', icone: 'plane', href: 'orcamentos.html' },
     { id: 'contas', nome: 'Contas de pontos', icone: 'wallet', href: 'contas.html', soDono: true },
-    { id: 'clientes', nome: 'Clientes', icone: 'users', soDono: true },
+    { id: 'clientes', nome: 'Clientes', icone: 'users', href: 'clientes.html', soDono: true },
     { id: 'financeiro', nome: 'Financeiro', icone: 'chart-column', soDono: true },
     { id: 'ponto', nome: 'Ponto', icone: 'timer' },
     { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html', soDono: true },
