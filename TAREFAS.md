@@ -33,9 +33,9 @@ Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do S
 
 ## Sistema de verdade (`sistema/`)
 - [x] Base: Worker, desenho do banco (D1), login pelo Access, papéis, ações com histórico e sem lançamento em dobro. Testado no PC.
-- [ ] Publicar: criar o banco na nuvem, configurar o Access com os e-mails da equipe, deploy.
-- [ ] Bot na nuvem (webhook, Whisper da Cloudflare, Claude, Confirmar/Cancelar).
-- [ ] Atendimento lendo e gravando no banco.
+- [x] Publicado: https://kv-sistema.ikkysousa5.workers.dev, login com Google pelo Access (só os e-mails da equipe).
+- [x] Bot na nuvem (Worker kv-bot): webhook, Whisper da Cloudflare, Claude, Confirmar/Cancelar. O bot/bot.py antigo foi aposentado.
+- [ ] **Próximo:** fila de orçamentos lendo do banco (os pedidos do bot já estão lá, mas ainda não aparecem). Depois, o resto do atendimento.
 - [ ] Contas de pontos, clientes e ponto no banco.
 - [ ] Trazer os dados do Superhuman Docs.
 
