@@ -1,11 +1,16 @@
 // Worker do sistema K&V. As telas (public/) são servidas direto pela Cloudflare;
 // aqui só chegam /api/* (com login). O bot do Telegram é outro Worker (src/bot/, wrangler.bot.jsonc).
 import { usuarioDa } from './auth.js';
-import { executar, Recusa } from './acoes.js';
+import { executar, Recusa, ehDono } from './acoes.js';
 import { estado } from './estado.js';
 import { listarOrcamentos, abrirOrcamento } from './orcamentos.js';
 import './acoes/pesquisa.js';
 import './acoes/proposta.js';
+import './acoes/pessoas.js';
+import './acoes/fechamento.js';
+import './acoes/emissao.js';
+import { listarPessoas, viajaCom } from './pessoas.js';
+import { contasCompletas } from './contas.js';
 import './acoes/base.js';
 import './acoes/orcamentos.js';
 
@@ -27,6 +32,11 @@ export default {
           const o = await abrirOrcamento(env, usuario, Number(url.searchParams.get('id')));
           return o ? json(o) : json({ erro: 'Orçamento não encontrado (ou já saiu da sua fila).' }, 404);
         }
+        // só o dono: cadastro de pessoas e contas de pontos
+        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
+        if (url.pathname === '/api/pessoas' && req.method === 'GET') return json(await listarPessoas(env));
+        if (url.pathname === '/api/pessoas/juntos' && req.method === 'GET') return json(await viajaCom(env, Number(url.searchParams.get('id'))));
+        if (url.pathname === '/api/contas' && req.method === 'GET') return json(await contasCompletas(env, { programa: url.searchParams.get('programa') || undefined }));
         if (url.pathname === '/api/acao' && req.method === 'POST') {
           return json({ ok: true, resultado: await executar(env, usuario, await req.json()) });
         }

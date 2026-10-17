@@ -5,7 +5,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orçamentos · K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=1">
+<link rel="stylesheet" href="shared/base.css?r=2">
 <style>
   .cab-fila { display: flex; align-items: flex-end; gap: 18px 40px; flex-wrap: wrap; margin-bottom: 8px; }
   .cab-fila h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
@@ -65,9 +65,9 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
-<script src="shared/api.js?r=1"></script>
-<script src="shared/orc.js?r=1"></script>
-<script src="shared/shell.js?r=1"></script>
+<script src="shared/api.js?r=3"></script>
+<script src="shared/orc.js?r=4"></script>
+<script src="shared/shell.js?r=2"></script>
 <script>
 const O = KVOrc, { esc } = KVOrc;
 let eu = null, dono = false, nomes = {}, lista = [], app = null;
@@ -89,7 +89,8 @@ const AVANCO = { emitido: 6, fechado: 5, enviado: 4, pesquisado: 3, pesquisa: 2,
 const ordemFase = (o) => (AVANCO[o.etapa] === 0 ? 99 : AVANCO[o.etapa]);
 const ETAPAS_TRILHA = ['novo', 'pesquisa', 'pesquisado', 'enviado', 'fechado'];
 const pontosEtapa = (o) => { const i = ETAPAS_TRILHA.indexOf(o.etapa); return `<span class="pontos" aria-label="Etapa ${O.etapa(o.etapa).nome}">${ETAPAS_TRILHA.map((e, k) => `<i class="${k < i ? 'feito' : k === i ? 'agora' : ''}"></i>`).join('')}</span>`; };
-const link = (o) => `orcamento.html?id=${o.id}`;
+// o dono vai direto pra tela do que falta fazer (proposta, emissão); quem pesquisa, sempre pra pesquisa
+const link = (o) => `${dono ? O.telaDa(o) : 'orcamento.html'}?id=${o.id}`;
 const get = (id) => lista.find((o) => o.id === Number(id));
 
 const canto = (o) => `<span class="canto"><button data-menu="${o.id}" aria-haspopup="menu" aria-expanded="${menuAberto === o.id}" aria-label="Ações do orçamento #${o.id}"><i data-lucide="menu"></i></button></span>${menuAberto === o.id ? menuHtml(o) : ''}`;
@@ -129,7 +130,8 @@ function vistaDono() {
   const resto = l.filter((o) => passa(f, o) && casa(o)).sort((a, b) => ordemFase(a) - ordemFase(b) || antigo(a, b));
   const n = (id) => l.filter((o) => o.etapa === id).length;
   app.innerHTML = `<div class="cab-fila"><h1>Orçamentos</h1>
-      <div class="kpis"><span class="kpi"><b>${l.filter((o) => O.etapa(o.etapa).aberta).length}</b><span>abertos</span></span><span class="kpi destaque"><b>${n('pesquisado')}</b><span>pra revisar</span></span><span class="kpi"><b>${n('enviado')}</b><span>esperando resposta</span></span><span class="kpi"><b>${n('fechado')}</b><span>fechados</span></span></div></div>
+      <div class="kpis"><span class="kpi"><b>${l.filter((o) => O.etapa(o.etapa).aberta).length}</b><span>abertos</span></span><span class="kpi destaque"><b>${n('pesquisado')}</b><span>pra revisar</span></span><span class="kpi"><b>${n('enviado')}</b><span>esperando resposta</span></span><span class="kpi"><b>${n('fechado')}</b><span>fechados</span></span></div>
+      <a class="btn primario" href="novo-orcamento.html"><i data-lucide="plus"></i>Novo orçamento</a></div>
     <div class="secao"><h2>Pra revisar</h2><span class="n">${revisar.length} pesquisados</span></div>
     ${revisar.length ? `<div class="grade-ref">${revisar.map((o, i) => cartao(o, { cheio: i === 0, rodape: (x) => `${quemPesquisa(x)}<span class="pq">pesquisou ${O.idade(x.pesquisadoEm || x.criadoEm)}</span>${seletorEtapa(x)}` })).join('')}</div>` : '<div class="vazio">Nada esperando você.</div>'}
     <div class="secao"><h2>Todos os orçamentos</h2><span class="n">${resto.length}</span>${buscaHtml()}</div>

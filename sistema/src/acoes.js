@@ -19,6 +19,8 @@ export const pesquisa = (u) => u.papel === 'pesquisador' || !!u.pesquisa;
 const pode = (u, papeis) => (papeis.includes('dono') && ehDono(u)) || (papeis.includes('pesquisa') && pesquisa(u));
 
 export const agora = () => new Date().toISOString();
+// o dia de hoje no horário de Brasília (AAAA-MM-DD): datas de movimento e de emissão seguem o relógio da K&V
+export const hojeBR = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
 
 export async function executar(env, usuario, corpo) {
   const { acao: nome, dados = {}, chave } = corpo || {};

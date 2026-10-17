@@ -6,9 +6,16 @@
     ['BSB', 'Brasília'], ['CNF', 'Belo Horizonte (Confins)'], ['SSA', 'Salvador'], ['REC', 'Recife'], ['FOR', 'Fortaleza'], ['POA', 'Porto Alegre'], ['CWB', 'Curitiba'],
     ['FLN', 'Florianópolis'], ['GYN', 'Goiânia'], ['MAO', 'Manaus'], ['BEL', 'Belém'], ['NAT', 'Natal'], ['MCZ', 'Maceió'], ['IGU', 'Foz do Iguaçu'],
     ['LIS', 'Lisboa'], ['OPO', 'Porto'], ['MAD', 'Madri'], ['BCN', 'Barcelona'], ['CDG', 'Paris'], ['FCO', 'Roma'], ['LHR', 'Londres'], ['FRA', 'Frankfurt'], ['AMS', 'Amsterdã'],
-    ['MIA', 'Miami'], ['MCO', 'Orlando'], ['JFK', 'Nova York'], ['EZE', 'Buenos Aires'], ['SCL', 'Santiago'], ['LIM', 'Lima'], ['CUN', 'Cancún'], ['PTY', 'Cidade do Panamá'], ['DXB', 'Dubai'],
+    ['PLU', 'Belo Horizonte (Pampulha)'], ['JPA', 'João Pessoa'], ['AJU', 'Aracaju'], ['THE', 'Teresina'], ['SLZ', 'São Luís'], ['CGB', 'Cuiabá'], ['CGR', 'Campo Grande'],
+    ['VIX', 'Vitória'], ['NVT', 'Navegantes'], ['JOI', 'Joinville'], ['LDB', 'Londrina'], ['MGF', 'Maringá'], ['UDI', 'Uberlândia'], ['IOS', 'Ilhéus'], ['BPS', 'Porto Seguro'],
+    ['PMW', 'Palmas'], ['PVH', 'Porto Velho'], ['RBR', 'Rio Branco'], ['MCP', 'Macapá'], ['BVB', 'Boa Vista'], ['SJP', 'São José do Rio Preto'], ['RAO', 'Ribeirão Preto'],
+    ['CXJ', 'Caxias do Sul'], ['PNZ', 'Petrolina'], ['FEN', 'Fernando de Noronha'], ['JDO', 'Juazeiro do Norte'], ['STM', 'Santarém'], ['IMP', 'Imperatriz'], ['XAP', 'Chapecó'], ['CAC', 'Cascavel'],
+    ['MIA', 'Miami'], ['MCO', 'Orlando'], ['JFK', 'Nova York'], ['EZE', 'Buenos Aires'], ['SCL', 'Santiago'], ['LIM', 'Lima'], ['CUN', 'Cancún'], ['PTY', 'Cidade do Panamá'], ['DXB', 'Dubai'], ['FLL', 'Fort Lauderdale'], ['EWR', 'Newark'], ['LAX', 'Los Angeles'], ['MEX', 'Cidade do México'], ['BOG', 'Bogotá'], ['MVD', 'Montevidéu'],
+    ['ASU', 'Assunção'], ['CUZ', 'Cusco'], ['PUJ', 'Punta Cana'], ['ZRH', 'Zurique'], ['MUC', 'Munique'], ['IST', 'Istambul'], ['DOH', 'Doha'], ['MXP', 'Milão'], ['ATL', 'Atlanta'],
   ].map(([cod, cidade]) => ({ cod, cidade }));
-  const aeroporto = (cod) => AEROPORTOS.find((a) => a.cod === cod) || { cod, cidade: cod };
+  // aeroportos do Brasil: fora daqui é voo internacional (aviso de passaporte)
+  const NACIONAIS = new Set('GRU CGH VCP GIG SDU BSB CNF PLU SSA REC FOR POA CWB FLN GYN MAO BEL NAT MCZ IGU JPA AJU THE SLZ CGB CGR VIX NVT JOI LDB MGF UDI IOS BPS PMW PVH RBR MCP BVB SJP RAO CXJ PNZ FEN JDO STM IMP XAP CAC'.split(' '));
+  const aeroporto = (cod) => ({ ...(AEROPORTOS.find((a) => a.cod === cod) || { cod, cidade: cod }), int: !NACIONAIS.has(cod) });
   const cidadeCurta = (cod) => aeroporto(cod).cidade.replace(/ \(.*\)/, '');
 
   const ETAPAS = [
@@ -89,7 +96,7 @@
     }).join('<i class="liga" aria-hidden="true"></i>')}</nav>`;
   }
 
-  window.KVOrc = { aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc,
-    sites: SITES, site, janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
+  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc,
+    sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
     usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, telaDa };
 })();

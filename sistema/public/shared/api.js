@@ -16,6 +16,9 @@
   window.KVApi = {
     estado: () => pedir('/api/estado'),
     orcamentos: () => pedir('/api/orcamentos'),
+    pessoas: () => pedir('/api/pessoas'),
+    juntos: (id) => pedir('/api/pessoas/juntos?id=' + encodeURIComponent(id)),
+    contas: (programa) => pedir('/api/contas' + (programa ? '?programa=' + encodeURIComponent(programa) : '')),
     orcamento: (id) => pedir('/api/orcamento?id=' + encodeURIComponent(id)),
     acao: async (acao, dados = {}) => (await pedir('/api/acao', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ acao, dados, chave: chave() }),

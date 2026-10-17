@@ -25,27 +25,41 @@ async function criar({ db, usuario, quando }, d) {
   const especiais = (d.especiais || []).map((e) => String(e).trim()).filter(Boolean);
   const faltando = (d.faltando || []).map((e) => String(e).trim()).filter(Boolean);
 
-  // ligação com o cadastro: o mesmo WhatsApp de alguém já cadastrado
-  const pessoa = whatsapp ? await db.prepare('SELECT id FROM pessoas WHERE whatsapp = ?').bind(whatsapp).first() : null;
+  // ligação com o cadastro: a pessoa escolhida na tela, ou o mesmo WhatsApp de alguém já cadastrado
+  const pessoa = Number.isInteger(d.pessoaId) ? await db.prepare('SELECT id FROM pessoas WHERE id = ?').bind(d.pessoaId).first()
+    : whatsapp ? await db.prepare('SELECT id FROM pessoas WHERE whatsapp = ?').bind(whatsapp).first() : null;
+  // quem pesquisa (opcional): vai direto pra essa pessoa em vez de ficar na fila
+  let responsavel = null;
+  if (d.responsavel) {
+    const u = await db.prepare("SELECT email FROM usuarios WHERE email = ? AND ativo = 1 AND (papel = 'pesquisador' OR pesquisa = 1)").bind(d.responsavel).first();
+    if (!u) throw new Recusa('Essa pessoa não pesquisa voos');
+    responsavel = u.email;
+  }
+  // lista de conferência: a que a tela mandou, ou a padrão + o pedido especial
+  const conferencia = Array.isArray(d.conferencia)
+    ? d.conferencia.map((e) => String(e).trim().slice(0, 200)).filter(Boolean)
+    : [...CONFERENCIA_PADRAO, ...especiais];
   // o número nunca se repete, nem de orçamento apagado (o histórico dele continua nos eventos)
   const { id: ultimo } = await db.prepare(`SELECT MAX(COALESCE((SELECT MAX(id) FROM orcamentos), 0),
     COALESCE((SELECT MAX(CAST(entidade_id AS INTEGER)) FROM eventos WHERE entidade = 'orcamento'), 0)) AS id`).first();
   const id = ultimo + 1;
 
   const comandos = [
-    db.prepare(`INSERT INTO orcamentos (id, contato_nome, contato_whatsapp, pessoa_id, adultos, criancas, bebes, pedido, observacao, faltando,
-                origem, texto_original, audio, origem_chat, criado_em, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, nome, whatsapp, pessoa ? pessoa.id : null, adultos, criancas, bebes, especiais.join(' · '), String(d.observacao || '').trim(),
+    db.prepare(`INSERT INTO orcamentos (id, contato_nome, contato_whatsapp, pessoa_id, responsavel, adultos, criancas, bebes, pedido, observacao, faltando,
+                origem, texto_original, audio, origem_chat, criado_em, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, nome, whatsapp, pessoa ? pessoa.id : null, responsavel, adultos, criancas, bebes, especiais.join(' · '), String(d.observacao || '').trim(),
         JSON.stringify(faltando), d.origem === 'telegram' ? 'telegram' : 'manual', d.textoOriginal || null, d.audio ? 1 : 0, d.chat || null, quando, usuario.email),
     ...trechos.map((t, i) => db.prepare('INSERT INTO trechos (orcamento_id, ordem, de, para, data, janela) VALUES (?, ?, ?, ?, ?, ?)')
       .bind(id, i, t.de, t.para, t.data, t.janela ? 1 : 0)),
-    ...[...CONFERENCIA_PADRAO, ...especiais].map((texto, i) => db.prepare('INSERT INTO conferencia (orcamento_id, ordem, texto) VALUES (?, ?, ?)')
+    ...conferencia.map((texto, i) => db.prepare('INSERT INTO conferencia (orcamento_id, ordem, texto) VALUES (?, ?, ?)')
       .bind(id, i, texto)),
   ];
   const texto = d.origem === 'telegram'
     ? (d.audio ? 'Anotou o pedido a partir de um áudio' : 'Anotou o pedido a partir de uma mensagem')
     : 'Criou o orçamento';
-  return { resultado: { id }, comandos, eventos: [{ entidade: 'orcamento', id, texto, depois: { contato: nome, trechos } }] };
+  const eventos = [{ entidade: 'orcamento', id, texto, depois: { contato: nome, trechos } }];
+  if (responsavel) eventos.push({ entidade: 'orcamento', id, texto: `Passou pra ${(await db.prepare('SELECT nome FROM usuarios WHERE email = ?').bind(responsavel).first()).nome}` });
+  return { resultado: { id }, comandos, eventos };
 }
 
 // apaga um orçamento que acabou de chegar pelo bot e ainda ninguém mexeu (o /desfazer do Telegram)
