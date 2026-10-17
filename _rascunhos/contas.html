@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 5. Lista de contas: "Por titular" (padrão) ou "Tabela".
-     Filtros em lista de seleção; na tabela, clicar no nome da coluna ordena: 1º clique maior→menor, 2º menor→maior, 3º desliga.
+<!-- RASCUNHO DESCARTÁVEL, rodada 5. Lista de contas: "Por titular" (padrão) ou "Tabela". A tabela abre em titular A–Z e, no mesmo titular, programa A–Z.
+     Filtros em lista de seleção; clicar no nome das colunas ordena por várias delas, na ordem dos cliques (1º clique: texto A→Z, número maior→menor; 2º inverte; 3º tira).
      Sem valor em R$. Rodadas anteriores na branch rascunhos/rodada-1. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=7">
+<link rel="stylesheet" href="shared/base.css?r=8">
 <style>
   .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   .sel { position: relative; display: inline-flex; align-items: center; }
@@ -14,7 +14,6 @@
   .sel select:focus-visible { outline: 2px solid var(--orange); }
   .sel::after { content: ''; position: absolute; right: 16px; width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); rotate: 45deg; translate: 0 -2px; pointer-events: none; }
   .sel.ativo select { border-color: var(--orange); background: var(--orange-soft); }
-  .so-cel { display: none; }
   .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
   .grade-tit { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
@@ -35,29 +34,18 @@
   th.ord.dir button { justify-content: flex-end; }
   th.ord button:hover { color: var(--text); }
   th.ord button:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; border-radius: 8px; }
-  th.ord[aria-sort] button { color: var(--orange); }
+  th.ord.ativa button { color: var(--orange); }
+  th.ord .prio { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: 9px; background: var(--orange-soft); color: var(--orange); font-size: 11px; font-weight: 800; }
   th.ord .seta { width: 14px; height: 14px; opacity: 0; }
   th.ord button:hover .seta { opacity: .5; }
-  th.ord[aria-sort] .seta { opacity: 1; }
+  th.ord.ativa .seta { opacity: 1; }
 
-  /* no celular, a tabela vira lista de cartões e a ordenação vira uma lista de seleção */
+  /* no celular, a tabela é a mesma do PC: rola pro lado, com o titular fixo à esquerda */
   @media (max-width: 760px) {
-    .so-cel { display: inline-flex; }
     .grade-tit { grid-template-columns: 1fr; }
+    .tabela-wrap th:first-child, .tabela-wrap td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-1); box-shadow: 1px 0 0 var(--line); }
     .filtros .busca-wrap { flex: 1 1 100%; } .busca { width: 100%; }
-    .filtros .sel, .filtros .so-cel { flex: 1 1 calc(50% - 5px); } .filtros .sel select { width: 100%; }
-    .tabela-cel table, .tabela-cel tbody { display: block; }
-    .tabela-cel thead { display: none; }
-    .tabela-cel { background: none; overflow: visible; }
-    .tabela-cel tr { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; background: var(--surface-1); border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; }
-    .tabela-cel tr.clicavel:hover td { background: none; }
-    .tabela-cel td { border: 0; padding: 0; white-space: normal; }
-    .tabela-cel td[data-c="titular"] { grid-column: 1; }
-    .tabela-cel td[data-c="saldo"] { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 18px; }
-    .tabela-cel td[data-c="programa"] { grid-column: 1; font-size: 14px; }
-    .tabela-cel td[data-c="vence"], .tabela-cel td[data-c="ben"], .tabela-cel td[data-c="clube"] { grid-column: 1 / -1; font-size: 13px; color: var(--text-2); }
-    .tabela-cel td[data-c="clube"]:empty, .tabela-cel td.nada { display: none; }
-    .tabela-cel td[data-rot]::before { content: attr(data-rot); color: var(--text-3); font-size: 12px; margin-right: 6px; }
+    .filtros .sel { flex: 1 1 calc(50% - 5px); } .filtros .sel select { width: 100%; }
   }
 </style>
 </head>
@@ -85,7 +73,8 @@ function lerUrl() {
   estado.ordem = KVShell.param('ordem') || 'pontos';
   estado.prog = KVShell.param('prog') || 'todos';
   estado.situacao = KVShell.param('situacao') || 'todas';
-  estado.col = KVShell.param('col'); estado.dir = KVShell.param('dir');
+  // ordem por várias colunas, na ordem em que foram clicadas: ?ord=programa:asc,saldo:desc
+  estado.ord = (KVShell.param('ord') || '').split(',').filter(Boolean).map((t) => { const [col, dir] = t.split(':'); return { col, dir }; }).filter((o) => COLUNAS.some((c) => c.id === o.col));
 }
 function vagas(c, comBarra = true) {
   const b = KV.beneficiarios(c);
@@ -99,17 +88,31 @@ function venc(c) {
 }
 const passo = (mud) => { KVShell.irPara(mud); lerUrl(); desenhar(); };
 
-// 1º clique: maior→menor; 2º: menor→maior; 3º: desliga
+// cada coluna clicada entra no fim da fila de ordenação (1, 2, 3...).
+// 1º clique: texto A→Z, números maior→menor; 2º: inverte; 3º: sai da fila
+const gravarOrdem = (ord) => passo({ ord: ord.length ? ord.map((o) => o.col + ':' + o.dir).join(',') : null });
 function cliqueColuna(id) {
-  if (estado.col !== id) passo({ col: id, dir: 'desc' });
-  else if (estado.dir === 'desc') passo({ dir: 'asc' });
-  else passo({ col: null, dir: null });
+  const col = COLUNAS.find((c) => c.id === id);
+  const primeiro = col.texto ? 'asc' : 'desc';
+  const ord = estado.ord.map((o) => ({ ...o }));
+  const i = ord.findIndex((o) => o.col === id);
+  if (i < 0) ord.push({ col: id, dir: primeiro });
+  else if (ord[i].dir === primeiro) ord[i].dir = primeiro === 'asc' ? 'desc' : 'asc';
+  else ord.splice(i, 1);
+  gravarOrdem(ord);
 }
+// ordem padrão: titular A–Z e, no mesmo titular, programa A–Z (as contas da pessoa ficam juntas)
+const az = (a, b) => a.titular.localeCompare(b.titular, 'pt-BR') || P(a.programaId).nome.localeCompare(P(b.programaId).nome, 'pt-BR');
 function ordenar(lista) {
-  const col = COLUNAS.find((c) => c.id === estado.col);
-  if (!col) return lista.sort((a, b) => b.saldo - a.saldo);
-  const s = estado.dir === 'asc' ? 1 : -1;
-  return lista.sort((a, b) => { const x = col.valor(a), y = col.valor(b); return (col.texto ? String(x).localeCompare(String(y), 'pt-BR') : x - y) * s; });
+  const regras = estado.ord.map((o) => ({ col: COLUNAS.find((c) => c.id === o.col), s: o.dir === 'asc' ? 1 : -1 }));
+  return lista.sort((a, b) => {
+    for (const { col, s } of regras) {
+      const x = col.valor(a), y = col.valor(b);
+      const d = (col.texto ? String(x).localeCompare(String(y), 'pt-BR') : x - y) * s;
+      if (d) return d;
+    }
+    return az(a, b);
+  });
 }
 const sel = (id, rotulo, opcoes, atual, padrao) => `<label class="sel ${atual !== padrao ? 'ativo' : ''}"><span class="escondido">${rotulo}</span>
   <select id="${id}" data-combo="nao">${opcoes.map(([v, t]) => `<option value="${v}" ${v === atual ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
@@ -127,8 +130,8 @@ function desenhar() {
         <button data-vista="tabela" aria-pressed="${tabela}"><i data-lucide="table"></i>Tabela</button></div>
       ${!tabela ? sel('ordem', 'Ordenar', [['pontos', 'Mais pontos primeiro'], ['programas', 'Mais programas primeiro']], estado.ordem, 'pontos')
       : sel('prog', 'Programa', [['todos', `Programa: todos`], ...KV.programas.map((p) => [p.id, `${p.nome} (${contas.filter((c) => c.programaId === p.id).length})`])], estado.prog, 'todos')
-        + sel('situacao', 'Situação', [['todas', 'Situação: todas'], ['aviso', `Só com aviso (${comAviso.size})`], ['semvaga', 'Sem vaga de beneficiário'], ['vencendo', 'Com pontos vencendo']], estado.situacao, 'todas')
-        + `<span class="so-cel">${sel('ordcel', 'Ordenar', [['', 'Ordem padrão'], ...COLUNAS.flatMap((c) => [[c.id + ':desc', `${c.nome} ↓ maior primeiro`], [c.id + ':asc', `${c.nome} ↑ menor primeiro`]])], estado.col ? estado.col + ':' + estado.dir : '', '')}</span>`}
+        + sel('situacao', 'Situação', [['todas', 'Situação: todas'], ['aviso', `Só com aviso (${comAviso.size})`], ['semvaga', 'Sem vaga de beneficiário'], ['vencendo', 'Com pontos vencendo']], estado.situacao, 'todas')}
+      ${tabela && estado.ord.length ? `<button class="pilula" data-limpar-ordem><i data-lucide="x"></i>Ordem: ${estado.ord.map((o, i) => `${i + 1}. ${COLUNAS.find((c) => c.id === o.col).nome}`).join(' · ')}</button>` : ''}
       <div class="busca-wrap"><i data-lucide="search"></i><input class="busca" placeholder="Buscar titular" value="${estado.busca}" aria-label="Buscar titular"></div>
     </div><div id="lista"></div>`;
 
@@ -147,25 +150,26 @@ function desenhar() {
       estado.situacao === 'todas' || (estado.situacao === 'aviso' && comAviso.has(c)) ||
       (estado.situacao === 'semvaga' && KV.beneficiarios(c) && KV.beneficiarios(c).livres === 0) || (estado.situacao === 'vencendo' && KV.vencendo(c).pontos > 0));
     const linhas = ordenar(contas.filter(passa));
-    const th = (c) => { const ativo = estado.col === c.id; const sort = ativo ? (estado.dir === 'asc' ? 'ascending' : 'descending') : null;
-      return `<th class="ord ${c.dir ? 'dir' : ''}" ${sort ? `aria-sort="${sort}"` : ''}><button data-col="${c.id}" title="Clique pra ordenar">${c.nome}<i class="seta" data-lucide="${ativo && estado.dir === 'asc' ? 'arrow-up' : 'arrow-down'}"></i></button></th>`; };
-    lista.innerHTML = `<div class="tabela-wrap tabela-cel"><table>
+    const th = (c) => { const i = estado.ord.findIndex((o) => o.col === c.id); const o = estado.ord[i];
+      const sort = o && i === 0 ? (o.dir === 'asc' ? 'ascending' : 'descending') : null;
+      return `<th class="ord ${c.dir ? 'dir' : ''} ${o ? 'ativa' : ''}" ${sort ? `aria-sort="${sort}"` : ''}><button data-col="${c.id}" title="Clique pra ordenar; clique em outra coluna pra somar">${c.nome}<i class="seta" data-lucide="${o && o.dir === 'asc' ? 'arrow-up' : 'arrow-down'}"></i>${o && estado.ord.length > 1 ? `<span class="prio" aria-label="prioridade ${i + 1}">${i + 1}</span>` : ''}</button></th>`; };
+    lista.innerHTML = `<div class="tabela-wrap"><table>
       <thead><tr>${COLUNAS.map(th).join('')}</tr></thead>
       <tbody>${linhas.map((c) => `<tr class="clicavel" onclick="location='conta.html?id=${c.id}'">
         <td data-c="titular"><b>${c.titular}</b></td><td data-c="programa"><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span></td>
         <td data-c="saldo" class="dir num"><b>${fmt.pts(c.saldo)}</b></td>
-        <td data-c="vence" class="${KV.vencendo(c).pontos ? '' : 'nada'}" data-rot="Vence:">${venc(c) || '<span class="faint">—</span>'}</td>
-        <td data-c="ben" data-rot="Vagas:"><div style="display:inline-flex;gap:10px;align-items:center">${vagas(c)}</div></td>
-        <td data-c="clube" class="muted num" ${c.clube ? 'data-rot="Clube:"' : ''}>${c.clube ? fmt.pts(c.clube) + '/mês' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody></table></div>`;
+        <td data-c="vence">${venc(c) || '<span class="faint">—</span>'}</td>
+        <td data-c="ben"><div style="display:inline-flex;gap:10px;align-items:center">${vagas(c)}</div></td>
+        <td data-c="clube" class="muted num">${c.clube ? fmt.pts(c.clube) + '/mês' : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta com esse filtro.</td></tr>'}</tbody></table></div>`;
   }
 
   app.querySelectorAll('[data-vista]').forEach((b) => b.onclick = () => { if (b.dataset.vista !== estado.vista) passo({ vista: b.dataset.vista }); });
   app.querySelectorAll('[data-col]').forEach((b) => b.onclick = () => cliqueColuna(b.dataset.col));
+  const lo = app.querySelector('[data-limpar-ordem]'); if (lo) lo.onclick = () => gravarOrdem([]);
   const on = (id, fn) => { const e = app.querySelector('#' + id); if (e) e.onchange = () => fn(e.value); };
   on('ordem', (v) => passo({ ordem: v }));
   on('prog', (v) => passo({ prog: v === 'todos' ? null : v }));
   on('situacao', (v) => passo({ situacao: v === 'todas' ? null : v }));
-  on('ordcel', (v) => { const [col, dir] = v ? v.split(':') : [null, null]; passo({ col, dir }); });
   const bu = app.querySelector('.busca'); bu.oninput = (e) => { estado.busca = e.target.value; const pos = e.target.selectionStart; desenhar(); const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos); };
   KVShell.icones();
 }

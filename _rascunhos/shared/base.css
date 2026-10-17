@@ -1,5 +1,7 @@
 /* RASCUNHO DESCARTÁVEL. Tokens aprovados em docs/direcao-visual.md */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Urbanist:wght@400;500;600;700&display=swap');
+/* A Urbanist desenha º e ª como um 'o'/'a' normal (1º vira 1o). Só esses dois caracteres usam a fonte do sistema. */
+@font-face { font-family: 'KV Ordinal'; src: local('Segoe UI'), local('SegoeUI'), local('Helvetica Neue'), local('Roboto'), local('Arial'); unicode-range: U+00AA, U+00BA; }
 
 :root, :root[data-theme="escuro"] {
   --bg: #010E1F; --surface-1: #0B1B30; --surface-2: #13263F; --surface-3: #1C3352; --line: #213A5C;
@@ -23,7 +25,7 @@
 }
 :root {
   --r-pill: 999px; --r-card: 20px; --r-field: 12px; --r-chip: 10px;
-  --font: 'Urbanist', system-ui, sans-serif; --font-brand: 'Montserrat', 'Urbanist', sans-serif;
+  --font: 'KV Ordinal', 'Urbanist', system-ui, sans-serif; --font-brand: 'KV Ordinal', 'Montserrat', 'Urbanist', sans-serif;
 }
 
 * { box-sizing: border-box; }

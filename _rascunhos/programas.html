@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- RASCUNHO DESCARTÁVEL, rodada 5. Configurações dos programas, todas baseadas na "C" da rodada 4 (valor da milha com exemplo).
-     O valor pode ser digitado ou arrastado. Os níveis da Azul abrem numa janela. Nada é salvo. ?v=A|B|C -->
+<!-- RASCUNHO DESCARTÁVEL. Configurações dos programas: escolhida a B da rodada 5 (um programa por vez, com − e +).
+     O valor pode ser digitado ou arrastado. Os níveis da Azul abrem numa janela. Nada é salvo. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Programas · Rascunho K&V</title>
-<link rel="stylesheet" href="shared/base.css?r=7">
+<link rel="stylesheet" href="shared/base.css?r=8">
 <style>
   .valor-in { width: 100%; font: 800 30px var(--font-brand); letter-spacing: -0.02em; background: transparent; border: 1px solid transparent; border-radius: 12px; padding: 4px 8px; margin-left: -8px; color: var(--text); min-width: 0; }
   .campo .valor-in { height: auto; font: 800 30px var(--font-brand); background: transparent; border-color: transparent; padding: 4px 8px; }
@@ -29,10 +29,6 @@
   .barra-salvar { position: sticky; bottom: 20px; margin-top: 18px; display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 18px; background: var(--surface-3); box-shadow: var(--shadow-pop); flex-wrap: wrap; z-index: 5; }
   @media (max-width: 760px) { .barra-salvar { bottom: 132px; } }
 
-  /* A */
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
-  .cards .card { display: grid; gap: 14px; align-content: start; min-width: 0; }
-
   /* B */
   .painel-um { max-width: 640px; display: grid; gap: 18px; }
   .stepper { display: flex; align-items: center; gap: 10px; }
@@ -42,18 +38,6 @@
   .stepper .rs { font-size: 22px; }
   .linha-regra { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 560px) { .linha-regra { grid-template-columns: 1fr; } }
-
-  /* C */
-  .lista-prog { max-width: 720px; background: var(--surface-1); border-radius: var(--r-card); overflow: hidden; }
-  .item-prog { border-top: 1px solid var(--line); }
-  .item-prog:first-child { border-top: 0; }
-  .item-prog summary { list-style: none; display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 16px 18px; cursor: pointer; min-height: 64px; }
-  .item-prog summary::-webkit-details-marker { display: none; }
-  .item-prog summary .val { font: 800 19px var(--font-brand); }
-  .item-prog summary .chev { transition: rotate .2s; color: var(--text-3); }
-  .item-prog[open] summary .chev { rotate: 180deg; }
-  .item-prog .dentro { padding: 0 18px 18px; display: grid; gap: 14px; }
-  .item-prog summary .sub { display: block; font-size: 12.5px; color: var(--text-3); font-weight: 500; margin-top: 2px; }
 
   .niveis { width: 100%; }
   .niveis td input { width: 80px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); text-align: right; padding: 0 10px; font-size: 16px; }
@@ -170,19 +154,6 @@ function sincJanela() {
 
 const topo = (sub) => `<div class="topo"><div><h1>Programas</h1><div class="muted">${sub}</div></div></div>`;
 const variantes = {
-  // A: um cartão por programa, com o valor grande (digitável) e a régua embaixo
-  A() {
-    app.innerHTML = topo('Digite o valor da milha ou arraste a régua. A Livelo não aparece: não emite, só transfere.') + `<div class="cards">${progs.map((p) => `<section class="card">
-      <span class="prog" data-p="${p.id}" style="font-size:17px">${p.nome}</span>
-      <div><div class="faint" style="font-size:13px">Valor da milha</div>${campoValor(p.id)}<div data-margem="${p.id}">${margem(p.id)}</div></div>
-      ${regua(p.id)}${exemplo(p.id)}
-      <div class="regras"><span class="t" data-texto-regra="${p.id}">${textoRegra(p.id)}</span>
-        <span style="display:flex;gap:8px;flex-wrap:wrap">${p.id === 'azul' ? '<button class="btn" data-niveis><i data-lucide="layers"></i>Níveis</button>' : ''}<button class="btn" data-regras="${p.id}">Editar</button></span></div>
-    </section>`).join('')}</div>
-    <p class="dica-digitar" style="margin-top:12px">Dica: dá pra digitar o milheiro direto (16 vira R$ 0,0160).</p>`;
-    ligar(app, barraSalvar);
-  },
-
   // B: um programa por vez, com botões − e + pra ajuste fino (bom no celular)
   B() {
     const id = KVShell.param('aba') || 'smiles';
@@ -202,33 +173,11 @@ const variantes = {
     app.querySelectorAll('[data-aba]').forEach((b) => b.onclick = () => { if (b.dataset.aba !== id) { KVShell.irPara({ aba: b.dataset.aba }); render(); } });
     ligar(app, barraSalvar);
   },
-
-  // C: lista compacta, como os ajustes do celular; toca pra abrir os detalhes
-  C() {
-    const aberto = KVShell.param('aberto');
-    app.innerHTML = topo('Toque num programa pra ajustar. O valor dá pra digitar ou arrastar.') + `<div class="lista-prog">${progs.map((p) => `<details class="item-prog" data-item="${p.id}" ${aberto === p.id ? 'open' : ''}>
-      <summary><span><span class="prog" data-p="${p.id}">${p.nome}</span><span class="sub" data-texto-regra="${p.id}">${textoRegra(p.id)}</span></span>
-        <span class="val num" data-resumo-valor="${p.id}">R$ ${mostra(valores[p.id].valorMilha)}</span><i class="chev" data-lucide="chevron-down"></i></summary>
-      <div class="dentro"><div class="campo"><label>Valor da milha</label>${campoValor(p.id)}<div data-margem="${p.id}">${margem(p.id)}</div></div>
-        ${regua(p.id)}${exemplo(p.id)}
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-regras="${p.id}"><i data-lucide="users"></i>Regras de beneficiário</button>${p.id === 'azul' ? '<button class="btn" data-niveis><i data-lucide="layers"></i>Níveis</button>' : ''}</div></div>
-    </details>`).join('')}</div>`;
-    // abrir/fechar um item vira passo do histórico (o voltar fecha)
-    app.querySelectorAll('[data-item]').forEach((d) => d.querySelector('summary').onclick = (e) => {
-      e.preventDefault(); const id = d.dataset.item;
-      if (d.open) KVShell.desfazer({ aberto: 1 }, render); else { KVShell.irPara({ aberto: id }); render(); }
-    });
-    ligar(app, barraSalvar);
-  },
 };
 
-let atual = 'A';
-function render() { variantes[atual](); barraSalvar(); KVShell.icones(); sincJanela(); }
-KVShell.variacoes([
-  { k: 'A', nome: 'Cartões com valor e régua' },
-  { k: 'B', nome: 'Um programa por vez (− e +)' },
-  { k: 'C', nome: 'Lista compacta que abre' },
-], (k) => { atual = k; render(); });
+// escolhida na rodada 5: um programa por vez, com − e + (B)
+function render() { variantes.B(); barraSalvar(); KVShell.icones(); sincJanela(); }
+render();
 KVShell.aoVoltar(render);
 </script>
 </body>

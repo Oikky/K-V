@@ -13,7 +13,7 @@ O que está combinado fazer, em ordem de etapa do projeto.
 ## Etapa 3: Rascunhos e sistema
 Rodar: `python -m http.server 8790` dentro de `_rascunhos` (a porta 8765 é do Sunnify).
 - [x] Gestão de contas: lista, detalhe, entrada, saída, nova conta (rodadas 1 a 5).
-- [ ] Configurações dos programas: escolher entre A, B e C da rodada 5.
+- [x] Configurações dos programas: escolhida a B da rodada 5 (um programa por vez, com − e +).
 - [ ] Atendimento: fila de orçamentos, lançamento de opções de voo, decisão do dono, emissão.
 - [ ] Clientes e passageiros, financeiro, ponto do pesquisador.
 - [ ] Admin de verdade (depois dos rascunhos aprovados), e só então o site dos clientes.

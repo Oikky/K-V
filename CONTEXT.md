@@ -214,6 +214,10 @@ Registro das escolhas feitas nos rascunhos (as variações descartadas ficam na 
 - **Configurações dos programas:** a base é o **valor da milha com exemplo** ("uma emissão de 60.000 milhas custa R$ 960 + taxa"). O valor também pode ser **digitado**, não só arrastado, porque a diferença é milimétrica. Os níveis da Azul abrem numa janela. Novas versões dessa base foram pra rodada 5.
 - **Lista de contas:** os filtros viram **listas de seleção**. Na tabela, clicar no nome da coluna ordena como no Windows: 1º clique do maior pro menor, 2º do menor pro maior, 3º desliga.
 
+**Rodada 5: programas e lista de contas (2026-10-16)**
+- **Configurações dos programas:** **um programa por vez** (abas Smiles, Latam Pass, TudoAzul), com botões **− e +** pro ajuste fino do valor da milha, régua, exemplo de emissão e as regras de beneficiário na mesma tela. Motivo: bom de usar no celular, que é onde o dono mais mexe.
+- **Tabela de contas:** a vista **por titular** continua sendo a principal; a tabela é secundária. Na tabela, a ordem padrão é **titular de A a Z** e, no mesmo titular, **programa de A a Z**, então as contas da mesma pessoa ficam uma embaixo da outra. Clicar no nome das colunas **ordena por várias delas**, na ordem dos cliques: ex.: Programa e depois Saldo agrupa por programa e, dentro dele, do maior saldo pro menor. O cabeçalho mostra a prioridade (1, 2...). 1º clique: texto de A a Z, número do maior pro menor; 2º inverte; 3º tira a coluna. Um botão "Ordem: ..." limpa tudo e volta pro A a Z. No celular a tabela é a mesma do PC (rola pro lado, com o titular fixo à esquerda), não vira cartões.
+
 **Regras gerais de tela (2026-10-16)**
 - **Celular é prioridade:** o dono usa o sistema principalmente no **celular**; os pesquisadores, no **computador**. O celular precisa estar impecável.
 - **Lista longa vira busca:** toda seleção com muitas opções deixa digitar, e o que se escreve filtra as opções antes de escolher.
