@@ -265,3 +265,7 @@ button.tr:hover .troca { background: var(--surface-3); color: var(--text); }
 .recado { position: fixed; left: 50%; bottom: 20px; translate: -50% 0; z-index: 60; max-width: calc(100vw - 32px); padding: 12px 18px; border-radius: var(--r-field); background: var(--surface-3); color: var(--text); box-shadow: var(--shadow-pop); font-weight: 600; font-size: 14px; }
 .recado.erro { background: var(--danger); color: #fff; }
 @media (max-width: 760px) { .recado { bottom: 84px; } }
+
+/* "Carregando…" só aparece se demorar de verdade (na maioria das vezes a tela abre com o que já estava guardado) */
+.carregando { opacity: 0; animation: kv-aparece .2s ease-out .6s forwards; }
+@keyframes kv-aparece { to { opacity: 1; } }
