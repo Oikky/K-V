@@ -1,0 +1,18 @@
+// Worker do bot do Telegram (kv-bot): fora do login do Access, protegido pela senha TELEGRAM_SECRET.
+// Usa o mesmo banco do sistema. Publicar: node node_modules/wrangler/bin/wrangler.js deploy -c wrangler.bot.jsonc
+// Segredos: node scripts/segredos.mjs bot
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kv-bot",
+  "main": "src/bot/index.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "d1_databases": [
+    { "binding": "DB", "database_name": "kv", "database_id": "62874e00-330a-4561-ac11-d5db25ecdd36", "migrations_dir": "migrations" }
+  ],
+  "ai": { "binding": "AI" },
+  "vars": { "SISTEMA_URL": "https://kv-sistema.ikkysousa5.workers.dev" },
+  "observability": { "enabled": true }
+}

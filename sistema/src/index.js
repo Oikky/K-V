@@ -1,9 +1,10 @@
 // Worker do sistema K&V. As telas (public/) são servidas direto pela Cloudflare;
-// aqui só chegam /api/* (com login) e /telegram (bot, com senha secreta).
+// aqui só chegam /api/* (com login). O bot do Telegram é outro Worker (src/bot/, wrangler.bot.jsonc).
 import { usuarioDa } from './auth.js';
 import { executar, Recusa } from './acoes.js';
 import { estado } from './estado.js';
 import './acoes/base.js';
+import './acoes/orcamentos.js';
 
 const json = (dados, status = 200) => new Response(JSON.stringify(dados), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
