@@ -127,7 +127,17 @@
   function doBot() {
     try { const x = new XMLHttpRequest(); x.open('GET', 'dados/pedidos.json?t=' + Date.now(), false); x.send(); if (x.status !== 200) return []; temBot = true; return JSON.parse(x.responseText); } catch (e) { return []; }
   }
-  doBot().forEach((p) => {
+  // pedido que veio dentro do link mandado pelo bot (?pedido=...): no site publicado não existe o arquivo do bot,
+  // então o próprio link traz os dados. Nada fica guardado no site.
+  function doLink() {
+    try {
+      const v = new URLSearchParams(location.search).get('pedido'); if (!v) return [];
+      const b = atob(v.replace(/-/g, '+').replace(/_/g, '/'));
+      return [JSON.parse(new TextDecoder().decode(Uint8Array.from(b, (c) => c.charCodeAt(0))))];
+    } catch (e) { return []; }
+  }
+  const viaBot = doBot();
+  [...viaBot, ...doLink().filter((p) => !viaBot.some((x) => x.id === p.id))].forEach((p) => {
     const criado = new Date(p.criadoEm), n = orcamentos.length;
     orcamentos.push({
       id: p.id, numero: 101 + n, contato: p.contato, pessoaId: null, criadoEm: criado, etapa: 'novo', responsavel: null,

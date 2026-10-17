@@ -9,7 +9,9 @@ e ele entra na fila dos rascunhos como "Novo", pronto pro pesquisador pegar.
 Rodar:  py -3.11 bot/bot.py   (o servidor dos rascunhos na porta 8790 mostra a fila)
 Config: bot/.env (ver bot/.env.exemplo). O .env nunca vai pro git: o repositório é público.
 """
+import base64
 import datetime
+import html
 import json
 import os
 import re
@@ -47,7 +49,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # o console do Windo
 TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 MODELO = os.environ.get("KV_MODELO", "claude-sonnet-5")
 CHATS = {c.strip() for c in os.environ.get("KV_CHATS", "").split(",") if c.strip()}
-URL_RASCUNHOS = os.environ.get("KV_RASCUNHOS_URL", "http://127.0.0.1:8790").rstrip("/")
+URL_RASCUNHOS = os.environ.get("KV_RASCUNHOS_URL", "https://oikky.github.io/K-V/_rascunhos").rstrip("/")
 MODELO_WHISPER = os.environ.get("KV_WHISPER", "large-v3")
 
 
@@ -62,8 +64,8 @@ def telegram(metodo, **params):
     return resp["result"]
 
 
-def responder(chat_id, texto):
-    telegram("sendMessage", chat_id=chat_id, text=texto, disable_web_page_preview="true")
+def responder(chat_id, texto, html_=False):
+    telegram("sendMessage", chat_id=chat_id, text=texto, disable_web_page_preview="true", parse_mode="HTML" if html_ else None)
 
 
 def baixar_arquivo(file_id, destino):
@@ -190,18 +192,28 @@ def resumo(o):
         pax["criancas"] and f"{pax['criancas']} criança{'s' if pax['criancas'] > 1 else ''}",
         pax["bebes"] and f"{pax['bebes']} bebê{'s' if pax['bebes'] > 1 else ''}",
     ] if x)
+    h = html.escape
     linhas = ["Anotado! Já está na fila como Novo.", "",
-              f"{o['contato']['nome']}{' · ' + o['contato']['whatsapp'] if o['contato']['whatsapp'] else ''}"]
-    linhas += [f"{t['de']} → {t['para']}  {data_br(t['data'])}{'' if t['janela'] else ' (data fixa)'}" for t in o["trechos"]]
+              h(f"{o['contato']['nome']}{' · ' + o['contato']['whatsapp'] if o['contato']['whatsapp'] else ''}")]
+    linhas += [h(f"{t['de']} → {t['para']}  {data_br(t['data'])}{'' if t['janela'] else ' (data fixa)'}") for t in o["trechos"]]
     linhas.append(pessoas or "passageiros a confirmar")
     if o["pedido"]:
-        linhas.append(f"Pedido: {o['pedido']}")
+        linhas.append(h(f"Pedido: {o['pedido']}"))
     if o["observacao"]:
-        linhas.append(f"Obs.: {o['observacao']}")
+        linhas.append(h(f"Obs.: {o['observacao']}"))
     if o["faltando"]:
-        linhas += ["", "Falta perguntar: " + "; ".join(o["faltando"])]
-    linhas += ["", f"Abrir: {URL_RASCUNHOS}/orcamento.html?id={o['id']}", "Errou? Mande /desfazer."]
+        linhas += ["", h("Falta perguntar: " + "; ".join(o["faltando"]))]
+    linhas += ["", f'<a href="{h(link_do(o))}">Abrir o orçamento no site</a>', "Errou? Mande /desfazer."]
     return "\n".join(linhas)
+
+
+def link_do(o):
+    """O pedido vai dentro do próprio link (codificado), porque ele não fica no site: o repositório é público
+    e o pedido pode ter nome e telefone de cliente. Quem abre o link vê o orçamento; o site não guarda nada."""
+    campos = {k: o[k] for k in ("id", "criadoEm", "contato", "trechos", "passageiros", "pedido", "especiais",
+                                 "observacao", "faltando", "textoOriginal", "audio")}
+    dados = base64.urlsafe_b64encode(json.dumps(campos, ensure_ascii=False, separators=(",", ":")).encode()).decode().rstrip("=")
+    return f"{URL_RASCUNHOS}/orcamento.html?id={o['id']}&pedido={dados}"
 
 
 AJUDA = ("Oi! Sou o bot da K&V. Me mande o pedido do cliente, escrito ou em áudio, do jeito que você falaria. "
@@ -327,7 +339,7 @@ def tratar(msg):
                            "Ex.: \"Maria Souza, (11) 91234-5678\"")
         return
     o = salvar(p, texto, chat_id, bool(voz))
-    responder(chat_id, resumo(o))
+    responder(chat_id, resumo(o), html_=True)
     print(f"[ok] {o['id']}: {o['contato']['nome']} {[t['de'] + '-' + t['para'] for t in o['trechos']]}")
 
 
