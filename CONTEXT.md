@@ -125,6 +125,9 @@ Momento em que o cliente aceita. Marcam-se no orçamento as opções aceitas e s
 **Passageiro**:
 Pessoa que vai voar numa opção aceita. Pode ser o próprio cliente ou outra pessoa.
 
+**Cadastro de pessoas** (decidido em 2026-10-17):
+Cada pessoa existe uma vez só no sistema, achada pelo CPF, seja cliente, passageiro ou as duas coisas. Na viagem seguinte, quem já voou é escolhido em vez de digitado de novo. O mesmo CPF liga a pessoa aos beneficiários das contas de pontos. Os dados guardados além de nome e CPF ainda dependem do dono (ver `PERGUNTAS-PRO-DONO.md`).
+
 **Etapa do orçamento**:
 Em que ponto do caminho o orçamento está. São 8 etapas (decidido em 2026-10-15):
 1. **Novo**: o pedido foi anotado e ninguém começou a pesquisar.
@@ -228,6 +231,11 @@ Registro das escolhas feitas nos rascunhos (as variações descartadas ficam na 
 - **Ponto (pesquisador):** **cronômetro ao lado da semana**. O cronômetro fica fixo à esquerda (no celular, em cima) e a semana aparece em barras por dia, com a jornada de 4h tracejada e os dias que faltam desenhados como previsão. Tocar num dia mostra os trechos dele, com "Corrigir" e "Esqueci de ligar". Depois de 10h ligado, aparece o aviso "Esqueceu de pausar?". O menu do pesquisador mostra só Orçamentos e Ponto, com um mini cronômetro.
 - **Folha (dono):** **um cartão por pesquisador**, com quem está trabalhando agora, a semana dia a dia, as correções (hora original e quanto mudou) e "Marcar como pago" com valor e data. A janela de pagamento lista as correções da semana pra conferir antes. Motivo: bom no celular.
 - **Valor da hora:** o novo valor vale a partir do dia da mudança; as horas já trabalhadas ficam com o valor antigo (suposição, a confirmar).
+
+**Rodada 7: clientes e passageiros (2026-10-17)**
+- **Lista de clientes:** **um cartão por cliente** (quem paga), com WhatsApp, quanto falta receber, próximo voo, última viagem e com quem viaja. A busca acha por nome, CPF ou WhatsApp, e também acha o cliente pelo nome de quem viaja com ele. Filtros "A receber" e "Voam em 30 dias". A vista secundária "Todas as pessoas" é uma tabela (clientes e passageiros) que ordena por várias colunas, como a de contas.
+- **Ficha da pessoa:** **viagens no meio e coluna lateral** (como o detalhe da conta), com os dados, quem viaja junto e as contas de pontos em que o CPF já voou ou de que é titular. Cada viagem mostra trechos, passageiros, pontos ou dinheiro, localizador, venda e situação do pagamento. Avisa quando o passaporte vence menos de 6 meses depois de um voo internacional.
+- **Nova pessoa:** só pra quem já era cliente antes do sistema (no dia a dia, o cadastro acontece no fechamento). Se o CPF já existe, não deixa cadastrar de novo e oferece abrir o cadastro existente.
 
 **Regras gerais de tela (2026-10-16)**
 - **Celular é prioridade:** o dono usa o sistema principalmente no **celular**; os pesquisadores, no **computador**. O celular precisa estar impecável.

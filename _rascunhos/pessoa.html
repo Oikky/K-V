@@ -1,0 +1,200 @@
+<!doctype html>
+<!-- RASCUNHO DESCARTÁVEL. Ficha de uma pessoa (cliente e/ou passageiro): escolhida a A da rodada 7 (viagens + coluna lateral).
+     Viagens (como cliente ou passageiro), dados, com quem viaja, contas de pontos em que o CPF já voou e contas de que é titular.
+     ?id=ps1..psN escolhe a pessoa; sem id, abre uma com bastante coisa pra ver. Nada é salvo. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pessoa · Rascunho K&V</title>
+<link rel="stylesheet" href="shared/base.css?r=10">
+<style>
+  .cab { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .cab .av { width: 60px; height: 60px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font: 800 20px var(--font-brand); color: var(--text-2); flex: none; }
+  .cab .av.cliente { background: var(--orange-soft); color: var(--orange); }
+  .cab .quem { min-width: 0; flex: 1; }
+  .cab .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .cab .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .resumo { color: var(--text-2); font-size: 14.5px; margin: -4px 0 18px; }
+  .resumo b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .resumo b.deve { color: var(--orange); }
+  .avisos { display: grid; gap: 8px; margin-bottom: 18px; }
+  .avisos .aviso { display: flex; gap: 10px; align-items: flex-start; }
+  .avisos .aviso svg.lucide { flex: none; width: 17px; height: 17px; margin-top: 1px; }
+  .aviso.faint { background: var(--surface-2); color: var(--text-2); }
+
+  /* viagens */
+  .grupo-t { font-size: 13px; font-weight: 700; color: var(--text-2); margin: 4px 0 10px; }
+  .grupo-t:not(:first-child) { margin-top: 22px; }
+  .viagem { background: var(--surface-1); border-radius: var(--r-card); padding: 18px; display: grid; gap: 12px; }
+  .viagem + .viagem { margin-top: 12px; }
+  .viagem.passada { background: color-mix(in srgb, var(--surface-1) 70%, var(--bg)); }
+  .viagem header { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .viagem header h3 { font-size: 18px; }
+  .viagem header .datas { font-size: 13.5px; color: var(--text-2); margin-top: 2px; }
+  .viagem header .chip { margin-left: auto; }
+  .trechos { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 13.5px; color: var(--text-2); }
+  .trechos span b { color: var(--text); font-weight: 700; letter-spacing: .02em; }
+  .pax { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--text-3); }
+  .pax a.chip { text-decoration: none; font-weight: 600; }
+  .pax a.chip:hover { color: var(--text); }
+  .pax .chip.eu { background: var(--surface-3); color: var(--text); }
+  .viagem .rodape { display: flex; gap: 8px 22px; flex-wrap: wrap; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--text-2); }
+  .viagem .rodape b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .viagem .rodape .rec { margin-left: auto; }
+  .viagem .rodape .loc { font-family: ui-monospace, Consolas, monospace; letter-spacing: .06em; color: var(--text); font-weight: 700; }
+
+  /* blocos laterais */
+  .bloco h2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bloco h2 small { font: 600 13px var(--font); color: var(--text-2); }
+  .dados { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 14px; margin: 0; }
+  .dados dt { color: var(--text-2); }
+  .dados dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+  .dados dd .faint { font-weight: 500; }
+  .dados dd.obs { grid-column: 1 / -1; text-align: left; font-weight: 500; background: var(--surface-2); padding: 10px 12px; border-radius: 12px; }
+  .linha { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); text-decoration: none; font-size: 14px; }
+  .linha:first-of-type { border-top: 0; }
+  a.linha:hover .nm { color: var(--orange); }
+  .linha .nm { flex: 1; min-width: 0; font-weight: 600; }
+  .linha .nm small { display: block; font-weight: 500; color: var(--text-3); font-size: 12.5px; }
+  .linha .dir { text-align: right; color: var(--text-2); font-size: 13px; white-space: nowrap; }
+  .sub-t { font-size: 13px; font-weight: 700; color: var(--text-2); margin: 14px 0 2px; }
+  .nada { color: var(--text-3); font-size: 14px; padding: 6px 0; }
+
+  /* A: viagens + coluna lateral */
+  .a-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  .a-lado { display: grid; gap: 16px; }
+  @media (max-width: 1040px) { .a-grid { grid-template-columns: 1fr; } }
+
+  @media (max-width: 560px) {
+    .cab .acoes { width: 100%; } .cab .acoes .btn { flex: 1; justify-content: center; }
+    .viagem .rodape .rec { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/dados.js?r=7"></script>
+<script src="shared/pessoas.js?r=1"></script>
+<script src="shared/shell.js?r=9"></script>
+<script src="shared/pessoa-form.js?r=1"></script>
+<script>
+const app = KVShell.montar('clientes');
+const { fmt } = KV, PS = KV.pessoas;
+// sem id: a pessoa com mais coisa pra ver (aviso, viagens, contas)
+const id = KVShell.param('id') && PS.pessoa(KVShell.param('id')) ? KVShell.param('id')
+  : [...PS.lista()].sort((a, b) => (PS.avisos(b.id).length * 10 + PS.viagensDe(b.id).length + PS.viajaCom(b.id).length) - (PS.avisos(a.id).length * 10 + PS.viagensDe(a.id).length + PS.viajaCom(a.id).length))[0].id;
+const P = (pid) => KV.programa(pid);
+const primeiro = (n) => n.split(' ')[0];
+const idade = (iso) => { const n = new Date(iso + 'T12:00'), h = new Date(KV.hoje + 'T12:00'); let a = h.getFullYear() - n.getFullYear(); if (h < new Date(h.getFullYear(), n.getMonth(), n.getDate())) a--; return a; };
+const progId = (nome) => ({ 'Smiles': 'smiles', 'Latam Pass': 'latam', 'TudoAzul': 'azul' }[nome]);
+
+// ---------- peças ----------
+function cabecalho(p) {
+  const cliente = PS.ehCliente(p.id), desde = PS.clienteDesde(p.id), pts = PS.pontos(p.id);
+  return `<a class="voltar" href="clientes.html"><i data-lucide="arrow-left"></i>Clientes</a>
+    <div class="cab"><span class="av ${cliente ? 'cliente' : ''}">${fmt.iniciais(p.nome)}</span>
+      <div class="quem"><h1>${p.nome}</h1><div class="chips">
+        ${cliente ? `<span class="chip laranja">Cliente desde ${fmt.mesAno(desde)}</span>` : '<span class="chip">Passageiro</span>'}
+        ${pts.titular.length ? `<span class="chip teal"><i data-lucide="wallet" style="width:13px;height:13px"></i>Titular de ${pts.titular.length} ${pts.titular.length > 1 ? 'contas' : 'conta'}</span>` : ''}</div></div>
+      <div class="acoes">${p.whatsapp ? `<a class="btn" href="#" title="Abriria a conversa no WhatsApp"><i data-lucide="message-circle"></i>WhatsApp</a>` : ''}<button class="btn" data-editar><i data-lucide="pencil"></i>Editar dados</button></div></div>`;
+}
+function resumo(p) {
+  const vs = PS.viagensDe(p.id).filter((v) => v.etapa !== 'Cancelado');
+  const comoCliente = PS.viagens().filter((v) => v.clienteId === p.id && v.etapa !== 'Cancelado');
+  const total = comoCliente.reduce((s, v) => s + v.venda, 0), deve = PS.deveTotal(p.id);
+  return `<p class="resumo"><b>${vs.length}</b> ${vs.length === 1 ? 'viagem' : 'viagens'}${comoCliente.length ? ` · <b>${fmt.brl(total)}</b> em compras` : ''}${deve ? ` · a receber <b class="deve">${fmt.brl(deve)}</b>` : ''}</p>`;
+}
+function avisos(p) {
+  const l = PS.avisos(p.id);
+  return l.length ? `<div class="avisos">${l.map((a) => `<div class="aviso ${a.tipo}"><i data-lucide="${a.tipo === 'faint' ? 'info' : 'triangle-alert'}"></i><span>${a.texto}</span></div>`).join('')}</div>` : '';
+}
+function recebimento(v) {
+  const s = PS.situacao(v);
+  if (s === 'cancelado') return `<span class="chip danger">Cancelada${v.devolvido ? ` · devolvido ${fmt.brl(v.devolvido)}` : ''}</span>`;
+  if (s === 'pago') return '<span class="chip ok">Pago</span>';
+  if (s === 'parte') return `<span class="chip laranja">Pago em parte · falta ${fmt.brl(PS.aReceber(v))}</span>`;
+  return `<span class="chip laranja">A receber ${fmt.brl(v.venda)}</span>`;
+}
+const ETAPA = { Emitido: 'ok', Fechado: 'laranja', Cancelado: 'danger' };
+function viagem(v, p) {
+  const ida = v.trechos[0], volta = v.trechos[v.trechos.length - 1];
+  const passada = PS.diasAte(ida.data) < 0;
+  const pagou = PS.pessoa(v.clienteId);
+  const forma = v.forma === 'Dinheiro' ? 'Dinheiro' : `<span class="prog" data-p="${progId(v.forma)}">${v.forma}</span> <span class="faint">pontos</span>`;
+  return `<article class="viagem ${passada ? 'passada' : ''}">
+    <header><div><h3>${v.destino}</h3><div class="datas">${fmt.dataCurta(ida.data)} a ${fmt.dataCurta(volta.data)}${!passada ? ` · ${PS.diasAte(ida.data) === 0 ? 'hoje' : `em ${PS.diasAte(ida.data)} dias`}` : ` · ${fmt.mesAno(ida.data)}`}${v.internacional ? ' · internacional' : ''}</div></div>
+      <span class="chip ${ETAPA[v.etapa]}">${v.etapa === 'Fechado' ? 'Falta emitir' : v.etapa}</span></header>
+    <div class="trechos">${v.trechos.map((t) => `<span><b>${t.de} → ${t.para}</b> ${fmt.dataCurta(t.data)}</span>`).join('')}</div>
+    <div class="pax">${v.passageiros.length} ${v.passageiros.length > 1 ? 'passageiros' : 'passageiro'}: ${v.passageiros.map((x) => { const q = PS.pessoa(x); return x === p.id ? `<span class="chip eu">${primeiro(q.nome)}</span>` : `<a class="chip" href="pessoa.html?id=${x}">${primeiro(q.nome)}</a>`; }).join('')}
+      ${v.clienteId !== p.id ? `<span>· pago por <a href="pessoa.html?id=${pagou.id}" style="color:var(--text)">${pagou.nome}</a></span>` : ''}</div>
+    <div class="rodape"><span>${forma}</span>${v.localizador ? `<span>Localizador <span class="loc">${v.localizador}</span></span>` : ''}<span>Venda <b>${fmt.brl(v.venda)}</b></span><span class="rec">${recebimento(v)}</span></div></article>`;
+}
+function viagens(p) {
+  const vs = PS.viagensDe(p.id);
+  if (!vs.length) return '<div class="card nada">Nenhuma viagem ainda.</div>';
+  const prox = vs.filter((v) => PS.diasAte(v.trechos[0].data) >= 0).sort((a, b) => a.trechos[0].data.localeCompare(b.trechos[0].data));
+  const ant = vs.filter((v) => PS.diasAte(v.trechos[0].data) < 0);
+  return (prox.length ? `<div class="grupo-t">Próximas</div>${prox.map((v) => viagem(v, p)).join('')}` : '')
+    + (ant.length ? `<div class="grupo-t">Anteriores</div>${ant.map((v) => viagem(v, p)).join('')}` : '');
+}
+function dados(p) {
+  const pass = p.passaporte;
+  const venceLogo = pass && pass.validade && PS.diasAte(pass.validade) < 180;
+  const vazio = '<span class="faint">não informado</span>';
+  return `<section class="card bloco"><h2>Dados <button class="btn pequeno fantasma" data-editar><i data-lucide="pencil"></i>Editar</button></h2>
+    <dl class="dados">
+      <dt>CPF</dt><dd class="num">${p.cpf}</dd>
+      <dt>Nascimento</dt><dd>${p.nascimento ? `${fmt.data(p.nascimento)} <span class="faint">· ${idade(p.nascimento)} anos</span>` : vazio}</dd>
+      <dt>WhatsApp</dt><dd class="num">${p.whatsapp || vazio}</dd>
+      <dt>E-mail</dt><dd>${p.email || vazio}</dd>
+      <dt>Passaporte</dt><dd>${pass ? `${pass.numero}${pass.validade ? `<br><span class="${venceLogo ? '' : 'faint'}" style="${venceLogo ? 'color:var(--warn)' : ''}">vale até ${fmt.data(pass.validade)}</span>` : ''}` : vazio}</dd>
+      ${p.obs ? `<dd class="obs">${p.obs}</dd>` : ''}
+    </dl></section>`;
+}
+function pessoasJunto(p) {
+  const l = PS.viajaCom(p.id);
+  return `<section class="card bloco"><h2>Viaja com <small>${l.length || ''}</small></h2>
+    ${l.length ? l.map((c) => `<a class="linha" href="pessoa.html?id=${c.pessoa.id}"><span class="nm">${c.pessoa.nome}<small>${c.pagou ? 'pagou as viagens' : PS.ehCliente(c.pessoa.id) ? 'também é cliente' : 'passageiro'}</small></span>
+      <span class="dir">${c.juntos ? `${c.juntos} ${c.juntos > 1 ? 'viagens' : 'viagem'} juntos` : 'não voou junto'}</span><i data-lucide="chevron-right" style="color:var(--text-3)"></i></a>`).join('') : '<div class="nada">Sempre viajou sozinho.</div>'}</section>`;
+}
+function pontos(p) {
+  const { beneficiario, titular } = PS.pontos(p.id);
+  return `<section class="card bloco"><h2>Contas de pontos</h2>
+    <div class="sub-t" style="margin-top:0">Já voou com estas contas</div>
+    ${beneficiario.length ? beneficiario.map(({ conta, ben, vagas }) => `<a class="linha" href="conta.html?id=${conta.id}"><span class="nm"><span class="prog" data-p="${conta.programaId}">${P(conta.programaId).nome}</span><small>${conta.titular} · ${vagas.usados}/${vagas.limite} vagas</small></span>
+      <span class="dir">última ${fmt.dataCurta(ben.ultima)}${ben.liberaEm ? `<br><span class="faint">vaga volta ${fmt.dataCurta(ben.liberaEm)}</span>` : ''}</span></a>`).join('') : '<div class="nada">Ainda não voou com pontos das contas. O primeiro voo ocupa uma vaga de beneficiário.</div>'}
+    ${titular.length ? `<div class="sub-t">Titular destas contas</div>${titular.map((c) => `<a class="linha" href="conta.html?id=${c.id}"><span class="nm"><span class="prog" data-p="${c.programaId}">${P(c.programaId).nome}</span></span><span class="dir num"><b style="color:var(--text)">${fmt.pts(c.saldo)}</b> pts</span></a>`).join('')}` : ''}
+    <p class="faint" style="font-size:12.5px;margin:12px 0 0">Ligado pelo CPF. Quem já voou com uma conta não ocupa vaga nova nela.</p></section>`;
+}
+
+const variantes = {
+  // A: viagens no meio e uma coluna lateral com dados, com quem viaja e as contas de pontos (como o detalhe da conta)
+  A() {
+    const p = PS.pessoa(id);
+    app.innerHTML = cabecalho(p) + resumo(p) + avisos(p) + `<div class="a-grid"><div>${viagens(p)}</div><div class="a-lado">${dados(p)}${pessoasJunto(p)}${pontos(p)}</div></div>`;
+  },
+};
+
+// ---------- ações ----------
+app.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b && b.hasAttribute('data-editar')) { KVShell.irPara({ janela: 'editar' }); sincJanela(); }
+});
+const dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg);
+const fecharJanela = () => KVShell.desfazer({ janela: 1 }, sincJanela);
+dlg.addEventListener('cancel', (e) => { e.preventDefault(); fecharJanela(); });
+dlg.addEventListener('click', (e) => { if (e.target === dlg) fecharJanela(); });
+function sincJanela() {
+  if (KVShell.param('janela') !== 'editar') { if (dlg.open) dlg.close(); return; }
+  if (dlg.open) return;
+  KVPessoaForm.abrir(dlg, PS.pessoa(id), { fechar: fecharJanela, aoSalvar: () => { fecharJanela(); render(); } });
+}
+
+function render() { variantes.A(); document.title = `${PS.pessoa(id).nome} · Rascunho K&V`; KVShell.icones(); }
+// escolhida na rodada 7: viagens + coluna lateral (A)
+render();
+sincJanela();
+KVShell.aoVoltar(() => { render(); sincJanela(); });
+</script>
+</body>
+</html>

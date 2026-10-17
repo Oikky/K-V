@@ -160,3 +160,13 @@ td .combo-in { height: 38px; border-radius: 10px; border-color: transparent; fon
 .proto-bar .rot small { color: #666; font-weight: 500; margin-left: 6px; }
 .proto-bar .tag { background: #111; color: #FFF; font-size: 11px; padding: 3px 8px; border-radius: 99px; letter-spacing: .04em; }
 @media (max-width: 760px) { .proto-bar { bottom: 76px; font-size: 13px; } .proto-bar .rot small { display: none; } }
+
+/* ---------- botões menores e formulário de pessoa (rodada 7) ---------- */
+.btn.pequeno { height: 34px; padding: 0 12px; font-size: 13.5px; }
+.btn.fantasma { background: transparent; border-color: transparent; color: var(--text-2); }
+.btn.fantasma:hover { background: var(--surface-2); color: var(--text); }
+.form-pessoa { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-pessoa .largo { grid-column: 1 / -1; }
+.campo .opc { font-weight: 500; font-size: 12px; color: var(--text-3); margin-left: 4px; }
+.campo input[readonly] { color: var(--text-2); background: transparent; }
+@media (max-width: 480px) { .form-pessoa { grid-template-columns: 1fr; } }
