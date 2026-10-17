@@ -10,12 +10,12 @@
     { id: 'contas', nome: 'Contas de pontos', icone: 'wallet', href: 'contas.html', soDono: true },
     { id: 'clientes', nome: 'Clientes', icone: 'users', href: 'clientes.html', soDono: true },
     { id: 'financeiro', nome: 'Financeiro', icone: 'chart-column', soDono: true },
-    { id: 'ponto', nome: 'Ponto', icone: 'timer' },
+    { id: 'ponto', nome: 'Ponto', icone: 'timer', href: 'ponto.html', hrefDono: 'folha.html' },
     { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html', soDono: true },
   ];
 
   function montar(ativo, { dono = false } = {}) {
-    const itens = ITENS.filter((i) => dono || (!i.soDono && i.id !== 'painel'));
+    const itens = ITENS.filter((i) => dono || (!i.soDono && i.id !== 'painel')).map((i) => ({ ...i, href: dono && i.hrefDono ? i.hrefDono : i.href }));
     const shell = document.createElement('div');
     shell.className = 'shell';
     shell.innerHTML = `

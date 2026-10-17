@@ -10,6 +10,8 @@ import './acoes/pessoas.js';
 import './acoes/fechamento.js';
 import './acoes/emissao.js';
 import './acoes/contas.js';
+import './acoes/ponto.js';
+import { lerPonto } from './ponto.js';
 import { listarPessoas, viajaCom, clientes } from './pessoas.js';
 import { contasCompletas, contaDetalhe } from './contas.js';
 import './acoes/base.js';
@@ -33,6 +35,7 @@ export default {
           const o = await abrirOrcamento(env, usuario, Number(url.searchParams.get('id')));
           return o ? json(o) : json({ erro: 'Orçamento não encontrado (ou já saiu da sua fila).' }, 404);
         }
+        if (url.pathname === '/api/ponto' && req.method === 'GET') return json(await lerPonto(env, usuario));
         // só o dono: cadastro de pessoas e contas de pontos
         if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta', '/api/clientes'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
         if (url.pathname === '/api/clientes' && req.method === 'GET') return json(await clientes(env));

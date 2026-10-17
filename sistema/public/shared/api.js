@@ -16,6 +16,7 @@
   window.KVApi = {
     estado: () => pedir('/api/estado'),
     orcamentos: () => pedir('/api/orcamentos'),
+    ponto: () => pedir('/api/ponto'),
     pessoas: () => pedir('/api/pessoas'),
     clientes: () => pedir('/api/clientes'),
     juntos: (id) => pedir('/api/pessoas/juntos?id=' + encodeURIComponent(id)),
