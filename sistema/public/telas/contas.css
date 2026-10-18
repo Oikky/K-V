@@ -1,0 +1,40 @@
+/* Estilo da tela contas (só vale enquanto ela está aberta). */
+  .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .sel { position: relative; display: inline-flex; align-items: center; }
+  .sel select { appearance: none; height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 38px 0 16px; font-weight: 600; font-size: 15px; color: var(--text); cursor: pointer; max-width: 100%; }
+  .sel select:focus-visible { outline: 2px solid var(--orange); }
+  .sel::after { content: ''; position: absolute; right: 16px; width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); rotate: 45deg; translate: 0 -2px; pointer-events: none; }
+  .sel.ativo select { border-color: var(--orange); background: var(--orange-soft); }
+  .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  .grade-tit { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .tit { background: var(--surface-1); border-radius: var(--r-card); padding: 18px 18px 8px; }
+  .tit header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .av { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; flex: none; }
+  .tit header .tot { margin-left: auto; text-align: right; font-size: 13px; color: var(--text-2); }
+  .tit header .tot b { display: block; font: 800 17px var(--font-brand); color: var(--text); }
+  .linha-conta { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; }
+  .linha-conta:hover { color: var(--orange); }
+  .linha-conta .s { text-align: right; font-weight: 700; }
+  .linha-conta .det { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--text-2); flex-wrap: wrap; }
+  .linha-conta .det .barra { flex: 1; max-width: 120px; }
+
+  /* cabeçalho que ordena, como no Windows */
+  th.ord { padding: 0; }
+  th.ord button { all: unset; box-sizing: border-box; width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 12px 14px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
+  th.ord.dir button { justify-content: flex-end; }
+  th.ord button:hover { color: var(--text); }
+  th.ord button:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; border-radius: 8px; }
+  th.ord.ativa button { color: var(--orange); }
+  th.ord .prio { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: 9px; background: var(--orange-soft); color: var(--orange); font-size: 11px; font-weight: 800; }
+  th.ord .seta { width: 14px; height: 14px; opacity: 0; }
+  th.ord button:hover .seta { opacity: .5; }
+  th.ord.ativa .seta { opacity: 1; }
+
+  /* no celular, a tabela é a mesma do PC: rola pro lado, com o titular fixo à esquerda */
+  @media (max-width: 760px) {
+    .grade-tit { grid-template-columns: 1fr; }
+    .tabela-wrap th:first-child, .tabela-wrap td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-1); box-shadow: 1px 0 0 var(--line); }
+    .filtros .busca-wrap { flex: 1 1 100%; } .busca { width: 100%; }
+    .filtros .sel { flex: 1 1 calc(50% - 5px); } .filtros .sel select { width: 100%; }
+  }

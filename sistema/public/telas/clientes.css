@@ -1,0 +1,46 @@
+/* Estilo da tela clientes (só vale enquanto ela está aberta). */
+  .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .filtros .busca-wrap { flex: 1 1 280px; max-width: 420px; } .busca { width: 100%; }
+  .sel { position: relative; display: inline-flex; align-items: center; }
+  .sel select { appearance: none; height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 38px 0 16px; font-weight: 600; font-size: 15px; color: var(--text); cursor: pointer; }
+  .sel::after { content: ''; position: absolute; right: 16px; width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); rotate: 45deg; translate: 0 -2px; pointer-events: none; }
+  .sel.ativo select { border-color: var(--orange); background: var(--orange-soft); }
+  .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .av { width: 42px; height: 42px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; flex: none; color: var(--text-2); }
+  mark { background: var(--orange-soft); color: inherit; border-radius: 3px; }
+  .vazio { padding: 28px; text-align: center; color: var(--text-2); }
+
+  /* ---------- A: por cliente ---------- */
+  .grade-cli { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .cli { display: grid; gap: 12px; background: var(--surface-1); border-radius: var(--r-card); padding: 18px; text-decoration: none; transition: background .15s; }
+  .cli:hover { background: var(--surface-2); }
+  .cli header { display: flex; align-items: center; gap: 12px; }
+  .cli header .nome { font-weight: 700; font-size: 16px; line-height: 1.25; }
+  .cli header .zap { font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .cli header .dir-topo { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--text-2); white-space: nowrap; }
+  .cli header .dir-topo b { display: block; font: 800 17px var(--font-brand); color: var(--text); font-variant-numeric: tabular-nums; }
+  .cli header .dir-topo.deve b { color: var(--orange); }
+  .cli .voos { display: grid; gap: 6px; font-size: 14px; }
+  .cli .voo { display: flex; align-items: center; gap: 8px; color: var(--text-2); }
+  .cli .voo svg.lucide { width: 16px; height: 16px; color: var(--text-3); flex: none; }
+  .cli .voo b { color: var(--text); }
+  .cli .voo.prox svg.lucide { color: var(--orange); }
+  .cli .com { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-3); }
+  .cli .com .chip { font-weight: 600; }
+
+  /* tabela (vista secundária) */
+  th.ord { padding: 0; }
+  th.ord button { all: unset; box-sizing: border-box; width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 12px 14px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
+  th.ord.dir button { justify-content: flex-end; }
+  th.ord button:hover { color: var(--text); }
+  th.ord button:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; border-radius: 8px; }
+  th.ord.ativa button { color: var(--orange); }
+  th.ord .prio { display: inline-grid; place-items: center; min-width: 18px; height: 18px; border-radius: 9px; background: var(--orange-soft); color: var(--orange); font-size: 11px; font-weight: 800; }
+  th.ord .seta { width: 14px; height: 14px; opacity: 0; }
+  th.ord button:hover .seta { opacity: .5; } th.ord.ativa .seta { opacity: 1; }
+
+  @media (max-width: 760px) {
+    .grade-cli { grid-template-columns: 1fr; }
+    .tabela-wrap th:first-child, .tabela-wrap td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-1); box-shadow: 1px 0 0 var(--line); }
+    .filtros .busca-wrap { flex: 1 1 100%; max-width: none; }
+  }

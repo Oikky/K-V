@@ -14,27 +14,51 @@
     { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html', soDono: true },
   ];
 
+  // Monta a tela: o menu fica sempre o mesmo (só muda o item ativo) e a área da tela é trocada por uma nova.
+  // A tela de antes some aqui, no instante em que a nova já tem o que mostrar.
   function montar(ativo, { dono = false } = {}) {
     const itens = ITENS.filter((i) => dono || (!i.soDono && i.id !== 'painel')).map((i) => ({ ...i, href: dono && i.hrefDono ? i.hrefDono : i.href }));
-    const shell = document.createElement('div');
-    shell.className = 'shell';
-    shell.innerHTML = `
-      <nav class="rail" aria-label="Menu">
-        <div class="marca">K<b>&amp;</b>V</div>
-        ${itens.map((i) => `<a href="${i.href || '#'}" data-item="${i.id}" ${i.id === ativo ? 'aria-current="page"' : ''} ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">
-          <i data-lucide="${i.icone}"></i><span class="dica">${i.nome}${i.href ? '' : ' (em breve)'}</span></a>`).join('')}
-        <a href="#" class="baixo" id="tema" aria-label="Trocar tema"><i data-lucide="sun-moon"></i><span class="dica">Trocar tema</span></a>
-      </nav>
-      <main class="area" id="app"></main>`;
-    document.body.prepend(shell);
-    shell.querySelectorAll('[aria-disabled="true"]').forEach((a) => a.addEventListener('click', (e) => e.preventDefault()));
-    shell.querySelector('#tema').addEventListener('click', (e) => {
-      e.preventDefault();
-      const novo = document.documentElement.dataset.theme === 'claro' ? 'escuro' : 'claro';
-      document.documentElement.dataset.theme = novo;
-      try { localStorage.setItem(TEMA_KEY, novo); } catch (err) {}
-    });
-    return shell.querySelector('#app');
+    const admin = !!window.KVAdmin, comoPesq = admin && verComo() === 'pesquisador';
+    let shell = document.querySelector('.shell');
+    if (!shell) { shell = document.createElement('div'); shell.className = 'shell'; document.body.prepend(shell); }
+    const assinatura = JSON.stringify([itens.map((i) => i.id + i.href), admin, comoPesq]);
+    if (shell.dataset.menu !== assinatura) {
+      shell.dataset.menu = assinatura;
+      shell.innerHTML = `<nav class="rail" aria-label="Menu">
+          <div class="marca">K<b>&amp;</b>V</div>
+          ${itens.map((i) => `<a href="${i.href || '#'}" data-item="${i.id}" ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">
+            <i data-lucide="${i.icone}"></i><span class="dica">${i.nome}${i.href ? '' : ' (em breve)'}</span></a>`).join('')}
+          ${admin ? `<a href="#" class="baixo" id="ver-como" aria-label="Ver como ${comoPesq ? 'dono' : 'pesquisador'}"><i data-lucide="${comoPesq ? 'search' : 'crown'}"></i><span class="dica">Vendo como ${comoPesq ? 'pesquisador' : 'dono'} · trocar</span></a>` : ''}
+          <a href="#" class="${admin ? '' : 'baixo'}" id="tema" aria-label="Trocar tema"><i data-lucide="sun-moon"></i><span class="dica">Trocar tema</span></a>
+        </nav><main class="area" id="app"></main>`;
+      shell.querySelectorAll('[aria-disabled="true"]').forEach((a) => a.addEventListener('click', (e) => e.preventDefault()));
+      shell.querySelector('#tema').addEventListener('click', (e) => {
+        e.preventDefault();
+        const novo = document.documentElement.dataset.theme === 'claro' ? 'escuro' : 'claro';
+        document.documentElement.dataset.theme = novo;
+        try { localStorage.setItem(TEMA_KEY, novo); } catch (err) {}
+      });
+      const vc = shell.querySelector('#ver-como');
+      if (vc) vc.addEventListener('click', (e) => { e.preventDefault(); trocarVerComo(); });
+    }
+    shell.querySelectorAll('.rail [data-item]').forEach((a) => { if (a.dataset.item === ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    const velho = shell.querySelector('#app'), novo = document.createElement('main');
+    novo.className = 'area'; novo.id = 'app';
+    velho.replaceWith(novo);
+    if (window.KVRota) KVRota.aplicarCss();
+    if (window.lucide) lucide.createIcons();
+    return novo;
+  }
+
+  // o admin vê o sistema como dono ou como pesquisador (pra testar o que cada um vê); vale só neste navegador
+  const VER_KEY = 'kv-ver-como';
+  function verComo() { try { return localStorage.getItem(VER_KEY) || 'dono'; } catch (e) { return 'dono'; } }
+  function trocarVerComo() {
+    const novo = verComo() === 'pesquisador' ? 'dono' : 'pesquisador';
+    try { localStorage.setItem(VER_KEY, novo); } catch (e) {}
+    KVApi.esquecer();
+    aviso(`Vendo como ${novo}`);
+    KVRota.trocar('orcamentos.html');
   }
 
   // Toda troca de vista, filtro ou janela vira um passo no histórico: o voltar do celular e do mouse desfaz o último passo.
@@ -66,5 +90,5 @@
     avisoTimer = setTimeout(() => el.remove(), erro ? 6000 : 3000);
   }
 
-  window.KVShell = { montar, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
+  window.KVShell = { montar, verComo, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
 })();

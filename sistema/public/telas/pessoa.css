@@ -1,0 +1,62 @@
+/* Estilo da tela pessoa (só vale enquanto ela está aberta). */
+  .cab { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .cab .av { width: 60px; height: 60px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font: 800 20px var(--font-brand); color: var(--text-2); flex: none; }
+  .cab .av.cliente { background: var(--orange-soft); color: var(--orange); }
+  .cab .quem { min-width: 0; flex: 1; }
+  .cab .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .cab .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .resumo { color: var(--text-2); font-size: 14.5px; margin: -4px 0 18px; }
+  .resumo b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .resumo b.deve { color: var(--orange); }
+  .avisos { display: grid; gap: 8px; margin-bottom: 18px; }
+  .avisos .aviso { display: flex; gap: 10px; align-items: flex-start; }
+  .avisos .aviso svg.lucide { flex: none; width: 17px; height: 17px; margin-top: 1px; }
+  .aviso.faint { background: var(--surface-2); color: var(--text-2); }
+
+  /* viagens */
+  .grupo-t { font-size: 13px; font-weight: 700; color: var(--text-2); margin: 4px 0 10px; }
+  .grupo-t:not(:first-child) { margin-top: 22px; }
+  .viagem { background: var(--surface-1); border-radius: var(--r-card); padding: 18px; display: grid; gap: 12px; }
+  .viagem + .viagem { margin-top: 12px; }
+  .viagem.passada { background: color-mix(in srgb, var(--surface-1) 70%, var(--bg)); }
+  .viagem header { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .viagem header h3 { font-size: 18px; }
+  .viagem header .datas { font-size: 13.5px; color: var(--text-2); margin-top: 2px; }
+  .viagem header .chip { margin-left: auto; }
+  .trechos { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 13.5px; color: var(--text-2); }
+  .trechos span b { color: var(--text); font-weight: 700; letter-spacing: .02em; }
+  .pax { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--text-3); }
+  .pax a.chip { text-decoration: none; font-weight: 600; }
+  .pax a.chip:hover { color: var(--text); }
+  .pax .chip.eu { background: var(--surface-3); color: var(--text); }
+  .viagem .rodape { display: flex; gap: 8px 22px; flex-wrap: wrap; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--text-2); }
+  .viagem .rodape b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .viagem .rodape .rec { margin-left: auto; }
+  .viagem .rodape .loc { font-family: ui-monospace, Consolas, monospace; letter-spacing: .06em; color: var(--text); font-weight: 700; }
+
+  /* blocos laterais */
+  .bloco h2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bloco h2 small { font: 600 13px var(--font); color: var(--text-2); }
+  .dados { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 14px; margin: 0; }
+  .dados dt { color: var(--text-2); }
+  .dados dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+  .dados dd .faint { font-weight: 500; }
+  .dados dd.obs { grid-column: 1 / -1; text-align: left; font-weight: 500; background: var(--surface-2); padding: 10px 12px; border-radius: 12px; }
+  .linha { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); text-decoration: none; font-size: 14px; }
+  .linha:first-of-type { border-top: 0; }
+  a.linha:hover .nm { color: var(--orange); }
+  .linha .nm { flex: 1; min-width: 0; font-weight: 600; }
+  .linha .nm small { display: block; font-weight: 500; color: var(--text-3); font-size: 12.5px; }
+  .linha .dir { text-align: right; color: var(--text-2); font-size: 13px; white-space: nowrap; }
+  .sub-t { font-size: 13px; font-weight: 700; color: var(--text-2); margin: 14px 0 2px; }
+  .nada { color: var(--text-3); font-size: 14px; padding: 6px 0; }
+
+  /* A: viagens + coluna lateral */
+  .a-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+  .a-lado { display: grid; gap: 16px; }
+  @media (max-width: 1040px) { .a-grid { grid-template-columns: 1fr; } }
+
+  @media (max-width: 560px) {
+    .cab .acoes { width: 100%; } .cab .acoes .btn { flex: 1; justify-content: center; }
+    .viagem .rodape .rec { margin-left: 0; }
+  }

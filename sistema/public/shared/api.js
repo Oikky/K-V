@@ -6,7 +6,10 @@
 (function () {
   async function pedir(caminho, opcoes) {
     let r;
-    try { r = await fetch(caminho, { cache: 'no-store', credentials: 'same-origin', ...opcoes }); }
+    // o admin pode ver o sistema como pesquisador (o servidor confere que é admin mesmo)
+    const comoPesq = (() => { try { return localStorage.getItem('kv-ver-como') === 'pesquisador'; } catch (e) { return false; } })();
+    const headers = { ...((opcoes && opcoes.headers) || {}), ...(comoPesq ? { 'x-kv-ver-como': 'pesquisador' } : {}) };
+    try { r = await fetch(caminho, { cache: 'no-store', credentials: 'same-origin', ...opcoes, headers }); }
     catch (e) { throw new Error('Sem conexão. Confira a internet e tente de novo.'); }
     // o login do Access venceu: a resposta vem redirecionada pra página de login
     if (r.redirected || r.type === 'opaqueredirect') { location.reload(); throw new Error('Entrando de novo…'); }
@@ -24,14 +27,14 @@
   // a pessoa já mexeu nesta tela? (aí não redesenha por baixo dela)
   let mexeu = false;
   ['pointerdown', 'keydown', 'input'].forEach((ev) => addEventListener(ev, () => { mexeu = true; }, { capture: true, passive: true }));
-  let recarregando = false;
+  let recarregando = false, ultimaTroca = 0;
   function chegouNovo() {
     if (mexeu || recarregando || document.querySelector('dialog[open]')) return;
-    // no máximo uma troca a cada 20 s (se o servidor responder diferente toda vez, não fica recarregando)
-    try { if (Date.now() - (+sessionStorage.getItem('kv-troca') || 0) < 20e3) return; sessionStorage.setItem('kv-troca', Date.now()); } catch (e) { return; }
-    recarregando = true;
-    // a página abre de novo já com o dado novo guardado: troca quase sem piscar
-    setTimeout(() => location.reload(), 50);
+    // no máximo uma troca a cada 20 s (se o servidor responder diferente toda vez, não fica redesenhando)
+    if (Date.now() - ultimaTroca < 20e3) return;
+    ultimaTroca = Date.now(); recarregando = true;
+    // a tela abre de novo já com o dado novo guardado: troca quase sem piscar
+    setTimeout(() => window.KVRota && KVRota.recarregar(), 50);
   }
 
   const usados = new Set(); // na mesma página, a segunda leitura do mesmo endereço sempre vai ao servidor
@@ -54,7 +57,7 @@
   const chave = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
 
   window.KVApi = {
-    estado: () => obter('/api/estado'),
+    estado: async () => { const e = await obter('/api/estado'); window.KVAdmin = e.eu.real === 'admin'; return e; },
     orcamentos: () => obter('/api/orcamentos'),
     ponto: () => obter('/api/ponto'),
     pessoas: () => obter('/api/pessoas'),
@@ -70,6 +73,9 @@
       esquecer();
       return r;
     },
+    // tela nova: a primeira leitura de cada endereço volta a poder vir do que está guardado
+    novaTela: () => { usados.clear(); mexeu = false; recarregando = false; },
+    esquecer,
     // abre o que a próxima tela vai pedir, enquanto a pessoa ainda está nesta
     adiantar: (caminho) => {
       if (indo.has(caminho) || ler(caminho)) return;

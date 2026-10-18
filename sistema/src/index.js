@@ -57,6 +57,9 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(req);
+    // página única: endereço de tela (/orcamento.html?id=4) que não é arquivo abre o index.html, e a tela certa é escolhida lá
+    const r = await env.ASSETS.fetch(req);
+    if (r.status === 404 && req.method === 'GET' && /^\/[\w-]*(\.html)?$/.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/', url), req));
+    return r;
   },
 };

@@ -1,0 +1,51 @@
+/* Estilo da tela fechamento (só vale enquanto ela está aberta). */
+  .topo-orc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 8px; container-type: inline-size; }
+  .topo-orc .quem { font-size: 14px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+  .topo-orc h1 { font: 800 min(40px, calc(100cqi / (var(--n, 20) * 0.64)))/1.08 var(--font-brand); letter-spacing: -0.03em; white-space: nowrap; }
+  .topo-orc h1 .seta { color: var(--text-3); font-weight: 600; }
+  .secao .passo-n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font: 800 14px var(--font-brand); color: var(--text-2); flex: none; }
+  .secao .passo-n.ok { background: var(--ok-bg); color: var(--ok); }
+  .secao .passo-n svg.lucide { width: 15px; height: 15px; stroke-width: 2.6; }
+
+  /* 1 · qual ela aceitou */
+  .escolha { cursor: pointer; text-align: left; font: inherit; border: 0; display: flex; flex-direction: column; gap: 0; padding-bottom: 18px; }
+  .escolha:not(.cheio):hover { background: var(--surface-2); }
+  .escolha .grande { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding-right: 0; }
+  .escolha .nro { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); font: 800 14px var(--font-brand); }
+  .escolha.cheio .nro { background: rgb(0 0 0 / .14); }
+  .escolha .marca { margin-left: auto; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; flex: none; }
+  .escolha.cheio .marca { border-color: var(--orange-ink); background: var(--orange-ink); color: var(--orange); }
+  .escolha .marca svg.lucide { width: 15px; height: 15px; stroke-width: 3; }
+  .escolha .preco { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .escolha.cheio .preco { border-color: rgb(0 0 0 / .14); }
+  .escolha .preco b { font: 800 26px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .escolha .preco span { font-size: 13px; font-weight: 600; opacity: .72; white-space: nowrap; }
+
+  /* 2 e 3 · pessoas */
+  .pessoas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .vaga { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 14px 14px 14px 16px; border-radius: 20px; background: var(--surface-1); min-width: 0; }
+  .vaga .ava { width: 40px; height: 40px; font-size: 13px; }
+  .vaga .txt { display: grid; gap: 1px; min-width: 0; flex: 1; }
+  .vaga .txt b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15.5px; }
+  .vaga .txt span { font-size: 13px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vaga .txt .alerta { color: var(--warn); }
+  .vaga.vazia { border: 1.5px dashed var(--line); background: none; flex-wrap: wrap; }
+  .vaga.vazia .n { font: 800 14px var(--font-brand); color: var(--text-3); width: 40px; text-align: center; flex: none; }
+  .vaga.vazia .campo { flex: 1; min-width: 150px; }
+  .sugestoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: -4px 0 14px; }
+  .sugestoes .rot { font-size: 13px; color: var(--text-3); font-weight: 700; }
+  .sugestoes .pilula .ava { width: 22px; height: 22px; font-size: 9.5px; margin-left: -8px; }
+
+  /* 4 · recebimento */
+  .receb { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px 24px; align-items: start; background: var(--surface-1); border-radius: 26px; padding: 22px; }
+  .receb .rot { font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; display: block; }
+  .receb .caixa { display: flex; align-items: center; height: 52px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); padding: 0 14px; gap: 6px; }
+  .receb .caixa:focus-within { border-color: var(--orange); }
+  .receb .caixa span { font: 800 16px var(--font-brand); color: var(--text-3); }
+  .receb .caixa input { flex: 1; min-width: 0; width: 0; height: 100%; border: 0; background: none; outline: none; font: 800 22px var(--font-brand); font-variant-numeric: tabular-nums; }
+  .receb .rapidos { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .receb .situ { display: grid; gap: 6px; }
+  .receb .situ b { font: 800 26px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
+  .barra-acao .resumo .alerta { color: var(--warn); }
+  .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }

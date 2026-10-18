@@ -1,0 +1,35 @@
+/* Estilo da tela conta (só vale enquanto ela está aberta). */
+  .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .voltar:hover { color: var(--text); }
+  .trocar { height: 42px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); padding: 0 14px; max-width: 280px; }
+  .saldo-grande { font: 800 44px/1 var(--font-brand); letter-spacing: -0.03em; }
+  .saldo-grande small { font: 600 16px var(--font); color: var(--text-2); letter-spacing: 0; margin-left: 6px; }
+  .extrato { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+  @media (max-width: 1000px) { .extrato { grid-template-columns: 1fr; } }
+  .mov { display: grid; grid-template-columns: 64px 1fr auto; gap: 4px 14px; padding: 12px 0; border-top: 1px solid var(--line); align-items: baseline; }
+  .mov .d { color: var(--text-3); font-size: 13px; }
+  .mov .q { font-weight: 700; text-align: right; } .mov .q.mais { color: var(--ok); }
+  .mov .x { grid-column: 2 / -1; font-size: 13px; color: var(--text-2); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .lado { display: grid; gap: 14px; align-content: start; }
+  .lado h2 { margin-bottom: 4px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .lado h2 small { font: 600 13px var(--font); color: var(--text-2); }
+  .ben { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .ben .l { color: var(--text-3); font-size: 12.5px; text-align: right; }
+  .dados { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 14px; margin: 12px 0 0; }
+  .dados dt { color: var(--text-2); } .dados dd { margin: 0; font-weight: 600; text-align: right; }
+
+  /* beneficiários em bolinhas */
+  .vagas-btn { all: unset; display: block; cursor: pointer; border-radius: 14px; padding: 4px; margin: 6px -4px 0; }
+  .vagas-btn:hover { background: var(--surface-2); }
+  .vagas-btn:focus-visible { outline: 2px solid var(--orange); }
+  .vagas-grade { display: grid; grid-template-columns: repeat(auto-fill, 30px); gap: 8px; margin: 8px 0 10px; }
+  .vaga { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--line); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .vaga.usada { border: 0; background: var(--teal); color: #fff; }
+  .vagas-grade .vaga.estourou { background: var(--danger); color: #fff; }
+  .vaga.manual { border: 0; background: var(--teal-soft); color: var(--bg); }
+  .vagas-resumo { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
+  .regra { font-size: 13px; color: var(--text-3); margin-top: 8px; }
+  .novo-ben { display: grid; gap: 14px; padding: 4px 22px 8px; }
+  .tag-manual { font-size: 11px; font-weight: 700; color: var(--teal-soft); margin-left: 6px; }
+  .aviso { padding: 10px 12px; border-radius: 12px; font-size: 13.5px; margin-bottom: 10px; }
+  .aviso.danger { background: var(--danger-bg); color: var(--danger); } .aviso.ok { background: var(--ok-bg); color: var(--ok); }

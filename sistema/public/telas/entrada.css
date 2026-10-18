@@ -1,0 +1,36 @@
+/* Estilo da tela entrada (só vale enquanto ela está aberta). */
+  .voltar { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); text-decoration: none; font-weight: 600; margin-bottom: 14px; }
+  .form-dupla { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; max-width: 1020px; }
+  @media (max-width: 960px) { .form-dupla { grid-template-columns: 1fr; } }
+  .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grade-campos .inteiro { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grade-campos { grid-template-columns: 1fr; } }
+  .previa { position: sticky; top: 20px; display: grid; gap: 14px; }
+  .de-para { display: flex; align-items: center; gap: 12px; font: 800 24px var(--font-brand); flex-wrap: wrap; }
+  .de-para .de { color: var(--text-3); }
+  .rodape-form { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+  .oculto { display: none !important; }
+  .seg { display: inline-flex; padding: 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
+  .seg button { height: 34px; padding: 0 14px; border-radius: var(--r-pill); border: 0; background: none; cursor: pointer; font-weight: 700; color: var(--text-2); display: inline-flex; gap: 6px; align-items: center; }
+  .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+
+  /* B */
+  .passos { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .passo { display: flex; gap: 8px; align-items: center; color: var(--text-3); font-weight: 700; font-size: 14px; }
+  .passo b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 13px; }
+  .passo.on { color: var(--text); } .passo.on b { background: var(--orange); color: var(--orange-ink); }
+  .passo + .passo::before { content: ''; width: 24px; height: 1px; background: var(--line); margin-right: 4px; }
+  .tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; max-width: 980px; }
+  .tipo { text-align: left; padding: 18px; border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; display: grid; gap: 6px; }
+  .tipo:hover { border-color: var(--orange); }
+  .tipo svg { color: var(--teal-soft); width: 24px; height: 24px; }
+  .tipo .t { font-weight: 700; font-size: 16px; } .tipo .e { font-size: 13.5px; color: var(--text-2); }
+  .tipo .c { font-size: 12.5px; font-weight: 700; color: var(--text-3); }
+
+  /* C */
+  .lote td { padding: 6px 8px; }
+  .lote input, .lote select { width: 100%; height: 38px; border-radius: 10px; border: 1px solid transparent; background: var(--surface-2); padding: 0 10px; font-size: 15px; min-width: 90px; }
+  .lote input:focus, .lote select:focus { border-color: var(--orange); outline: none; }
+  .lote input.num { text-align: right; }
+  .lote tfoot td { border-top: 1px solid var(--line); padding: 14px; font-weight: 700; }
+  .aviso-lote { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: 14px; background: var(--teal-bg); color: var(--text); margin-bottom: 14px; font-size: 14px; }

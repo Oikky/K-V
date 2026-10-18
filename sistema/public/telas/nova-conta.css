@@ -1,0 +1,32 @@
+/* Estilo da tela nova-conta (só vale enquanto ela está aberta). */
+  .grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grade-campos .inteiro { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grade-campos { grid-template-columns: 1fr; } }
+  .rodape-form { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+  .oculto { display: none !important; }
+  fieldset { border: 0; padding: 0; margin: 0; display: contents; }
+  .secao { grid-column: 1 / -1; font-weight: 700; color: var(--text-2); font-size: 13px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .secao:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .liga { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+  .liga input { width: 20px; height: 20px; accent-color: var(--orange); }
+
+  /* B */
+  .passos { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .passo { display: flex; gap: 8px; align-items: center; color: var(--text-3); font-weight: 700; font-size: 14px; }
+  .passo b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 13px; }
+  .passo.on { color: var(--text); } .passo.on b { background: var(--orange); color: var(--orange-ink); }
+  .passo + .passo::before { content: ''; width: 24px; height: 1px; background: var(--line); margin-right: 4px; }
+  .lista-tit { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; max-width: 1100px; }
+  .op-tit { text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; }
+  .op-tit:hover { border-color: var(--orange); }
+  .op-tit .progs { grid-column: 2; display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+  .op-tit.novo { border-style: dashed; }
+  .av { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-weight: 700; font-size: 14px; grid-row: span 2; }
+  .progs-escolha { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; max-width: 900px; }
+  .op-prog { text-align: left; padding: 18px; border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; display: grid; gap: 6px; }
+  .op-prog:hover:not(:disabled) { border-color: var(--orange); }
+  .op-prog:disabled { opacity: .45; cursor: not-allowed; }
+  .op-prog .r { font-size: 13px; color: var(--text-2); }
+
+  /* C */
+  .fundo { opacity: .45; pointer-events: none; }

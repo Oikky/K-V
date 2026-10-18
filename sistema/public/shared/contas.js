@@ -68,9 +68,9 @@
     return est;
   }
 
-  window.KV = {
+  window.KV = Object.assign(window.KV || {}, {
     hoje: HOJE, isoDia, diasAte, esc, fmt, entradaTipos: ENTRADA_TIPOS, saidaTipos: SAIDA_TIPOS,
     carregar, adaptar, programa, programas: () => programas, categoriasAzul: () => Object.fromEntries(categorias.filter((c) => c.programa_id === 'azul').map((c) => [c.nome, c.limite])),
     contas: () => contas, custoRealPrograma, conta: (id) => contas.find((c) => c.id === +id), titulares, beneficiarios, vencendo, alertas, lotesConsumidos,
-  };
+  });
 })();

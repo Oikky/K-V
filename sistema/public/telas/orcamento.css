@@ -1,0 +1,82 @@
+/* Estilo da tela orcamento (só vale enquanto ela está aberta). */
+  /* título e números sempre numa linha */
+  .topo-orc { container-type: inline-size; }
+  .topo-orc h1[style] { white-space: nowrap; max-width: none; font-size: min(40px, calc(100cqi / (var(--n, 20) * 0.64))); }
+  .topo-orc .quem, .topo-orc .quem a { white-space: nowrap; }
+  /* filtros A: abas grandes + mini calendário */
+  .fa-abas { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin: -4px 0 14px; }
+  .fa-abas button { flex: none; display: grid; gap: 2px; text-align: left; padding: 8px 18px 12px 2px; margin-right: 18px; border: 0; background: none; cursor: pointer; color: var(--text-2); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+  .fa-abas button small { font-size: 12px; color: var(--text-3); font-weight: 600; white-space: nowrap; }
+  .fa-abas button b { font: 800 20px var(--font-brand); letter-spacing: -0.01em; white-space: nowrap; }
+  .fa-abas button span { font-size: 12.5px; color: var(--text-3); white-space: nowrap; }
+  .fa-abas button[aria-pressed="true"] { color: var(--text); border-bottom-color: var(--orange); }
+  .fa-dias { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 16px; }
+  .dia-c { flex: none; display: grid; justify-items: center; gap: 1px; min-width: 56px; padding: 8px 10px; border-radius: 16px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: var(--text-2); position: relative; }
+  .dia-c small { font-size: 12px; font-weight: 600; }
+  .dia-c b { font: 800 18px var(--font-brand); color: var(--text); }
+  .dia-c i { font-style: normal; font-size: 11.5px; color: var(--text-3); font-weight: 700; }
+  .dia-c.todos { min-width: 64px; align-content: center; font-weight: 700; }
+  .dia-c.pedido::after { content: 'pedido'; position: absolute; top: -8px; left: 50%; translate: -50% 0; font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: var(--surface-3); color: var(--text-2); }
+  .dia-c[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .dia-c[aria-pressed="true"] b, .dia-c[aria-pressed="true"] i { color: var(--bg); }
+  .fa-dias { padding-top: 8px; }
+  .escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .topo-orc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 8px; }
+  .topo-orc .quem { font-size: 14px; color: var(--text-2); font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .topo-orc h1 { font: 800 40px/1.08 var(--font-brand); letter-spacing: -0.03em; max-width: 22ch; }
+  .topo-orc h1 .seta { color: var(--text-3); font-weight: 600; }
+  .linha-acoes { display: flex; gap: 10px 12px; align-items: center; flex-wrap: wrap; }
+  .linha-acoes .acoes { display: flex; gap: 8px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .pedido-pilula { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: var(--r-pill); background: var(--teal-bg); font-size: 14px; font-weight: 600; }
+  .pedido-pilula svg.lucide { width: 16px; height: 16px; color: var(--teal-soft); }
+  .sel-pilula.solta { margin-left: 0; }
+  .sel-pilula.solta select { height: 42px; background: var(--surface-1); }
+  .filtro-linha { display: flex; gap: 8px 8px; flex-wrap: wrap; align-items: center; margin: -4px 0 12px; }
+  .filtro-linha .rot { font-size: 13px; color: var(--text-3); font-weight: 700; min-width: 48px; }
+  /* horário sempre numa linha só: a letra encolhe com a largura do cartão em vez de quebrar */
+  .grade-ref .op { container-type: inline-size; }
+  .op .hora { font: 800 clamp(17px, 9.2cqi, 26px)/1.1 var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 40px; }
+  .op .hora small { font: 600 14px var(--font); opacity: .7; margin-left: 2px; }
+  /* o cartão da opção vai até o fim da linha e o valor fica grudado embaixo: todos com o mesmo formato */
+  .grade-ref .op { display: flex; flex-direction: column; gap: 12px; }
+  .op .tags-op { margin-top: auto; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; cursor: grab; }
+  .op .tags-op::-webkit-scrollbar { display: none; }
+  .op .tags-op.nao-cabe { mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .op .tags-op .etiqueta { flex: none; }
+  .op .pe-op { display: flex; align-items: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .op.cheio .pe-op { border-color: rgb(0 0 0 / .14); }
+  .op .valor { display: grid; gap: 3px; min-width: 0; }
+  .op .valor b { white-space: nowrap; font: 800 22px var(--font-brand); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .op .valor b small { font: 700 13px var(--font); opacity: .7; }
+  .op .valor span { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+  .op .valor .custo { font-size: 12px; color: var(--text-3); }
+  .op.cheio .valor span { color: var(--orange-ink); opacity: .72; }
+  .op .site { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
+  .op .site::before { content: ''; width: 9px; height: 9px; border-radius: 3px; background: var(--c, var(--text-3)); }
+  .op.cheio .site::before { background: var(--orange-ink); }
+  .site[data-s="Smiles"] { --c: #F08A24; } .site[data-s="Latam"] { --c: #D1365B; } .site[data-s="TudoAzul"] { --c: #2F7FE0; } .site[data-s="Interline"] { --c: #69A7F0; } .site[data-s="Skyscanner"] { --c: #3CCB8B; }
+  .op.nova { animation: kv-acende 1.4s ease-out; }
+  @keyframes kv-acende { from { box-shadow: 0 0 0 2px var(--orange); } }
+  @media (prefers-reduced-motion: reduce) { .op.nova { animation: none; } }
+  .bot-orc { display: grid; gap: 10px; margin: 18px 0 0; padding: 18px 20px; border-radius: 22px; background: var(--surface-1); max-width: 760px; }
+  .bot-cab { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--teal-soft); }
+  .bot-cab svg.lucide { width: 16px; height: 16px; }
+  .bot-txt { margin: 0; font-size: 16px; line-height: 1.5; }
+  .bot-obs { margin: 0; font-size: 14px; color: var(--text-2); }
+  .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+  .conf-lista { display: grid; gap: 2px; }
+  .conf-lista label { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-radius: 12px; cursor: pointer; font-size: 15px; }
+  .conf-lista label:hover { background: var(--surface-2); }
+  .conf-lista input { width: 20px; height: 20px; accent-color: var(--ok); flex: none; }
+  .conf-lista label.feito span { color: var(--text-3); text-decoration: line-through; }
+  .form-op { display: grid; gap: 12px; padding-bottom: 12px; }
+  .form-op .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-op .lanc { font-size: 13px; color: var(--text-3); }
+  .form-op .erro { border-color: var(--danger) !important; }
+  .salvas { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ok); font-weight: 700; min-height: 20px; }
+  kbd { font: 700 11.5px ui-monospace, Consolas, monospace; padding: 2px 6px; border-radius: 6px; background: rgb(0 0 0 / .15); }
+  @media (max-width: 760px) {
+    .linha-acoes .acoes { margin-left: 0; width: 100%; }
+    .filtro-linha { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 4px; scrollbar-width: none; }
+    .filtro-linha .pilula, .filtro-linha .rot { flex: none; }
+  }

@@ -1,1 +1,88 @@
-<!doctype html><meta charset="utf-8"><title>K&amp;V</title><meta http-equiv="refresh" content="0; url=orcamentos.html"><script>location.replace('orcamentos.html')</script>
+<!doctype html>
+<!-- Sistema K&V: página única. Trocar de tela não recarrega nada; o endereço muda (/orcamento.html?id=4) e voltar funciona.
+
+     MAPA PRA MEXER
+     Cada tela é um arquivo de código e um de estilo, em telas/:
+       orcamentos       Fila de orçamentos (quem vê: todos)  →  telas/orcamentos.js e telas/orcamentos.css
+       novo-orcamento   Novo orçamento (quem vê: dono)  →  telas/novo-orcamento.js e telas/novo-orcamento.css
+       orcamento        Pesquisa de voos de um orçamento (quem vê: todos)  →  telas/orcamento.js e telas/orcamento.css
+       proposta         Proposta (combinações e mensagem) (quem vê: dono)  →  telas/proposta.js e telas/proposta.css
+       fechamento       Fechamento (aceita, quem paga, quem voa, recebimento) (quem vê: dono)  →  telas/fechamento.js e telas/fechamento.css
+       emissao          Emissão (um registro por voo) (quem vê: dono)  →  telas/emissao.js e telas/emissao.css
+       contas           Lista de contas de pontos (quem vê: dono)  →  telas/contas.js e telas/contas.css
+       conta            Uma conta: extrato e beneficiários (quem vê: dono)  →  telas/conta.js e telas/conta.css
+       entrada          Registrar entrada de pontos (quem vê: dono)  →  telas/entrada.js e telas/entrada.css
+       saida            Registrar saída de pontos (quem vê: dono)  →  telas/saida.js e telas/saida.css
+       nova-conta       Nova conta de pontos (quem vê: dono)  →  telas/nova-conta.js e telas/nova-conta.css
+       clientes         Clientes e passageiros (quem vê: dono)  →  telas/clientes.js e telas/clientes.css
+       pessoa           Ficha de uma pessoa (quem vê: dono)  →  telas/pessoa.js e telas/pessoa.css
+       ponto            Ponto do pesquisador (cronômetro) (quem vê: quem pesquisa)  →  telas/ponto.js e telas/ponto.css
+       folha            Folha do ponto (pagamento das semanas) (quem vê: dono)  →  telas/folha.js e telas/folha.css
+       programas        Configurações dos programas (quem vê: dono)  →  telas/programas.js e telas/programas.css
+
+     Peças que várias telas usam, em shared/:
+       base.css        cores, letras e peças visuais aprovadas (docs/direcao-visual.md)
+       rota.js         troca de tela: links, voltar, e desliga o que a tela ligou quando ela sai
+       shell.js        menu lateral, tema, "ver como" do admin, janelas que entram no histórico, avisos
+       api.js          conversa com o servidor (leituras guardadas na aba, gravações por KVApi.acao)
+       orc.js          aeroportos, etapas, datas, dinheiro e a trilha do orçamento
+       proposta.js     contas da proposta, fechamento e emissão (preço, milhas, recebimento)
+       contas.js       contas de pontos (saldo, lotes, beneficiários)
+       pessoas.js      clientes e viagens
+       ponto.js        ponto dos pesquisadores
+       combo.js        lista longa vira busca
+       pessoa-form.js  janela de nova pessoa / editar dados
+     O servidor (o que grava e o que cada papel pode ver) fica em sistema/src/. -->
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K&amp;V</title>
+<link rel="stylesheet" href="shared/base.css?r=5">
+<link rel="stylesheet" href="telas/orcamentos.css?r=1" data-tela="orcamentos" media="not all">
+<link rel="stylesheet" href="telas/novo-orcamento.css?r=1" data-tela="novo-orcamento" media="not all">
+<link rel="stylesheet" href="telas/orcamento.css?r=1" data-tela="orcamento" media="not all">
+<link rel="stylesheet" href="telas/proposta.css?r=1" data-tela="proposta" media="not all">
+<link rel="stylesheet" href="telas/fechamento.css?r=1" data-tela="fechamento" media="not all">
+<link rel="stylesheet" href="telas/emissao.css?r=1" data-tela="emissao" media="not all">
+<link rel="stylesheet" href="telas/contas.css?r=1" data-tela="contas" media="not all">
+<link rel="stylesheet" href="telas/conta.css?r=1" data-tela="conta" media="not all">
+<link rel="stylesheet" href="telas/entrada.css?r=1" data-tela="entrada" media="not all">
+<link rel="stylesheet" href="telas/saida.css?r=1" data-tela="saida" media="not all">
+<link rel="stylesheet" href="telas/nova-conta.css?r=1" data-tela="nova-conta" media="not all">
+<link rel="stylesheet" href="telas/clientes.css?r=1" data-tela="clientes" media="not all">
+<link rel="stylesheet" href="telas/pessoa.css?r=1" data-tela="pessoa" media="not all">
+<link rel="stylesheet" href="telas/ponto.css?r=1" data-tela="ponto" media="not all">
+<link rel="stylesheet" href="telas/folha.css?r=1" data-tela="folha" media="not all">
+<link rel="stylesheet" href="telas/programas.css?r=1" data-tela="programas" media="not all">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="shared/rota.js?r=1"></script>
+<script src="shared/api.js?r=8"></script>
+<script src="shared/orc.js?r=5"></script>
+<script src="shared/proposta.js?r=2"></script>
+<script src="shared/contas.js?r=3"></script>
+<script src="shared/pessoas.js?r=2"></script>
+<script src="shared/ponto.js?r=2"></script>
+<script src="shared/shell.js?r=6"></script>
+<script src="shared/combo.js?r=2"></script>
+<script src="shared/pessoa-form.js?r=3"></script>
+<script src="telas/orcamentos.js?r=1"></script>
+<script src="telas/novo-orcamento.js?r=1"></script>
+<script src="telas/orcamento.js?r=1"></script>
+<script src="telas/proposta.js?r=1"></script>
+<script src="telas/fechamento.js?r=1"></script>
+<script src="telas/emissao.js?r=1"></script>
+<script src="telas/contas.js?r=1"></script>
+<script src="telas/conta.js?r=1"></script>
+<script src="telas/entrada.js?r=1"></script>
+<script src="telas/saida.js?r=1"></script>
+<script src="telas/nova-conta.js?r=1"></script>
+<script src="telas/clientes.js?r=1"></script>
+<script src="telas/pessoa.js?r=1"></script>
+<script src="telas/ponto.js?r=1"></script>
+<script src="telas/folha.js?r=1"></script>
+<script src="telas/programas.js?r=1"></script>
+<script>KVRota.iniciar();</script>
+</body>
+</html>

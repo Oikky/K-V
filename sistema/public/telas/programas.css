@@ -1,0 +1,35 @@
+/* Estilo da tela programas (só vale enquanto ela está aberta). */
+  .valor-in { width: 100%; font: 800 30px var(--font-brand); letter-spacing: -0.02em; background: transparent; border: 1px solid transparent; border-radius: 12px; padding: 4px 8px; margin-left: -8px; color: var(--text); min-width: 0; }
+  .campo .valor-in { height: auto; font: 800 30px var(--font-brand); background: transparent; border-color: transparent; padding: 4px 8px; }
+  .valor-in:hover { border-color: var(--line); }
+  .campo .valor-in:focus, .valor-in:focus { border-color: var(--orange); outline: none; background: var(--surface-2); }
+  .valor-wrap { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+  .valor-wrap .rs { font: 800 30px var(--font-brand); color: var(--text-3); }
+  .regua { position: relative; padding-top: 4px; }
+  .regua input[type=range] { width: 100%; accent-color: var(--orange); height: 28px; margin: 0; }
+  .regua .marca { position: absolute; top: 2px; width: 2px; height: 30px; background: var(--teal-soft); border-radius: 2px; pointer-events: none; }
+  .regua .escala { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); }
+  .exemplo { font-size: 14px; color: var(--text-2); padding: 12px 14px; border-radius: 14px; background: var(--surface-2); line-height: 1.8; }
+  .exemplo b { color: var(--text); }
+  .exemplo input { width: 92px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-1); text-align: right; padding: 0 8px; font-size: 16px; font-weight: 700; }
+  .margem { font-size: 13px; color: var(--text-2); }
+  .margem b.pos { color: var(--ok); } .margem b.neg { color: var(--danger); }
+  .regras { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; flex-wrap: wrap; }
+  .regras .t { color: var(--text-2); }
+  .regras .t b { color: var(--text); }
+  .dica-digitar { font-size: 12.5px; color: var(--text-3); }
+  .barra-salvar { position: sticky; bottom: 20px; margin-top: 18px; display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 18px; background: var(--surface-3); box-shadow: var(--shadow-pop); flex-wrap: wrap; z-index: 5; }
+  @media (max-width: 760px) { .barra-salvar { bottom: 132px; } }
+
+  /* B */
+  .painel-um { max-width: 640px; display: grid; gap: 18px; }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper .btn.icone { width: 52px; height: 52px; flex: none; }
+  .stepper .valor-wrap { flex: 1; justify-content: center; background: var(--surface-2); border-radius: 16px; padding: 6px 10px; }
+  .stepper .valor-in { text-align: center; margin: 0; font-size: 30px; }
+  .stepper .rs { font-size: 22px; }
+  .linha-regra { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .linha-regra { grid-template-columns: 1fr; } }
+
+  .niveis { width: 100%; }
+  .niveis td input { width: 80px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); text-align: right; padding: 0 10px; font-size: 16px; }

@@ -35,7 +35,7 @@ async function emailDoToken(token, env) {
   return String(p.email || '').toLowerCase() || null;
 }
 
-// devolve { email, nome, papel, pesquisa } ou null (não entra)
+// devolve { email, nome, papel, pesquisa, real } ou null (não entra)
 export async function usuarioDa(req, env) {
   let email = null;
   if (env.ACCESS_TEAM && env.ACCESS_AUD) {
@@ -45,5 +45,9 @@ export async function usuarioDa(req, env) {
     email = env.DEV_EMAIL.toLowerCase();
   }
   if (!email) return null;
-  return env.DB.prepare('SELECT email, nome, papel, pesquisa FROM usuarios WHERE email = ? AND ativo = 1').bind(email).first();
+  const u = await env.DB.prepare('SELECT email, nome, papel, pesquisa FROM usuarios WHERE email = ? AND ativo = 1').bind(email).first();
+  if (!u) return null;
+  // o admin pode usar o sistema como pesquisador, pra ver o que a equipe vê (só ele; o papel real fica em "real")
+  if (u.papel === 'admin' && req.headers.get('x-kv-ver-como') === 'pesquisador') return { ...u, papel: 'pesquisador', pesquisa: 1, real: 'admin' };
+  return { ...u, real: u.papel };
 }

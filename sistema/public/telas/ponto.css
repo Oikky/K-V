@@ -1,0 +1,116 @@
+/* Estilo da tela ponto (só vale enquanto ela está aberta). */
+  /* ---------- cronômetro ---------- */
+  .relogio { display: grid; gap: 14px; }
+  .rel-estado { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: var(--text-2); }
+  .rel-estado .pulso { width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); flex: none; }
+  .rodando .rel-estado { color: var(--orange); }
+  .rodando .rel-estado .pulso { background: var(--orange); }
+  @media (prefers-reduced-motion: no-preference) {
+    .rodando .pulso { animation: kv-pulso 1.6s ease-out infinite; }
+    @keyframes kv-pulso { 0% { box-shadow: 0 0 0 0 rgb(255 137 17 / .55); } 100% { box-shadow: 0 0 0 9px rgb(255 137 17 / 0); } }
+  }
+  .rel-tempo { font: 800 56px/1 var(--font-brand); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .rel-tempo .segs { color: var(--text-3); }
+  .rel-sub { color: var(--text-2); font-size: 14px; }
+  .rel-sub b { color: var(--text); }
+  .btn.grande { height: 54px; font-size: 16px; padding: 0 26px; justify-content: center; }
+  .btn.grande svg.lucide { width: 20px; height: 20px; }
+  .btn.pausar { background: var(--surface-3); border-color: var(--surface-3); }
+  .btn.pequeno { height: 34px; padding: 0 12px; font-size: 13.5px; }
+  .btn.fantasma { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn.fantasma:hover { background: var(--surface-2); color: var(--text); }
+
+  /* ---------- números da semana ---------- */
+  .ganhos { display: flex; gap: 28px; flex-wrap: wrap; }
+  .ganho .rot { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .ganho .val { font: 800 26px/1.15 var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .ganho .det { font-size: 13px; color: var(--text-3); }
+  .ganho.previsto .val { color: var(--text-2); }
+
+  /* ---------- barras da semana (A) ---------- */
+  .barras { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 230px; margin-top: 18px; }
+  .barras .ref { position: absolute; left: 0; right: 0; top: 28px; bottom: 50px; pointer-events: none; }
+  .barras .ref i { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--text-3); opacity: .7; }
+  .barras .ref span { position: absolute; right: 0; translate: 0 -120%; font-size: 12px; color: var(--text-3); font-weight: 600; background: var(--surface-1); padding-left: 6px; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; border-radius: 14px; min-width: 0; }
+  .col .val { height: 22px; font-size: 13px; font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .col .trilho { position: relative; flex: 1; width: 100%; max-width: 46px; }
+  .col .trilho i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 10px; }
+  .col .fill { background: color-mix(in srgb, var(--text) 34%, transparent); transition: height .4s cubic-bezier(.2, .8, .2, 1); }
+  .col .fant { border: 1.5px dashed var(--line); background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+  .col.hoje .fill { background: var(--orange); }
+  .col .rot { height: 44px; display: grid; place-items: center; align-content: center; font-size: 12.5px; color: var(--text-3); font-weight: 600; line-height: 1.2; border-radius: 10px; width: 100%; max-width: 54px; }
+  .col .rot b { font-size: 15px; color: var(--text-2); }
+  .col[aria-pressed="true"] .rot { background: var(--surface-3); color: var(--text-2); }
+  .col[aria-pressed="true"] .rot b { color: var(--text); }
+  .col:hover .fill { filter: brightness(1.15); }
+  .col.vazio { cursor: default; }
+  .legenda { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-3); margin-top: 10px; }
+  .legenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .legenda i { width: 12px; height: 12px; border-radius: 4px; background: color-mix(in srgb, var(--text) 34%, transparent); }
+  .legenda i.l-hoje { background: var(--orange); }
+  .legenda i.l-fant { background: none; border: 1.5px dashed var(--text-3); }
+
+  /* ---------- trechos ---------- */
+  .trechos { display: grid; }
+  .trecho { display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px 16px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+  .trecho:first-child { border-top: 0; }
+  .trecho .horas { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
+  .trecho .horas .seta { color: var(--text-3); }
+  .trecho .dur, .trecho .din { font-variant-numeric: tabular-nums; text-align: right; }
+  .trecho .din { color: var(--text-2); min-width: 72px; }
+  .trecho .obs { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .trecho.ao-vivo .horas { color: var(--orange); }
+  .trecho .pulso { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+  .vazio-dia { color: var(--text-3); padding: 14px 0 4px; font-size: 14px; }
+  @media (max-width: 560px) {
+    .trecho { grid-template-columns: 1fr auto auto; }
+    .trecho .din { display: none; }
+    .esconde-cel { display: none; }
+  }
+
+  /* ---------- semanas anteriores ---------- */
+  .semanas { display: grid; }
+  .semana-linha { display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center; padding: 12px 10px; margin: 0 -10px; border-radius: 12px; border: 0; background: none; text-align: left; cursor: pointer; }
+  .semana-linha + .semana-linha { border-top: 1px solid var(--line); border-radius: 0; }
+  .semana-linha:hover { background: var(--surface-2); border-radius: 12px; }
+  .semana-linha[aria-current="true"] .qual { color: var(--orange); }
+  .semana-linha .qual { font-weight: 700; }
+  .semana-linha .qual small { display: block; font-weight: 500; color: var(--text-3); font-size: 13px; }
+  .semana-linha .num { text-align: right; }
+  @media (max-width: 560px) { .semana-linha { grid-template-columns: 1fr auto; } .semana-linha .h { display: none; } .semana-linha .chip { grid-column: 1 / -1; justify-self: start; } }
+
+  .card-topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .card-topo .acoes { margin-left: auto; display: flex; gap: 6px; }
+  .nav-semana { display: inline-flex; gap: 4px; }
+  .nav-semana .btn.icone { width: 36px; height: 36px; }
+  .nav-semana .btn[disabled] { opacity: .35; cursor: default; }
+
+  /* ---------- A: cronômetro ao lado da semana ---------- */
+  .a-grid { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; gap: 20px; align-items: start; }
+  .a-grid > .relogio { position: sticky; top: 28px; padding: 24px; }
+  .a-dir { display: grid; gap: 20px; min-width: 0; }
+  @media (max-width: 960px) { .a-grid { grid-template-columns: 1fr; } .a-grid > .relogio { position: static; } }
+
+  /* ---------- aviso de cronômetro esquecido ---------- */
+  .esqueceu { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 16px 18px; border-radius: 18px; background: var(--warn-bg); margin-bottom: 20px; }
+  .esqueceu svg.lucide { color: var(--warn); width: 22px; height: 22px; flex: none; }
+  .esqueceu .txt { flex: 1; min-width: 220px; }
+  .esqueceu .txt b { color: var(--warn); }
+  .esqueceu .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- janela de correção ---------- */
+  .grade-hora { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 12px; }
+  .grade-hora .grupo { grid-column: 1 / -1; font-size: 13px; font-weight: 700; color: var(--text-2); margin-top: 4px; }
+  .campo input[type=date], .campo input[type=time] { color-scheme: inherit; }
+  .antes-depois { display: grid; gap: 8px; margin: 16px 0 10px; padding: 14px; border-radius: 14px; background: var(--surface-2); font-size: 14px; }
+  .antes-depois > div { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .antes-depois .r { color: var(--text-3); font-weight: 600; min-width: 56px; }
+  .antes-depois .antes { color: var(--text-3); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text-3) 60%, transparent); }
+  .antes-depois .depois { font-weight: 700; }
+  .avisos { display: grid; gap: 8px; margin-bottom: 12px; }
+
+  /* mini cronômetro no menu */
+  .rail-cron { position: absolute; bottom: -4px; left: 50%; translate: -50% 0; font-size: 12px; font-weight: 800; line-height: 17px; padding: 0 5px; border-radius: 6px; background: var(--orange); color: var(--orange-ink); font-variant-numeric: tabular-nums; pointer-events: none; }
+  .rail-cron:empty { display: none; }
+  @media (max-width: 760px) { .rail-cron { bottom: -2px; } }

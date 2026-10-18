@@ -88,8 +88,8 @@
   const gravar = async (acao, dados) => { const r = await KVApi.acao(acao, dados); await carregar(); return r; };
 
   window.KV = window.KV || {};
-  window.KV.fmt = { brl: (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) };
   window.KV.ponto = {
+    brl: (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
     carregar, agora, jornada: JORNADA, get pesquisadores() { return pesquisadores; }, pesquisador, valorHora, dia, semana, duracao, ganhoTrecho, fmt: fmtPonto,
     trechos: lista,
     trecho: (pid, id) => lista(pid).find((t) => t.id === +id),

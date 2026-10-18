@@ -1,0 +1,176 @@
+/* Tela: Clientes e passageiros. Endereço: /clientes.html
+   Clientes e passageiros (rodada 7 dos rascunhos, A), lendo do banco: cartão por cliente (quem paga), com o próximo voo e com quem viaja;
+     tabela de todas as pessoas como vista secundária. Cadastro único pelo CPF. Só o dono.
+   O estilo desta tela está em telas/clientes.css. */
+KVTelas['clientes'] = function () {
+  let app = null;
+  const PS = KV.pessoas;
+  const { esc } = KVOrc;
+  const fmt = {
+    ...KVOrc.fmt,
+    dataCurta: KVOrc.dataCurta,
+    mesAno: (s) => new Date(s + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+    iniciais: (n) => n.split(' ').filter((p) => p.length > 2).slice(0, 2).map((p) => p[0]).join('').toUpperCase(),
+    cpf: (c) => (c && c.length === 11 ? `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9)}` : c || ''),
+  };
+  let textoBusca = '';
+
+  // ---------- dados por pessoa ----------
+  const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function info(p) {
+    const vs = PS.viagensDe(p.id).filter((v) => v.etapa !== 'Cancelado');
+    const prox = PS.proximo(p.id), ult = PS.ultima(p.id);
+    return { p, cliente: PS.ehCliente(p.id), viagens: vs.length, prox, ult, deve: PS.deveTotal(p.id), com: PS.viajaCom(p.id),
+      recente: vs.map((v) => v.trechos[0].data).sort().pop() || '' };
+  }
+  const todas = () => PS.lista().map(info);
+  const quando = (dataIso) => { const d = PS.diasAte(dataIso); return d === 0 ? 'hoje' : d === 1 ? 'amanhã' : `em ${d} dias`; };
+  const primeiro = (n) => n.split(' ')[0];
+
+  // busca por nome, CPF ou WhatsApp; também acha o cliente pelo nome de quem viaja com ele
+  function casa(i, incluiCom) {
+    const q = tira(textoBusca.trim()); if (!q) return true;
+    const dig = q.replace(/\D/g, '');
+    if (tira(i.p.nome).includes(q)) return true;
+    if (dig.length >= 3 && (String(i.p.cpf || '').includes(dig) || String(i.p.whatsapp || '').includes(dig))) return true;
+    return incluiCom && i.com.some((c) => tira(c.pessoa.nome).includes(q));
+  }
+  // destaca o que foi buscado; o texto vem do banco, então tudo passa pelo esc
+  const realce = (nome) => { const q = tira(textoBusca.trim()); const i = q ? tira(nome).indexOf(q) : -1; return i < 0 ? esc(nome) : esc(nome.slice(0, i)) + '<mark>' + esc(nome.slice(i, i + q.length)) + '</mark>' + esc(nome.slice(i + q.length)); };
+
+  const FILTROS = {
+    todos: { nome: 'Todos', ok: () => true },
+    receber: { nome: 'A receber', ok: (i) => i.deve > 0 },
+    voam: { nome: 'Voam em 30 dias', ok: (i) => i.prox && PS.diasAte(i.prox.trechos[0].data) <= 30 },
+  };
+  const filtro = () => FILTROS[KVShell.param('filtro')] ? KVShell.param('filtro') : 'todos';
+  const passo = (mud) => { KVShell.irPara(mud); render(); };
+
+  function topo(n) {
+    const clientes = todas().filter((i) => i.cliente).length;
+    return `<div class="topo"><div><h1>Clientes</h1><div class="muted">${clientes} clientes · ${PS.lista().length} pessoas cadastradas</div></div>
+      <div class="acoes"><button class="btn primario" data-nova><i data-lucide="user-plus"></i>Nova pessoa</button></div></div>
+  `;
+  }
+  function barraFiltros(base, extra = '') {
+    const f = filtro();
+    return `<div class="filtros"><div class="busca-wrap"><i data-lucide="search"></i><input class="busca" type="search" placeholder="Nome, CPF ou WhatsApp" aria-label="Buscar pessoa" value="${esc(textoBusca)}"></div>
+      <div class="pilulas">${Object.entries(FILTROS).map(([k, x]) => `<button class="pilula" data-filtro="${k}" aria-pressed="${k === f}">${x.nome}${k !== 'todos' ? ` <span class="cont">${base.filter(x.ok).length}</span>` : ''}</button>`).join('')}</div>${extra}</div>`;
+  }
+
+  // ---------- tabela: ordena por várias colunas, como na lista de contas ----------
+  const COLUNAS = [
+    { id: 'nome', nome: 'Nome', texto: true, valor: (i) => i.p.nome },
+    { id: 'papel', nome: 'Papel', texto: true, valor: (i) => i.cliente ? 'Cliente' : 'Passageiro' },
+    { id: 'zap', nome: 'WhatsApp', texto: true, valor: (i) => i.p.whatsapp || '' },
+    { id: 'viagens', nome: 'Viagens', dir: true, valor: (i) => i.viagens },
+    { id: 'ult', nome: 'Última viagem', texto: true, valor: (i) => i.ult ? i.ult.trechos[0].data : '' },
+    { id: 'prox', nome: 'Próximo voo', texto: true, valor: (i) => i.prox ? i.prox.trechos[0].data : '9999' },
+    { id: 'deve', nome: 'A receber', dir: true, valor: (i) => i.deve },
+  ];
+  const lerOrdem = () => (KVShell.param('ord') || '').split(',').filter(Boolean).map((t) => { const [col, dir] = t.split(':'); return { col, dir }; }).filter((o) => COLUNAS.some((c) => c.id === o.col));
+  function cliqueColuna(id) {
+    const col = COLUNAS.find((c) => c.id === id), prim = col.texto ? 'asc' : 'desc';
+    const ord = lerOrdem(); const i = ord.findIndex((o) => o.col === id);
+    if (i < 0) ord.push({ col: id, dir: prim }); else if (ord[i].dir === prim) ord[i].dir = prim === 'asc' ? 'desc' : 'asc'; else ord.splice(i, 1);
+    passo({ ord: ord.length ? ord.map((o) => o.col + ':' + o.dir).join(',') : null });
+  }
+  function ordenar(lista) {
+    const regras = lerOrdem().map((o) => ({ col: COLUNAS.find((c) => c.id === o.col), s: o.dir === 'asc' ? 1 : -1 }));
+    return lista.sort((a, b) => {
+      for (const { col, s } of regras) { const x = col.valor(a), y = col.valor(b); const d = (col.texto ? String(x).localeCompare(String(y), 'pt-BR') : x - y) * s; if (d) return d; }
+      return a.p.nome.localeCompare(b.p.nome, 'pt-BR');
+    });
+  }
+  function tabela(lista) {
+    const ord = lerOrdem();
+    const th = (c) => { const i = ord.findIndex((o) => o.col === c.id), o = ord[i];
+      return `<th class="ord ${c.dir ? 'dir' : ''} ${o ? 'ativa' : ''}"><button data-col="${c.id}">${c.nome}<i class="seta" data-lucide="${o && o.dir === 'asc' ? 'arrow-up' : 'arrow-down'}"></i>${o && ord.length > 1 ? `<span class="prio">${i + 1}</span>` : ''}</button></th>`; };
+    return `${ord.length ? `<div style="margin:-6px 0 12px"><button class="pilula" data-limpar-ordem><i data-lucide="x"></i>Ordem: ${ord.map((o, i) => `${i + 1}. ${COLUNAS.find((c) => c.id === o.col).nome}`).join(' · ')}</button></div>` : ''}
+      <div class="tabela-wrap"><table><thead><tr>${COLUNAS.map(th).join('')}</tr></thead><tbody>
+      ${ordenar(lista).map((i) => `<tr class="clicavel" data-ir="${i.p.id}"><td><b>${realce(i.p.nome)}</b></td>
+        <td>${i.cliente ? '<span class="chip laranja">Cliente</span>' : '<span class="chip">Passageiro</span>'}</td>
+        <td class="muted num">${i.p.whatsapp ? fmt.fone(i.p.whatsapp) : '<span class="faint">—</span>'}</td>
+        <td class="dir num">${i.viagens}</td>
+        <td>${i.ult ? `${esc(i.ult.destino)} <span class="faint">${fmt.mesAno(i.ult.trechos[0].data)}</span>` : '<span class="faint">—</span>'}</td>
+        <td>${i.prox ? `<b>${esc(i.prox.destino)}</b> <span class="faint">${fmt.dataCurta(i.prox.trechos[0].data)}</span>` : '<span class="faint">—</span>'}</td>
+        <td class="dir num">${i.deve ? `<b style="color:var(--orange)">${fmt.brl(i.deve)}</b>` : '<span class="faint">—</span>'}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">Ninguém com esse filtro.</td></tr>'}
+      </tbody></table></div>`;
+  }
+
+  const variantes = {
+    // A: um bloco por cliente (quem paga), com o próximo voo e com quem ele viaja. Tabela de todas as pessoas como vista secundária.
+    A() {
+      const vista = KVShell.param('vista') === 'tabela' ? 'tabela' : 'cliente';
+      const ordem = KVShell.param('ordem') || 'recente';
+      const base = todas().filter((i) => vista === 'tabela' || i.cliente);
+      const lista = base.filter(FILTROS[filtro()].ok).filter((i) => casa(i, vista === 'cliente'));
+      const sel = `<label class="sel ${ordem !== 'recente' ? 'ativo' : ''}"><span class="escondido">Ordenar</span><select id="ordem" data-combo="nao">
+        ${[['recente', 'Viagem mais recente'], ['az', 'Nome de A a Z'], ['viagens', 'Mais viagens']].map(([v, t]) => `<option value="${v}" ${v === ordem ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
+      const vistaSeg = `<div class="seg" role="group" aria-label="Como ver"><button data-vista="cliente" aria-pressed="${vista === 'cliente'}"><i data-lucide="users"></i>Por cliente</button><button data-vista="tabela" aria-pressed="${vista === 'tabela'}"><i data-lucide="table"></i>Todas as pessoas</button></div>`;
+      let corpo;
+      if (vista === 'tabela') corpo = tabela(lista);
+      else {
+        const ord = { recente: (a, b) => b.recente.localeCompare(a.recente), az: (a, b) => a.p.nome.localeCompare(b.p.nome, 'pt-BR'), viagens: (a, b) => b.viagens - a.viagens || b.recente.localeCompare(a.recente) }[ordem];
+        corpo = lista.length ? `<div class="grade-cli">${lista.sort(ord).map((i) => {
+          const com = i.com.filter((c) => c.juntos > 0);
+          return `<a class="cli" href="pessoa.html?id=${i.p.id}">
+            <header><span class="av">${esc(fmt.iniciais(i.p.nome))}</span><div style="min-width:0"><div class="nome">${realce(i.p.nome)}</div><div class="zap">${i.p.whatsapp ? fmt.fone(i.p.whatsapp) : 'sem WhatsApp'}</div></div>
+              <div class="dir-topo ${i.deve ? 'deve' : ''}">${i.deve ? `a receber<b>${fmt.brl(i.deve)}</b>` : `<b>${i.viagens}</b>${i.viagens === 1 ? 'viagem' : 'viagens'}`}</div></header>
+            <div class="voos">
+              ${i.prox ? `<div class="voo prox"><i data-lucide="plane-takeoff"></i><span><b>${esc(i.prox.destino)}</b> · ${fmt.dataCurta(i.prox.trechos[0].data)} · ${quando(i.prox.trechos[0].data)}</span></div>` : ''}
+              ${i.ult ? `<div class="voo"><i data-lucide="history"></i><span>Última: ${esc(i.ult.destino)}, ${fmt.mesAno(i.ult.trechos[0].data)}</span></div>` : ''}</div>
+            ${com.length ? `<div class="com">Viaja com ${com.slice(0, 4).map((c) => `<span class="chip">${realce(primeiro(c.pessoa.nome))}</span>`).join('')}${com.length > 4 ? `<span>+${com.length - 4}</span>` : ''}</div>` : ''}</a>`;
+        }).join('')}</div>` : `<div class="card vazio">${PS.viagens().length || textoBusca ? 'Ninguém com esse filtro.' : 'Ninguém fechou viagem ainda. Os clientes aparecem aqui depois do fechamento; quem já era cliente antes do sistema entra em "Nova pessoa".'}</div>`;
+      }
+      app.innerHTML = topo() + `<div class="filtros">${vistaSeg}${vista === 'cliente' ? sel : ''}</div>` + barraFiltros(base) + corpo;
+      const o = app.querySelector('#ordem'); if (o) o.onchange = () => passo({ ordem: o.value === 'recente' ? null : o.value });
+    },
+
+  };
+
+  // ---------- ações ----------
+  function ligarEventos() {
+  app.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b && b.dataset.filtro) { if (b.dataset.filtro !== filtro()) passo({ filtro: b.dataset.filtro === 'todos' ? null : b.dataset.filtro }); return; }
+    if (b && b.dataset.vista) { if (b.dataset.vista !== (KVShell.param('vista') || 'cliente')) passo({ vista: b.dataset.vista === 'cliente' ? null : b.dataset.vista }); return; }
+    if (b && b.dataset.col) { cliqueColuna(b.dataset.col); return; }
+    if (b && b.hasAttribute('data-limpar-ordem')) { passo({ ord: null }); return; }
+    if (b && b.hasAttribute('data-nova')) { KVShell.irPara({ janela: 'nova' }); sincJanela(); return; }
+    const tr = e.target.closest('tr[data-ir]'); if (tr) KVRota.ir('pessoa.html?id=' + tr.dataset.ir);
+  });
+  app.addEventListener('input', (e) => {
+    if (!e.target.classList.contains('busca')) return;
+    textoBusca = e.target.value; const pos = e.target.selectionStart; render();
+    const n = app.querySelector('.busca'); n.focus(); n.setSelectionRange(pos, pos);
+  });
+  }
+
+  const dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg);
+  const fecharJanela = () => KVShell.desfazer({ janela: 1 }, sincJanela);
+  dlg.addEventListener('cancel', (e) => { e.preventDefault(); fecharJanela(); });
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) fecharJanela(); });
+  function sincJanela() {
+    if (KVShell.param('janela') !== 'nova') { if (dlg.open) dlg.close(); return; }
+    if (dlg.open) return;
+    KVPessoaForm.abrir(dlg, null, { pessoas: PS.lista(), fechar: fecharJanela, sub: 'Quem já era cliente antes do sistema. No dia a dia, a pessoa é cadastrada no fechamento do orçamento.',
+      aoSalvar: (p) => { PS.atualizar(p); KVRota.ir(`pessoa.html?id=${p.id}`); }, aoUsar: (p) => { KVRota.ir(`pessoa.html?id=${p.id}`); } });
+  }
+
+  function render() { variantes.A(); KVShell.icones(); }
+  // escolhida na rodada 7: por cliente, com quem viaja junto (A)
+  (async function iniciar() {
+    document.body.insertAdjacentHTML('afterbegin', '<p class="carregando area">Carregando…</p>');
+    try {
+      const est = await PS.carregar();
+      if (!(est.eu.papel === 'dono' || est.eu.papel === 'admin')) { KVRota.trocar('orcamentos.html'); return; }
+      document.querySelector('.carregando').remove();
+      app = KVShell.montar('clientes', { dono: true });
+      ligarEventos();
+      render();
+      sincJanela();
+      KVShell.aoVoltar(() => { render(); sincJanela(); });
+    } catch (e) { const el = document.querySelector('.carregando'); if (el) el.textContent = e.message; }
+  })();
+};
