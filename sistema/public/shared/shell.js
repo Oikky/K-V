@@ -22,8 +22,8 @@
     let shell = document.querySelector('.shell');
     if (!shell) { shell = document.createElement('div'); shell.className = 'shell'; document.body.prepend(shell); }
     const assinatura = JSON.stringify([itens.map((i) => i.id + i.href), admin, comoPesq]);
-    if (shell.dataset.menu !== assinatura) {
-      shell.dataset.menu = assinatura;
+    if (shell.dataset.assinatura !== assinatura) {
+      shell.dataset.assinatura = assinatura;
       shell.innerHTML = `<nav class="rail" aria-label="Menu">
           <div class="marca">K<b>&amp;</b>V</div>
           ${itens.map((i) => `<a href="${i.href || '#'}" data-item="${i.id}" ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">

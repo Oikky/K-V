@@ -32,6 +32,8 @@
   .ca .rolo.arrastando { cursor: grabbing; }
   .ca .rolo .nome { display: inline-block; white-space: nowrap; padding-right: 28px; }
   .ca .canto, .ca .rodape, .ca button, .ca select { position: relative; z-index: 2; }
+  /* o vão do rodapé deixa o clique passar pro link do cartão; só o que está nele (botões, etapa) fica por cima */
+  .ca .rodape { pointer-events: none; } .ca .rodape > * { pointer-events: auto; }
   .ca .canto { position: absolute; }
   .ca { cursor: pointer; transition: background .15s; }
   .ca:not(.cheio):hover { background: var(--surface-2); }
