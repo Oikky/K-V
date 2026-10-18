@@ -7,7 +7,8 @@ const todos = async (db, sql, ...args) => (await db.prepare(sql).bind(...args).a
 export async function listarOrcamentos(env, usuario) {
   const db = env.DB, dono = ehDono(usuario);
   const filtro = dono ? '' : "WHERE o.etapa IN ('novo', 'pesquisa')";
-  const linhas = await todos(db, `
+  // as duas leituras saem juntas
+  const [linhas, trechos] = await Promise.all([todos(db, `
     SELECT o.id, o.contato_nome, o.contato_whatsapp, o.etapa, o.responsavel, o.adultos, o.criancas, o.bebes,
            o.pedido, o.observacao, o.faltando, o.origem, o.audio, o.criado_em,
            (SELECT COUNT(*) FROM opcoes p WHERE p.orcamento_id = o.id) AS n_opcoes,
@@ -15,9 +16,9 @@ export async function listarOrcamentos(env, usuario) {
            (SELECT COUNT(*) FROM conferencia c WHERE c.orcamento_id = o.id AND c.feito = 1) AS n_feitos,
            (SELECT MAX(e.quando) FROM eventos e WHERE e.entidade = 'orcamento' AND e.entidade_id = CAST(o.id AS TEXT)
               AND e.texto = 'Marcou como pesquisado') AS pesquisado_em
-    FROM orcamentos o ${filtro} ORDER BY o.id`);
-  const trechos = await todos(db, `SELECT t.orcamento_id, t.de, t.para, t.data, t.janela FROM trechos t
-    JOIN orcamentos o ON o.id = t.orcamento_id ${filtro} ORDER BY t.orcamento_id, t.ordem`);
+    FROM orcamentos o ${filtro} ORDER BY o.id`),
+  todos(db, `SELECT t.orcamento_id, t.de, t.para, t.data, t.janela FROM trechos t
+    JOIN orcamentos o ON o.id = t.orcamento_id ${filtro} ORDER BY t.orcamento_id, t.ordem`)]);
   const porOrc = {};
   for (const t of trechos) (porOrc[t.orcamento_id] ||= []).push({ de: t.de, para: t.para, data: t.data, janela: !!t.janela });
 

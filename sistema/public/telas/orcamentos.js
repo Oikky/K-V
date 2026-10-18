@@ -91,9 +91,10 @@ KVTelas['orcamentos'] = function () {
   }
 
   // ---------- gravar no banco ----------
-  async function fazer(id, acao, dados) {
+  // sair = a tela vai embora logo depois (Pegar abre o orçamento): não recarrega a fila à toa
+  async function fazer(id, acao, dados, { sair = false } = {}) {
     const card = app.querySelector(`[data-orc="${id}"]`); if (card) card.classList.add('ocupado');
-    try { const r = await KVApi.acao(acao, dados); await recarregar(); return r; }
+    try { const r = await KVApi.acao(acao, dados); if (!sair) await recarregar(); return r; }
     catch (e) { KVShell.aviso(e.message, { erro: true }); await recarregar(); return null; }
   }
 
@@ -118,7 +119,7 @@ KVTelas['orcamentos'] = function () {
       if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmarApagar = null; render(); if (!e.target.closest('.cobre, .rolo')) return; }
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.f && b.dataset.f !== (KVShell.param('f') || 'todos')) { KVShell.irPara({ f: b.dataset.f === 'todos' ? null : b.dataset.f }); render(); }
-      if (b.dataset.pegar) { const id = Number(b.dataset.pegar); if (await fazer(id, 'orc.pegar', { id })) KVRota.ir(link(get(id) || { id })); }
+      if (b.dataset.pegar) { const id = Number(b.dataset.pegar); if (await fazer(id, 'orc.pegar', { id }, { sair: true })) KVRota.ir(`orcamento.html?id=${id}`); }
     }, true);
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto) { const id = menuAberto; menuAberto = confirmarApagar = null; render(); const b = app.querySelector(`[data-menu="${id}"]`); if (b) b.focus(); } });
     app.addEventListener('change', (e) => {

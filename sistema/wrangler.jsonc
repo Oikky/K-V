@@ -15,5 +15,7 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "kv", "database_id": "62874e00-330a-4561-ac11-d5db25ecdd36", "migrations_dir": "migrations" }
   ],
+  // o banco (D1) fica nos EUA: a API roda perto dele, então as várias consultas de um pedido não atravessam o continente uma a uma
+  "placement": { "mode": "smart" },
   "observability": { "enabled": true }
 }
