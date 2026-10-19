@@ -66,7 +66,7 @@ KVTelas['orcamento'] = function () {
     const ti = trechoSel(), dia = KVShell.param('dia');
     const dias = [...new Set(opsDo(ti).map((x) => x.data))].sort();
     const nDia = (d) => opsDo(ti).filter((x) => x.data === d).length;
-    const cab = `<div class="secao"><h2>Opções de voo</h2><span class="n">${opsDo(ti).length} neste trecho</span>${podeLancar() ? `<button class="btn primario" data-nova style="margin-left:auto"><i data-lucide="plus"></i>Nova opção</button>` : ''}</div>`;
+    const cab = `<div class="secao"><h2>Opções de voo</h2><span class="n">${opsDo(ti).length} neste trecho</span></div>`;
     const varios = o.trechos.length > 1, temDias = dias.length > 1;
     return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>Trecho ${i + 1} · ${O.dataCurta(t.data)}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
       + (temDias ? `<div class="fa-dias"><button class="dia-c todos" data-dia="" aria-pressed="${!dia}">Todos</button>${dias.map((d) => `<button class="dia-c ${d === o.trechos[ti].data ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}"><small>${O.diaCurto(d)}</small><b>${d.slice(8)}</b><i>${nDia(d)}</i></button>`).join('')}</div>` : '');
@@ -92,7 +92,11 @@ KVTelas['orcamento'] = function () {
     const dia = KVShell.param('dia');
     const l = opsDo(trechoSel()).filter((x) => !dia || x.data === dia)
       .sort(dono ? (a, b) => O.custoPessoa(a) - O.custoPessoa(b) : (a, b) => a.data.localeCompare(b.data) || (a.milhas || 1e9) - (b.milhas || 1e9));
-    return l.length ? `<div class="grade-ref">${l.map((op, i) => cartaoOp(op, dono && i === 0)).join('')}</div>` : `<div class="vazio">Nenhuma opção${dia ? ' nesse dia' : ' neste trecho'} ainda.${podeLancar() ? ' Toque em "Nova opção".' : ''}</div>`;
+    // o lugar do próximo cartão, tracejado: tocar nele lança mais um voo (igual à "Outra combinação" da proposta)
+    const t = o.trechos[trechoSel()];
+    const mais = podeLancar() ? `<button class="nova-op" data-nova><span class="mais"><i data-lucide="plus"></i></span>${l.length ? 'Mais um voo' : 'Lançar o primeiro voo'}<span class="sub">${esc(t.de)} → ${esc(t.para)}<kbd>N</kbd></span></button>` : '';
+    if (!l.length && !mais) return `<div class="vazio">Nenhuma opção${dia ? ' nesse dia' : ' neste trecho'} ainda.</div>`;
+    return `<div class="grade-ref">${l.map((op, i) => cartaoOp(op, dono && i === 0)).join('')}${mais}</div>`;
   }
 
   // etiquetas que não cabem numa linha: andam devagar de um lado pro outro; arrastar ou rolar para no ponto escolhido

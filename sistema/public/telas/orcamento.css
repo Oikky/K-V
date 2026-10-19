@@ -96,3 +96,14 @@
   .form-op .campo textarea { width: 100%; resize: vertical; }
   .form-op #f-de, .form-op #f-para { text-transform: uppercase; }
   .bot-obs { white-space: pre-line; }
+  /* o próximo cartão, tracejado: lança mais um voo */
+  .nova-op { display: grid; place-content: center; justify-items: center; gap: 10px; min-height: 236px; padding: 20px; border: 1.5px dashed color-mix(in srgb, var(--text-3) 70%, transparent); border-radius: 26px; background: none; color: var(--text-2); font: 700 16px var(--font); cursor: pointer; transition: border-color .15s, color .15s, background-color .15s; }
+  .nova-op .mais { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; background: var(--surface-1); transition: transform .2s cubic-bezier(.2, .8, .2, 1), background-color .15s; }
+  .nova-op .sub { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: var(--text-3); }
+  .nova-op kbd { font: 700 11px var(--font); padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); }
+  @media (hover: hover) { .nova-op:hover { color: var(--text); border-color: var(--orange); background: color-mix(in srgb, var(--surface-1) 50%, transparent); } .nova-op:hover .mais { background: var(--orange); color: #fff; transform: scale(1.06); } }
+  .nova-op:active .mais { transform: scale(.94); }
+  .nova-op:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+  @media (hover: none) { .nova-op kbd { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .nova-op, .nova-op .mais { transition: none; } }
+  @media (max-width: 760px) { .nova-op { min-height: 168px; } }
