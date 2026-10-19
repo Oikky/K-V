@@ -5,9 +5,9 @@
   const O = KVOrc, esc = O.esc;
   const app = document.getElementById('barra');
   const naExtensao = window.parent !== window;
-  // versão atual da extensão (gerada do manifest por "npm run extensao"); a instalada mais velha = aviso pra atualizar
+  // versão mínima da extensão que a barra precisa (versao.json, gerado por "npm run extensao"); a instalada abaixo dela = aviso pra atualizar
   let EXT_VERSAO = null;
-  fetch('/extensao/versao.json', { cache: 'no-store' }).then((r) => r.json()).then((v) => { EXT_VERSAO = v.versao; desenhar(); }).catch(() => {});
+  fetch('/extensao/versao.json', { cache: 'no-store' }).then((r) => r.json()).then((v) => { EXT_VERSAO = v.minima || v.versao; desenhar(); }).catch(() => {});
   try { const t = localStorage.getItem('kv-tema'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
 
   let est = null, eu = null, dono = false, lista = [], orc = null, trecho = 0;
@@ -168,7 +168,7 @@
   const maisVelha = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); return false; };
   function avisos() {
     const velha = naExtensao && aba.versao && EXT_VERSAO && maisVelha(aba.versao, EXT_VERSAO);
-    return `${velha ? `<a class="b-aviso" href="/extensao.html" target="_blank">${icone('download')}<span>Tem versão nova da extensão (a instalada é a ${esc(aba.versao)}, a nova é a ${esc(EXT_VERSAO)}). Toque pra ver como atualizar.</span></a>` : ''}
+    return `${velha ? `<a class="b-aviso" href="/extensao.html" target="_blank">${icone('download')}<span>Atualize a extensão: a instalada é a ${esc(aba.versao)} e a barra precisa da ${esc(EXT_VERSAO)} ou mais nova. Toque pra ver como.</span></a>` : ''}
 `;
   }
   const quem = () => `<div class="quem"><b>${esc(eu.nome)}</b><span>${PAPEL[eu.papel] || ''}</span></div>`;
