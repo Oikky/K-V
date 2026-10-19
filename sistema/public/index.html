@@ -23,7 +23,7 @@
      Peças que várias telas usam, em shared/:
        base.css        cores, letras e peças visuais aprovadas (docs/direcao-visual.md)
        rota.js         troca de tela: links, voltar, e desliga o que a tela ligou quando ela sai
-       shell.js        menu lateral, tema, "ver como" do admin, janelas que entram no histórico, avisos
+       shell.js        menu lateral, tema, foto do perfil e "ver como" (admin vira qualquer pessoa), janelas que entram no histórico, avisos
        api.js          conversa com o servidor (leituras guardadas na aba, gravações por KVApi.acao)
        orc.js          aeroportos, etapas, datas, dinheiro e a trilha do orçamento
        proposta.js     contas da proposta, fechamento e emissão (preço, milhas, recebimento)
@@ -37,7 +37,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>K&amp;V</title>
-<link rel="stylesheet" href="shared/base.css?r=5">
+<link rel="stylesheet" href="shared/base.css?r=6">
 <link rel="stylesheet" href="telas/orcamentos.css?r=3" data-tela="orcamentos" media="not all">
 <link rel="stylesheet" href="telas/novo-orcamento.css?r=1" data-tela="novo-orcamento" media="not all">
 <link rel="stylesheet" href="telas/orcamento.css?r=1" data-tela="orcamento" media="not all">
@@ -58,13 +58,13 @@
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="shared/rota.js?r=1"></script>
-<script src="shared/api.js?r=8"></script>
+<script src="shared/api.js?r=9"></script>
 <script src="shared/orc.js?r=5"></script>
 <script src="shared/proposta.js?r=2"></script>
 <script src="shared/contas.js?r=3"></script>
 <script src="shared/pessoas.js?r=2"></script>
 <script src="shared/ponto.js?r=2"></script>
-<script src="shared/shell.js?r=7"></script>
+<script src="shared/shell.js?r=8"></script>
 <script src="shared/combo.js?r=2"></script>
 <script src="shared/pessoa-form.js?r=3"></script>
 <script src="telas/orcamentos.js?r=4"></script>

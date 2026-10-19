@@ -35,7 +35,7 @@ async function emailDoToken(token, env) {
   return String(p.email || '').toLowerCase() || null;
 }
 
-// devolve { email, nome, papel, pesquisa, real } ou null (não entra)
+// devolve { email, nome, papel, pesquisa, foto, real, admin? } ou null (não entra)
 export async function usuarioDa(req, env) {
   let email = null;
   if (env.ACCESS_TEAM && env.ACCESS_AUD) {
@@ -45,9 +45,15 @@ export async function usuarioDa(req, env) {
     email = env.DEV_EMAIL.toLowerCase();
   }
   if (!email) return null;
-  const u = await env.DB.prepare('SELECT email, nome, papel, pesquisa FROM usuarios WHERE email = ? AND ativo = 1').bind(email).first();
+  const sql = 'SELECT email, nome, papel, pesquisa, foto FROM usuarios WHERE email = ? AND ativo = 1';
+  const u = await env.DB.prepare(sql).bind(email).first();
   if (!u) return null;
-  // o admin pode usar o sistema como pesquisador, pra ver o que a equipe vê (só ele; o papel real fica em "real")
-  if (u.papel === 'admin' && req.headers.get('x-kv-ver-como') === 'pesquisador') return { ...u, papel: 'pesquisador', pesquisa: 1, real: 'admin' };
+  // o admin pode usar o sistema como qualquer pessoa da equipe, como se tivesse entrado na conta dela:
+  // vê o que ela vê e grava no nome dela (o histórico guarda em "por" que foi o admin). Só o admin pode.
+  const como = String(req.headers.get('x-kv-ver-como') || '').toLowerCase();
+  if (u.papel === 'admin' && como && como !== u.email) {
+    const alvo = await env.DB.prepare(sql).bind(como).first();
+    if (alvo) return { ...alvo, real: 'admin', admin: { email: u.email, nome: u.nome, foto: u.foto } };
+  }
   return { ...u, real: u.papel };
 }

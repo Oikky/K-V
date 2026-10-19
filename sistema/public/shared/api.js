@@ -6,9 +6,9 @@
 (function () {
   async function pedir(caminho, opcoes) {
     let r;
-    // o admin pode ver o sistema como pesquisador (o servidor confere que é admin mesmo)
-    const comoPesq = (() => { try { return localStorage.getItem('kv-ver-como') === 'pesquisador'; } catch (e) { return false; } })();
-    const headers = { ...((opcoes && opcoes.headers) || {}), ...(comoPesq ? { 'x-kv-ver-como': 'pesquisador' } : {}) };
+    // o admin pode usar o sistema como outra pessoa da equipe (o e-mail dela vai no cabeçalho; o servidor confere que é admin mesmo)
+    const como = (() => { try { const v = localStorage.getItem('kv-ver-como') || ''; return v.includes('@') ? v : ''; } catch (e) { return ''; } })();
+    const headers = { ...((opcoes && opcoes.headers) || {}), ...(como ? { 'x-kv-ver-como': como } : {}) };
     try { r = await fetch(caminho, { cache: 'no-store', credentials: 'same-origin', ...opcoes, headers }); }
     catch (e) { throw new Error('Sem conexão. Confira a internet e tente de novo.'); }
     // o login do Access venceu: a resposta vem redirecionada pra página de login
@@ -53,11 +53,33 @@
     guardar(caminho, JSON.stringify(novo));
     return novo;
   }
+  // foto do perfil: o login do Access sabe quem entrou pelo Google; uma vez por aba, a foto de lá vai pro banco
+  // (se mudou), pra aparecer no canto e no menu de troca de pessoa. Sem foto, fica a inicial do nome.
+  let fotoConferida = false;
+  function fotoDoGoogle(eu) {
+    if (fotoConferida) return;
+    fotoConferida = true;
+    try { if (sessionStorage.getItem('kv-foto-ok')) return; sessionStorage.setItem('kv-foto-ok', '1'); } catch (e) {}
+    const minha = eu.admin ? eu.admin.foto : eu.foto;
+    fetch('/cdn-cgi/access/get-identity', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((id) => {
+        if (!id) return;
+        const achar = (o) => o && (o.picture || o.photo || o.avatar_url);
+        const url = achar(id) || achar(id.oidc_fields) || achar(id.custom) || achar(id.idp && id.idp.claims);
+        if (url && url !== minha) window.KVApi.acao('eu.foto', { url }).catch(() => {});
+      }).catch(() => {});
+  }
   const indo = new Set();
   const chave = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
 
   window.KVApi = {
-    estado: async () => { const e = await obter('/api/estado'); window.KVAdmin = e.eu.real === 'admin'; return e; },
+    estado: async () => {
+      const e = await obter('/api/estado');
+      window.KVAdmin = e.eu.real === 'admin'; window.KVEu = e.eu; window.KVEquipe = e.equipe || null;
+      fotoDoGoogle(e.eu);
+      return e;
+    },
     orcamentos: () => obter('/api/orcamentos'),
     ponto: () => obter('/api/ponto'),
     pessoas: () => obter('/api/pessoas'),

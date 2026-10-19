@@ -24,6 +24,15 @@ acao('usuario.salvar', ['dono'], async ({ db, usuario }, { email, nome, papel, p
   };
 });
 
+// foto do perfil: a tela pega a do Google (pelo login do Access) e guarda aqui pra a equipe ver.
+// Vale pra quem entrou de verdade: se o admin estiver vendo como outra pessoa, a foto continua sendo a dele.
+acao('eu.foto', ['dono', 'pesquisa'], async ({ db, usuario }, { url }) => {
+  url = String(url || '');
+  if (!/^https:\/\/[^\s"'<>]+$/.test(url) || url.length > 600) throw new Recusa('Endereço da foto inválido');
+  const email = usuario.admin ? usuario.admin.email : usuario.email;
+  return { resultado: { email }, comandos: [db.prepare('UPDATE usuarios SET foto = ? WHERE email = ?').bind(url, email)] };
+});
+
 // valor padrão da milha (o que vem em toda proposta), em milionésimos de real
 acao('programa.valorMilha', ['dono'], async ({ db }, { id, valor }) => {
   const p = await db.prepare('SELECT nome, valor_milha FROM programas WHERE id = ?').bind(id).first();

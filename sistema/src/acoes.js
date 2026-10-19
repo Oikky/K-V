@@ -50,8 +50,8 @@ async function rodar(env, usuario, nome, a, dados, chave) {
   const lote = [
     ...comandos,
     ...eventos.map((e) => env.DB.prepare(
-      'INSERT INTO eventos (quando, quem, acao, entidade, entidade_id, texto, antes, depois) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    ).bind(ctx.quando, usuario.email, nome, e.entidade, String(e.id), e.texto || '',
+      'INSERT INTO eventos (quando, quem, por, acao, entidade, entidade_id, texto, antes, depois) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    ).bind(ctx.quando, usuario.email, usuario.admin ? usuario.admin.email : null, nome, e.entidade, String(e.id), e.texto || '',
       e.antes == null ? null : JSON.stringify(e.antes), e.depois == null ? null : JSON.stringify(e.depois))),
     env.DB.prepare('INSERT INTO idempotencia (chave, quando, resultado) VALUES (?, ?, ?)')
       .bind(chave, ctx.quando, JSON.stringify(resultado)),

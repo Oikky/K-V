@@ -18,28 +18,28 @@
   // A tela de antes some aqui, no instante em que a nova já tem o que mostrar.
   function montar(ativo, { dono = false } = {}) {
     const itens = ITENS.filter((i) => dono || (!i.soDono && i.id !== 'painel')).map((i) => ({ ...i, href: dono && i.hrefDono ? i.hrefDono : i.href }));
-    const admin = !!window.KVAdmin, comoPesq = admin && verComo() === 'pesquisador';
+    const admin = !!window.KVAdmin, eu = window.KVEu || null, vendo = !!(eu && eu.admin);
     let shell = document.querySelector('.shell');
     if (!shell) { shell = document.createElement('div'); shell.className = 'shell'; document.body.prepend(shell); }
-    const assinatura = JSON.stringify([itens.map((i) => i.id + i.href), admin, comoPesq]);
+    const assinatura = JSON.stringify([itens.map((i) => i.id + i.href), admin, eu && [eu.email, eu.foto], (window.KVEquipe || []).map((u) => u.email + u.foto)]);
     if (shell.dataset.assinatura !== assinatura) {
       shell.dataset.assinatura = assinatura;
       shell.innerHTML = `<nav class="rail" aria-label="Menu">
           <div class="marca">K<b>&amp;</b>V</div>
           ${itens.map((i) => `<a href="${i.href || '#'}" data-item="${i.id}" ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">
             <i data-lucide="${i.icone}"></i><span class="dica">${i.nome}${i.href ? '' : ' (em breve)'}</span></a>`).join('')}
-          ${admin ? `<a href="#" class="baixo" id="ver-como" aria-label="Ver como ${comoPesq ? 'dono' : 'pesquisador'}"><i data-lucide="${comoPesq ? 'search' : 'crown'}"></i><span class="dica">Vendo como ${comoPesq ? 'pesquisador' : 'dono'} · trocar</span></a>` : ''}
-          <a href="#" class="${admin ? '' : 'baixo'}" id="tema" aria-label="Trocar tema"><i data-lucide="sun-moon"></i><span class="dica">Trocar tema</span></a>
-        </nav><main class="area" id="app"></main>`;
+          <a href="#" class="baixo" id="tema" aria-label="Trocar tema"><i data-lucide="sun-moon"></i><span class="dica">Trocar tema</span></a>
+          ${eu ? `<a href="#" id="perfil" class="${vendo ? 'vendo' : ''}" aria-label="${vendo ? `Vendo como ${esc(eu.nome)}` : 'Seu perfil'}">${avatar(eu)}<span class="dica">${vendo ? `Vendo como ${esc(eu.nome)} · trocar` : esc(eu.nome)}</span></a>` : ''}
+        </nav><main class="area" id="app"></main>
+        ${vendo ? `<button class="vendo-faixa" type="button" data-voltar-eu>${avatar(eu)}<span>Vendo como <b>${esc(primeiro(eu.nome))}</b></span><span class="sair">Voltar pra mim</span></button>` : ''}
+        <dialog class="janela perfil-janela" aria-label="Perfil"></dialog>`;
       shell.querySelectorAll('[aria-disabled="true"]').forEach((a) => a.addEventListener('click', (e) => e.preventDefault()));
-      shell.querySelector('#tema').addEventListener('click', (e) => {
-        e.preventDefault();
-        const novo = document.documentElement.dataset.theme === 'claro' ? 'escuro' : 'claro';
-        document.documentElement.dataset.theme = novo;
-        try { localStorage.setItem(TEMA_KEY, novo); } catch (err) {}
-      });
-      const vc = shell.querySelector('#ver-como');
-      if (vc) vc.addEventListener('click', (e) => { e.preventDefault(); trocarVerComo(); });
+      shell.querySelector('#tema').addEventListener('click', (e) => { e.preventDefault(); trocarTema(); });
+      const pf = shell.querySelector('#perfil');
+      if (pf) pf.addEventListener('click', (e) => { e.preventDefault(); irPara({ perfil: 1 }); sincPerfil(); });
+      const vf = shell.querySelector('[data-voltar-eu]');
+      if (vf) vf.addEventListener('click', () => verComo(''));
+      document.body.classList.toggle('vendo-como', vendo);
     }
     shell.querySelectorAll('.rail [data-item]').forEach((a) => { if (a.dataset.item === ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     const velho = shell.querySelector('#app'), novo = document.createElement('main');
@@ -50,15 +50,67 @@
     return novo;
   }
 
-  // o admin vê o sistema como dono ou como pesquisador (pra testar o que cada um vê); vale só neste navegador
+  // ---------- perfil: foto no canto; o admin troca de pessoa por aqui ----------
+  const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const primeiro = (n) => String(n || '').trim().split(/\s+/)[0];
+  const PAPEL = { dono: 'Dono', admin: 'Admin', pesquisador: 'Pesquisador' };
+  const papelDe = (u) => PAPEL[u.papel] + (u.papel !== 'pesquisador' && u.pesquisa ? ' · pesquisa' : '');
+  // foto do Google; sem foto (ou se ela não carregar), a inicial do nome
+  function avatar(u, tam = '') {
+    const ini = esc(primeiro(u.nome).slice(0, 1).toUpperCase() || '?');
+    return `<span class="avatar ${tam}" aria-hidden="true">${ini}${u.foto ? `<img src="${esc(u.foto)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()">` : ''}</span>`;
+  }
+
+  // o admin usa o sistema como outra pessoa da equipe ('' = ele mesmo); vale só neste navegador
   const VER_KEY = 'kv-ver-como';
-  function verComo() { try { return localStorage.getItem(VER_KEY) || 'dono'; } catch (e) { return 'dono'; } }
-  function trocarVerComo() {
-    const novo = verComo() === 'pesquisador' ? 'dono' : 'pesquisador';
-    try { localStorage.setItem(VER_KEY, novo); } catch (e) {}
+  function verComo(email) {
+    if (email === undefined) { try { const v = localStorage.getItem(VER_KEY) || ''; return v.includes('@') ? v : ''; } catch (e) { return ''; } }
+    try { if (email) localStorage.setItem(VER_KEY, email); else localStorage.removeItem(VER_KEY); } catch (e) {}
     KVApi.esquecer();
-    aviso(`Vendo como ${novo}`);
+    const alvo = (window.KVEquipe || []).find((u) => u.email === email);
+    aviso(alvo ? `Agora você está vendo como ${primeiro(alvo.nome)}` : 'Voltou pra sua conta');
     KVRota.trocar('orcamentos.html');
+    const dlg = document.querySelector('.perfil-janela');
+    if (dlg && dlg.open) { dlg.onclose = null; dlg.close(); }
+  }
+
+  function desenharPerfil(dlg) {
+    const eu = window.KVEu; if (!eu) return;
+    const real = eu.admin || eu, equipe = window.KVEquipe;
+    const linha = (u) => {
+      const atual = u.email === eu.email, sou = u.email === real.email;
+      return `<li><button type="button" class="pessoa-op" data-como="${esc(sou ? '' : u.email)}" ${atual ? 'aria-current="true"' : ''}>
+        ${avatar(u, 'm')}<span class="txt"><b>${esc(u.nome)}${sou ? ' <span class="voce">(você)</span>' : ''}</b><span>${papelDe(u)}</span></span>
+        ${atual ? '<i data-lucide="check"></i>' : ''}</button></li>`;
+    };
+    dlg.innerHTML = `<header><div class="perfil-eu">${avatar(real, 'g')}<div><b>${esc(real.nome)}</b><span>${esc(real.email)}</span></div></div>
+        <button class="btn icone" type="button" data-fechar aria-label="Fechar" style="margin-left:auto"><i data-lucide="x"></i></button></header>
+      <div class="corpo">
+        ${equipe ? `<p class="perfil-tit">Ver o sistema como</p>
+          <p class="perfil-sub">Igual a entrar na conta da pessoa: o que você gravar sai no nome dela (o histórico anota que foi você).</p>
+          <ul class="perfil-lista">${equipe.map(linha).join('')}</ul>` : `<p class="perfil-sub">${papelDe(eu)}</p>`}
+      </div>
+      <footer><button class="btn" type="button" data-tema-j><i data-lucide="sun-moon"></i>Trocar tema</button></footer>`;
+    dlg.querySelector('[data-fechar]').onclick = () => dlg.close();
+    dlg.querySelector('[data-tema-j]').onclick = trocarTema;
+    dlg.querySelectorAll('[data-como]').forEach((b) => { b.onclick = () => (b.hasAttribute('aria-current') ? dlg.close() : verComo(b.dataset.como)); });
+    if (window.lucide) lucide.createIcons();
+  }
+  function sincPerfil() {
+    const dlg = document.querySelector('.perfil-janela'); if (!dlg) return;
+    const quer = param('perfil') === '1';
+    if (quer && !dlg.open) {
+      desenharPerfil(dlg); dlg.showModal();
+      // fechar (X, Esc, tocar fora) desfaz o passo do histórico
+      dlg.onclose = () => { if (param('perfil') === '1') desfazer({ perfil: 1 }, () => {}); };
+      dlg.onclick = (e) => { if (e.target === dlg) dlg.close(); };
+    } else if (!quer && dlg.open) { dlg.onclose = null; dlg.close(); }
+  }
+  addEventListener('popstate', sincPerfil);
+  function trocarTema() {
+    const novo = document.documentElement.dataset.theme === 'claro' ? 'escuro' : 'claro';
+    document.documentElement.dataset.theme = novo;
+    try { localStorage.setItem(TEMA_KEY, novo); } catch (err) {}
   }
 
   // Toda troca de vista, filtro ou janela vira um passo no histórico: o voltar do celular e do mouse desfaz o último passo.
