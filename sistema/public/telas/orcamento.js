@@ -62,14 +62,52 @@ KVTelas['orcamento'] = function () {
 
   // ---------- opções: filtro por trecho e por dia, cartões ----------
   function filtros() {
-    const ti = trechoSel(), dia = KVShell.param('dia');
+    const ti = trechoSel();
     const dias = [...new Set(opsDo(ti).map((x) => x.data))].sort();
-    const nDia = (d) => opsDo(ti).filter((x) => x.data === d).length;
     const cab = `<div class="secao"><h2>Opções de voo</h2><span class="n">${opsDo(ti).length} neste trecho</span></div>`;
     const varios = o.trechos.length > 1, temDias = dias.length > 1;
-    return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>Trecho ${i + 1} · ${O.dataCurta(t.data)}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
-      + (temDias ? `<div class="fa-dias"><button class="dia-c todos" data-dia="" aria-pressed="${!dia}">Todos</button>${dias.map((d) => `<button class="dia-c ${d === o.trechos[ti].data ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}"><small>${O.diaCurto(d)}</small><b>${d.slice(8)}</b><i>${nDia(d)}</i></button>`).join('')}</div>` : '');
+    return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>Trecho ${i + 1}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
+      + (temDias ? filtroDias(ti, dias) : '');
   }
+  // ---------- filtro de dias: 3 versões pra escolher (a barrinha "Dias: A B C" some quando ficar uma só) ----------
+  // os dias de um trecho podem se espalhar por um mês ou mais, e virar o ano: todas mostram o mês e separam os anos
+  const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const nomeMes = (ym) => MESES[+ym.slice(5, 7) - 1];
+  let versaoDias = (() => { try { return localStorage.getItem('kv-versao-dias') || 'A'; } catch (_) { return 'A'; } })();
+  const agrupar = (lista, chave) => lista.reduce((m, x) => { const k = chave(x); (m.get(k) || m.set(k, []).get(k)).push(x); return m; }, new Map());
+  function filtroDias(ti, dias) {
+    const dia = KVShell.param('dia'), mes = KVShell.param('mes'), pedido = o.trechos[ti].data;
+    const n = (pre) => opsDo(ti).filter((x) => x.data.startsWith(pre)).length;
+    const todos = `<button class="dia-c todos" data-dia="" aria-pressed="${!dia && !mes}">Todos</button>`;
+    const chip = (d) => `<button class="dia-c ${d === pedido ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}" aria-label="${O.diaCurto(d)} ${d.slice(8)} de ${nomeMes(d)} de ${d.slice(0, 4)}"><small>${O.diaCurto(d)}</small><b>${d.slice(8)}</b><em>${nomeMes(d)}</em><i>${n(d)}</i></button>`;
+    const porAno = agrupar(dias, (d) => d.slice(0, 4));
+    let corpo;
+    if (versaoDias === 'B') {
+      // B: primeiro o mês (dentro do contorno do ano), depois os dias desse mês
+      const meses = [...new Set(dias.map((d) => d.slice(0, 7)))];
+      const mesAberto = mes || (dia && dia.slice(0, 7)) || null;
+      corpo = `<div class="fd-b"><div class="fa-dias">${todos}${[...agrupar(meses, (m) => m.slice(0, 4))].map(([ano, ms]) => `<div class="fd-ano"><span class="fd-ano-n">${ano}</span>${ms.map((m) => `<button class="fd-mes" data-mes="${m}" aria-pressed="${m === mesAberto && !dia}"><b>${nomeMes(m)}</b><i>${n(m)}</i></button>`).join('')}</div>`).join('')}</div>
+        ${mesAberto ? `<div class="fa-dias fd-b-dias">${dias.filter((d) => d.startsWith(mesAberto)).map(chip).join('')}</div>` : ''}</div>`;
+    } else if (versaoDias === 'C') {
+      // C: calendário de cada mês que tem opção, os meses lado a lado dentro do contorno do ano
+      const meses = [...new Set(dias.map((d) => d.slice(0, 7)))];
+      const cal = (ym) => {
+        const pri = new Date(ym + '-01T12:00:00'), vazios = (pri.getDay() + 6) % 7, total = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate();
+        const cel = Array.from({ length: vazios }, () => '<span></span>').concat(Array.from({ length: total }, (_, k) => {
+          const d = `${ym}-${String(k + 1).padStart(2, '0')}`, q = dias.includes(d) ? n(d) : 0;
+          return q ? `<button class="fd-cd ${d === pedido ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}" aria-label="${k + 1} de ${nomeMes(ym)}: ${q} opções">${k + 1}<i>${q}</i></button>` : `<span class="${d === pedido ? 'pedido' : ''}">${k + 1}</span>`;
+        }));
+        return `<div class="fd-cal"><b class="fd-cal-mes">${nomeMes(ym)}</b><div class="fd-cal-sem">${'STQQSSD'.split('').map((l) => `<span>${l}</span>`).join('')}</div><div class="fd-cal-dias">${cel.join('')}</div></div>`;
+      };
+      corpo = `<div class="fa-dias fd-c">${todos}${[...agrupar(meses, (m) => m.slice(0, 4))].map(([ano, ms]) => `<div class="fd-ano"><span class="fd-ano-n">${ano}</span>${ms.map(cal).join('')}</div>`).join('')}</div>`;
+    } else {
+      // A: a mesma fita de dias, com o mês no dia e o contorno do ano em volta de cada ano
+      corpo = `<div class="fa-dias">${todos}${[...porAno].map(([ano, ds]) => `<div class="fd-ano"><span class="fd-ano-n">${ano}</span>${ds.map(chip).join('')}</div>`).join('')}</div>`;
+    }
+    return corpo;
+  }
+  const barraVersoes = () => `<div class="fd-versoes" role="group" aria-label="Versão do filtro de dias"><span>Dias:</span>${['A', 'B', 'C'].map((v) => `<button data-vd="${v}" aria-pressed="${v === versaoDias}">${v}</button>`).join('')}</div>`;
+
   let menuAberto = null, confirmarApagar = null, editando = null;
   function menuOp(op) {
     const it = (attrs, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" ${attrs}><i data-lucide="${icone}"></i>${texto}</button>`;
@@ -89,11 +127,12 @@ KVTelas['orcamento'] = function () {
   }
   function opcoes() {
     const dia = KVShell.param('dia');
-    const l = opsDo(trechoSel()).filter((x) => !dia || x.data === dia)
+    const mes = KVShell.param('mes');
+    const l = opsDo(trechoSel()).filter((x) => (!dia || x.data === dia) && (!mes || x.data.startsWith(mes)))
       .sort(dono ? (a, b) => O.custoPessoa(a) - O.custoPessoa(b) : (a, b) => a.data.localeCompare(b.data) || (a.milhas || 1e9) - (b.milhas || 1e9));
     // o lugar do próximo cartão, tracejado: tocar nele lança mais um voo (igual à "Outra combinação" da proposta)
     const t = o.trechos[trechoSel()];
-    const mais = podeLancar() ? `<button class="nova-op" data-nova><span class="mais"><i data-lucide="plus"></i></span>${l.length ? 'Mais um voo' : 'Lançar o primeiro voo'}<span class="sub">${esc(t.de)} → ${esc(t.para)}<kbd>N</kbd></span></button>` : '';
+    const mais = podeLancar() ? `<button class="nova-op" data-nova><span class="mais"><i data-lucide="plus"></i></span>${opsDo(trechoSel()).length ? 'Mais um voo' : 'Lançar o primeiro voo'}<span class="sub">${esc(t.de)} → ${esc(t.para)}<kbd>N</kbd></span></button>` : '';
     if (!l.length && !mais) return `<div class="vazio">Nenhuma opção${dia ? ' nesse dia' : ' neste trecho'} ainda.</div>`;
     return `<div class="grade-ref">${l.map((op, i) => cartaoOp(op, dono && i === 0)).join('')}${mais}</div>`;
   }
@@ -128,7 +167,7 @@ KVTelas['orcamento'] = function () {
       ${o.faltando.length ? `<div class="aviso warn">Falta perguntar ao cliente: ${o.faltando.map(esc).join('; ')}</div>` : ''}</div>`;
   }
   function render() {
-    app.innerHTML = topo() + doBot() + filtros() + opcoes();
+    app.innerHTML = topo() + doBot() + filtros() + opcoes() + barraVersoes();
     document.title = `#${o.id} ${O.destino(o)} · K&V`;
     KVShell.icones();
     ligarRolos();
@@ -276,8 +315,10 @@ KVTelas['orcamento'] = function () {
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto && !dlg.open) { const mid = menuAberto; menuAberto = confirmarApagar = null; render(); const b = app.querySelector(`[data-menu="${mid}"]`); if (b) b.focus(); } });
     app.addEventListener('click', async (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;
-      if (b.dataset.t != null) { if (+b.dataset.t !== trechoSel()) { rascunho = null; KVShell.irPara({ t: b.dataset.t, dia: null }); render(); } }
-      else if (b.dataset.dia != null) { if (b.dataset.dia !== (KVShell.param('dia') || '')) { KVShell.irPara({ dia: b.dataset.dia || null }); render(); } }
+      if (b.dataset.t != null) { if (+b.dataset.t !== trechoSel()) { rascunho = null; KVShell.irPara({ t: b.dataset.t, dia: null, mes: null }); render(); } }
+      else if (b.dataset.dia != null) { if (b.dataset.dia !== (KVShell.param('dia') || '')) { KVShell.irPara({ dia: b.dataset.dia || null, mes: null }); render(); } }
+      else if (b.dataset.mes != null) { if (b.dataset.mes !== (KVShell.param('mes') || '')) { KVShell.irPara({ mes: b.dataset.mes || null, dia: null }); render(); } }
+      else if (b.dataset.vd) { versaoDias = b.dataset.vd; try { localStorage.setItem('kv-versao-dias', versaoDias); } catch (_) {} render(); }
       else if (b.hasAttribute('data-nova')) { salvasAgora = 0; editando = null; rascunho = rascunho && { site: rascunho.site, data: rascunho.data }; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.dup) { const op = o.opcoes.find((x) => x.id === +b.dataset.dup); rascunho = paraForm(op); salvasAgora = 0; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.del) { if (await fazer('op.apagar', { orcamento: o.id, id: +b.dataset.del })) KVShell.aviso('Opção apagada'); render(); }

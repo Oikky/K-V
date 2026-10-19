@@ -107,3 +107,33 @@
   @media (hover: none) { .nova-op kbd { display: none; } }
   @media (prefers-reduced-motion: reduce) { .nova-op, .nova-op .mais { transition: none; } }
   @media (max-width: 760px) { .nova-op { min-height: 168px; } }
+  /* filtro de dias: o ano contorna os dias dele (não mistura dez/2026 com jan/2027) */
+  .fa-dias { padding-top: 12px; align-items: stretch; }
+  .fd-ano { position: relative; flex: none; display: flex; gap: 6px; align-items: stretch; padding: 12px 8px 8px; border: 1.5px solid var(--line); border-radius: 22px; }
+  .fd-ano-n { position: absolute; top: -9px; left: 14px; padding: 0 6px; background: var(--bg); font: 800 12px var(--font); color: var(--text-2); letter-spacing: .02em; }
+  .dia-c em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--text-2); text-transform: lowercase; margin-top: -2px; }
+  .dia-c[aria-pressed="true"] em { color: var(--bg); }
+  /* B: mês primeiro */
+  .fd-mes { flex: none; display: grid; justify-items: center; align-content: center; gap: 2px; min-width: 64px; padding: 8px 12px; border-radius: 16px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: var(--text); }
+  .fd-mes b { font: 800 17px var(--font-brand); }
+  .fd-mes i { font-style: normal; font-size: 11.5px; color: var(--text-3); font-weight: 700; }
+  .fd-mes[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+  .fd-mes[aria-pressed="true"] i { color: var(--bg); }
+  .fd-b-dias { margin-top: -8px; }
+  /* C: calendário */
+  .fd-c .fd-ano { gap: 18px; padding: 14px 14px 10px; }
+  .fd-cal { display: grid; gap: 4px; width: 224px; }
+  .fd-cal-mes { font: 800 14px var(--font-brand); text-transform: capitalize; }
+  .fd-cal-sem, .fd-cal-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+  .fd-cal-sem span { font-size: 10.5px; font-weight: 700; color: var(--text-3); }
+  .fd-cal-dias > span { height: 30px; display: grid; place-items: center; font-size: 12px; color: var(--text-3); opacity: .55; }
+  .fd-cd { position: relative; height: 30px; border-radius: 10px; border: 0; background: var(--surface-2); color: var(--text); font: 800 13px var(--font); cursor: pointer; }
+  .fd-cd i { position: absolute; top: -4px; right: -3px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 8px; background: var(--orange); color: #fff; font: 800 9.5px/15px var(--font); font-style: normal; }
+  .fd-cd[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+  .fd-cal-dias .pedido { outline: 1.5px dashed var(--orange); outline-offset: -2px; border-radius: 10px; opacity: 1; }
+  .fd-c .dia-c.todos { align-self: center; }
+  /* barrinha pra comparar as versões (sai quando escolher) */
+  .fd-versoes { position: fixed; right: 20px; bottom: 20px; z-index: 30; display: flex; gap: 4px; align-items: center; padding: 6px 6px 6px 14px; border-radius: 999px; background: var(--surface-3); box-shadow: var(--shadow-pop); font-size: 13px; font-weight: 700; color: var(--text-2); }
+  .fd-versoes button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; color: var(--text); font-weight: 800; cursor: pointer; }
+  .fd-versoes button[aria-pressed="true"] { background: var(--orange); color: #fff; }
+  @media (max-width: 760px) { .fd-versoes { bottom: 84px; right: 12px; } }

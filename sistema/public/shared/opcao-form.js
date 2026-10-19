@@ -12,13 +12,13 @@
   const entrada = (f, attrs, valor) => `<input id="f-${f}" data-f="${f}" ${attrs} value="${esc(valor ?? '')}">`;
 
   function html(t, r = {}, { dia: diaPadrao } = {}) {
-    const dias = O.janelaDias(t), s = r.site || 'Smiles', din = eDinheiro(s);
+    const s = r.site || 'Smiles', din = eDinheiro(s);
     const dia = r.data || diaPadrao || t.data, depois = +(r.depois || 0);
     const escalas = r.escalasOnde || [];
     const depoisDe = (n) => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + n); return O.dataCurta(O.isoDia(d)); };
     return `<h3 class="form-grupo">Voo</h3>
       <div class="duas">${campo('f-site', 'Site', `<select id="f-site" data-f="site">${O.sites.map((x) => `<option ${x.id === s ? 'selected' : ''}>${x.id}</option>`).join('')}</select>`)}
-        ${campo('f-data', 'Dia', `<select id="f-data" data-f="data">${dias.map((d) => `<option value="${d}" ${d === dia ? 'selected' : ''}>${O.diaCurto(d)} ${O.dataCurta(d)}${d === t.data ? ' (pedido)' : ''}</option>`).join('')}</select>`)}</div>
+        ${campo('f-data', 'Dia', entrada('data', 'type="date"', dia))}</div>
       <div class="duas">${campo('f-cia', 'Companhia aérea', entrada('cia', 'placeholder="Latam, GOL, Azul…" list="l-cias" autocomplete="off"', r.cia))}${campo('f-voo', 'Voo', entrada('voo', 'placeholder="LA 8084"', r.voo))}</div>
       <datalist id="l-cias">${CIAS.map((c) => `<option value="${c}">`).join('')}</datalist>
       <div class="duas">${campo('f-de', 'Sai de', entrada('de', `placeholder="${t.de}" maxlength="3" autocapitalize="characters"`, r.de || t.de))}${campo('f-para', 'Chega em', entrada('para', `placeholder="${t.para}" maxlength="3" autocapitalize="characters"`, r.para || t.para))}</div>
@@ -69,6 +69,7 @@
     let milhas = lerNum(v.milhas); if (milhas && milhas < 1000) milhas *= 1000;
     // taxa pode ser zero (emissão sem taxa); só não pode ficar vazia
     const taxa = String(v.taxa || '').trim() === '0' ? 0 : O.lerReais(v.taxa), preco = O.lerReais(v.preco);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v.data || '')) erros.push('data');
     if (!sai) erros.push('sai'); if (!chega) erros.push('chega');
     if (de && !/^[A-Z]{3}$/.test(de)) erros.push('de'); if (para && !/^[A-Z]{3}$/.test(para)) erros.push('para');
     if (din && !preco) erros.push('preco'); if (!din && !milhas) erros.push('milhas'); if (!din && taxa == null) erros.push('taxa');
