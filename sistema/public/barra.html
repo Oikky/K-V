@@ -1,20 +1,21 @@
 <!doctype html>
 <!-- Barra da pesquisa: a página que aparece dentro da extensão do Chrome (barra lateral).
-     Mostra quem está usando, os orçamentos em pesquisa com a pessoa, abre a busca já preenchida nos sites (Smiles, Latam...),
-     captura o voo clicado na página e lança a opção no orçamento. Também abre direto no navegador (aí sem capturar).
+     Mostra quem está usando, o cronômetro, os orçamentos em pesquisa com a pessoa, abre a busca já preenchida nos sites
+     (Smiles, Latam...) e lança a opção de voo, digitada no mesmo formulário da tela de pesquisa (shared/opcao-form.js).
      Código em barra.js; a parte que vai instalada no Chrome está em sistema/extensao/. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>K&amp;V · Pesquisa</title>
 <link rel="stylesheet" href="shared/base.css?r=6">
-<link rel="stylesheet" href="barra.css?r=6">
+<link rel="stylesheet" href="barra.css?r=7">
 </head>
 <body>
 <main id="barra" class="pesq"><p class="carregando">Carregando…</p></main>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="shared/api.js?r=9"></script>
-<script src="shared/orc.js?r=5"></script>
-<script src="barra.js?r=7"></script>
+<script src="shared/orc.js?r=6"></script>
+<script src="shared/opcao-form.js?r=1"></script>
+<script src="barra.js?r=8"></script>
 </body>
 </html>

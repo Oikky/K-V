@@ -1,9 +1,7 @@
-/* Barra da pesquisa (dentro da extensão do Chrome). Três jeitos de lançar uma opção, do mais rápido pro mais garantido:
-   A) "Buscar em": abre a busca do site já preenchida (rota, dia e passageiros), pelo endereço da busca.
-   B) "Capturar voo": a pessoa clica no voo na página do site; o texto vem pra cá e vira horário, milhas e taxa.
-   C) O formulário: sempre aberto. A captura só preenche; o que ela não achar a pessoa completa à mão.
-   Os endereços de busca (BUSCA) e a leitura do texto (ler) ficam aqui no sistema: se um site mudar, corrige e publica,
-   sem reinstalar a extensão. */
+/* Barra da pesquisa (dentro da extensão do Chrome): quem está usando, o cronômetro, os orçamentos em pesquisa com a pessoa,
+   os botões que abrem a busca do site já com rota, dia e passageiros, e o formulário da opção de voo, preenchido à mão
+   (o mesmo da tela de pesquisa: shared/opcao-form.js). Os endereços de busca (BUSCA) ficam aqui no sistema:
+   se um site mudar, corrige e publica, sem reinstalar a extensão. */
 (function () {
   const O = KVOrc, esc = O.esc;
   const app = document.getElementById('barra');
@@ -15,7 +13,7 @@
 
   let est = null, eu = null, dono = false, lista = [], orc = null, trecho = 0;
   let aba = { url: '', titulo: '', versao: null };
-  let capturando = false, form = null, veio = {}, recado = null, salvando = false;
+  let form = null, recado = null, salvando = false;
   const lembrar = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
   const lembrado = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 
@@ -31,12 +29,8 @@
       aba = { url: d.url || '', titulo: d.titulo || '', versao: d.versao || aba.versao };
       if (form && mudouSite && siteDaUrl(aba.url) && !form.travadoSite) form.site = siteDaUrl(aba.url);
       desenhar();
-    } else if (d.tipo === 'capturado') {
-      sincronizar(); capturando = false;
-      if (d.cancelado) { desenhar(); return; }
-      aplicarCaptura(d.texto || '', d.url || aba.url);
     } else if (d.tipo === 'erro') {
-      sincronizar(); capturando = false; recado = { erro: true, texto: d.texto }; desenhar();
+      sincronizar(); recado = { erro: true, texto: d.texto }; desenhar();
     }
   });
 
@@ -73,37 +67,6 @@
     return null;
   }
 
-  // ---------- B) o texto do voo vira campos ----------
-  const MESES = { jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12 };
-  const reais = (t) => O.lerReais(t);
-  function ler(textoBruto, dias) {
-    const s = String(textoBruto).replace(/ | /g, ' ');
-    const r = {};
-    const hs = [...s.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g)].map((m) => `${pad(m[1])}:${m[2]}`);
-    if (hs[0]) r.sai = hs[0];
-    if (hs[1]) r.chega = hs[1] + (/\+\s?1(?!\d)|\+1 ?dia|dia seguinte|next day/i.test(s) ? ' +1' : '');
-    // milhas: "32.000 milhas", "32 mil milhas", "32.000 pts"
-    const mm = s.match(/(\d{1,3}(?:[.\s]\d{3})+|\d+(?:,\d+)?)\s*(mil\s+)?(milhas|pontos|pts|miles)\b/i);
-    if (mm) { let n = +mm[1].replace(/[.\s]/g, '').replace(',', '.'); if (mm[2] || n < 1000) n *= 1000; r.milhas = Math.round(n); }
-    // dinheiro: com milhas, o R$ (o primeiro depois das milhas, ou o primeiro de todos) é a taxa; sem milhas é o preço
-    const rs = [...s.matchAll(/R\$\s?([\d.]+(?:,\d{1,2})?)/g)].map((m) => ({ v: reais(m[1]), i: m.index }));
-    if (mm) { const t = rs.find((x) => x.i > mm.index) || rs[0]; if (t && t.v != null) r.taxa = t.v; }
-    else if (rs[0] && rs[0].v) r.preco = rs[0].v;
-    if (/\b(direto|sem (escalas?|paradas?|conex[õo]es)|nonstop)\b/i.test(s)) r.escalas = 0;
-    else { const e = s.match(/(\d)\s*(paradas?|escalas?|conex[õo]es|conexão|stops?)\b/i); if (e) r.escalas = Math.min(2, +e[1]); }
-    const voos = [...s.matchAll(/\b(LA|JJ|G3|AD|TP|AA|UA|DL|AF|KL|IB|UX|CM|AV|AR|LH|BA|EK|QR|TK|ET|AM|H2|JA|2Z)\s?-?(\d{2,4})\b/g)].map((m) => `${m[1]} ${m[2]}`);
-    if (voos.length) r.voo = [...new Set(voos)].join(' / ').slice(0, 20);
-    if (/(bagagem|mala) (despachada|inclu[íi]da)|1 bagagem|23\s?kg/i.test(s) && !/sem (bagagem|mala)/i.test(s)) r.bagagem = true;
-    // dia: "10/12" ou "10 dez" que esteja na janela de datas do trecho
-    const dd = s.match(/\b(\d{1,2})\/(\d{1,2})\b/) || s.match(/\b(\d{1,2})\s*(?:de\s*)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/i);
-    if (dd) {
-      const d = pad(dd[1]), m = pad(MESES[String(dd[2]).toLowerCase()] || dd[2]);
-      const achado = dias.find((x) => x.endsWith(`-${m}-${d}`));
-      if (achado) r.data = achado;
-    }
-    return r;
-  }
-
   // ---------- dados ----------
   async function carregar() {
     est = await KVApi.estado(); eu = est.eu; dono = eu.papel === 'dono' || eu.papel === 'admin';
@@ -121,38 +84,10 @@
   }
   function novoForm(manter = {}) {
     const t = orc.trechos[trecho];
-    form = { site: siteDaUrl(aba.url) || (form && form.site) || 'Smiles', data: t.data, sai: '', chega: '', voo: '', escalas: 0, milhas: '', taxa: '', preco: '', bagagem: false, link: '', ...manter };
-    veio = {};
+    form = { site: siteDaUrl(aba.url) || (form && form.site) || 'Smiles', data: t.data, ...manter };
   }
 
-  function aplicarCaptura(texto, url) {
-    if (!orc) return;
-    const dias = O.janelaDias(orc.trechos[trecho]);
-    const r = ler(texto, dias);
-    const site = siteDaUrl(url) || form.site;
-    novoForm({ site, data: r.data || form.data });
-    const milMostrar = (n) => (n % 1000 === 0 ? String(n / 1000) : String(n));
-    const reaisMostrar = (c) => (c / 100).toFixed(2).replace('.', ',');
-    if (r.sai) { form.sai = r.sai; veio.sai = 1; }
-    if (r.chega) { form.chega = r.chega; veio.chega = 1; }
-    if (r.voo) { form.voo = r.voo; veio.voo = 1; }
-    if (r.escalas != null) { form.escalas = r.escalas; veio.escalas = 1; }
-    if (r.milhas) { form.milhas = milMostrar(r.milhas); veio.milhas = 1; }
-    if (r.taxa != null) { form.taxa = reaisMostrar(r.taxa); veio.taxa = 1; }
-    if (r.preco) { form.preco = reaisMostrar(r.preco); veio.preco = 1; }
-    if (r.bagagem) { form.bagagem = true; veio.bagagem = 1; }
-    if (r.data) veio.data = 1;
-    if (/^https:/.test(url)) { form.link = url; veio.link = 1; }
-    const din = O.site(site).forma === 'dinheiro';
-    const faltam = [!form.sai && 'saída', !form.chega && 'chegada', din ? !form.preco && 'preço' : (!form.milhas && 'milhas'), !din && !form.taxa && 'taxa'].filter(Boolean);
-    recado = faltam.length ? { texto: `Não achei: ${faltam.join(', ')}. Complete à mão e confira o resto.` } : { ok: true, texto: 'Confira os campos em laranja e lance.' };
-    salvarRascunho();
-    desenhar();
-    const prim = app.querySelector(faltam.length ? '.campo input:not([data-veio])' : '[data-lancar]');
-    if (prim) prim.focus();
-  }
-
-  // ---------- rascunho: nada do que foi digitado ou capturado se perde ----------
+  // ---------- rascunho: nada do que foi digitado se perde ----------
   // Cada orçamento e trecho guarda o formulário neste navegador a cada mudança. Fechar a barra, trocar de orçamento,
   // a internet cair na hora de lançar: ao voltar, está tudo lá. Só some depois de lançado com sucesso.
   const chaveRasc = () => orc && `kv-barra-rasc:${orc.id}:${trecho}`;
@@ -161,15 +96,16 @@
     clearTimeout(rascTimer);
     rascTimer = setTimeout(() => {
       if (!form || !orc) return;
-      const vazio = !['sai', 'chega', 'voo', 'milhas', 'taxa', 'preco'].some((k) => String(form[k] || '').trim());
-      lembrar(chaveRasc(), vazio ? null : JSON.stringify({ form, veio, em: Date.now() }));
+      const vazio = !['sai', 'chega', 'cia', 'voo', 'duracao', 'milhas', 'taxa', 'preco', 'milhasMala', 'destaque', 'obs'].some((k) => String(form[k] || '').trim())
+        && !(form.escalasOnde || []).length;
+      lembrar(chaveRasc(), vazio ? null : JSON.stringify({ form, em: Date.now() }));
     }, 250);
   }
   function restaurarRascunho() {
     try {
       const r = JSON.parse(lembrado(chaveRasc()) || 'null');
       if (!r || Date.now() - r.em > 14 * 864e5) return false;
-      form = r.form; veio = r.veio || {};
+      form = r.form;
       recado = { texto: 'Rascunho recuperado: estava aqui do jeito que você deixou.' };
       return true;
     } catch (e) { return false; }
@@ -244,7 +180,7 @@
   function avisos() {
     const velha = naExtensao && aba.versao && EXT_VERSAO && maisVelha(aba.versao, EXT_VERSAO);
     return `${velha ? `<a class="b-aviso" href="/extensao.html" target="_blank">${icone('download')}Tem versão nova da extensão. Toque pra atualizar.</a>` : ''}
-      ${!naExtensao ? `<p class="b-aviso calmo">${icone('info')}Aberto fora da extensão: dá pra lançar, mas não pra capturar nem abrir a busca.</p>` : ''}`;
+      ${!naExtensao ? `<p class="b-aviso calmo">${icone('info')}Aberto fora da extensão: dá pra lançar, mas não pra abrir a busca nos sites.</p>` : ''}`;
   }
   const quem = () => `<div class="quem"><b>${esc(eu.nome)}</b><span>${PAPEL[eu.papel] || ''}</span></div>`;
   const recarregar = () => `<button class="btn icone fantasma" type="button" data-recarregar aria-label="Atualizar">${icone('refresh-cw')}</button>`;
@@ -252,27 +188,8 @@
   const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
   const trechos = () => (orc.trechos.length > 1 ? `<div class="b-trechos" role="tablist">${orc.trechos.map((x, i) => `<button type="button" role="tab" aria-selected="${i === trecho}" data-trecho="${i}">${x.de} → ${x.para}<small>${O.dataCurta(x.data)}</small></button>`).join('')}</div>` : '');
   const sites = (cls = 'btn pequeno') => Object.keys(BUSCA).map((s) => `<button type="button" class="${cls}" data-buscar="${s}" ${naExtensao ? '' : 'disabled'}>${NOME_BUSCA[s]}${icone('arrow-up-right')}</button>`).join('');
-  const captura = (cls = 'btn primario largo') => (capturando
-    ? `<div class="b-captura"><p>${icone('mouse-pointer-click')}<span>Clique no voo na página ao lado.</span></p>
-        <div class="linha"><button class="btn pequeno" type="button" data-maior>${icone('maximize-2')}Pegar mais</button><button class="btn pequeno" type="button" data-menor>${icone('minimize-2')}Menos</button>
-        <button class="btn pequeno fantasma" type="button" data-cancelar style="margin-left:auto">Cancelar</button></div></div>`
-    : `<button class="${cls}" type="button" data-capturar ${naExtensao ? '' : 'disabled'}>${icone('scan-line')}<span>${cls.includes('c-cap') ? 'Capturar' : 'Capturar voo da página'}</span></button>`);
-  function campos() {
-    const t = orc.trechos[trecho], dias = O.janelaDias(t), din = O.site(form.site).forma === 'dinheiro';
-    const v = (k) => esc(form[k] == null ? '' : form[k]), marca = (k) => (veio[k] ? 'data-veio' : '');
-    return `<div class="duas"><div class="campo"><label for="b-site">Site</label><select id="b-site" data-f="site">${O.sites.map((x) => `<option ${x.id === form.site ? 'selected' : ''}>${x.id}</option>`).join('')}</select></div>
-        <div class="campo"><label for="b-dia">Dia</label><select id="b-dia" data-f="data" ${marca('data')}>${dias.map((d) => `<option value="${d}" ${d === form.data ? 'selected' : ''}>${O.diaCurto(d)} ${O.dataCurta(d)}${d === t.data ? ' ★' : ''}</option>`).join('')}</select></div></div>
-      <div class="duas"><div class="campo"><label for="b-sai">Sai</label><input id="b-sai" data-f="sai" inputmode="numeric" placeholder="07:40" value="${v('sai')}" ${marca('sai')}></div>
-        <div class="campo"><label for="b-chega">Chega</label><input id="b-chega" data-f="chega" placeholder="19:10 ou 06:10+" value="${v('chega')}" ${marca('chega')}></div></div>
-      <div class="duas"><div class="campo"><label for="b-voo">Voo</label><input id="b-voo" data-f="voo" placeholder="LA 8084" value="${v('voo')}" ${marca('voo')}></div>
-        <div class="campo"><label for="b-esc">Escalas</label><select id="b-esc" data-f="escalas" ${marca('escalas')}>${[[0, 'Direto'], [1, '1 escala'], [2, '2 ou mais']].map(([x, n]) => `<option value="${x}" ${+form.escalas === x ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
-      ${din ? `<div class="campo"><label for="b-preco">Preço por pessoa</label><input id="b-preco" data-f="preco" inputmode="decimal" placeholder="R$" value="${v('preco')}" ${marca('preco')}></div>`
-        : `<div class="duas"><div class="campo"><label for="b-mil">Milhas por pessoa</label><input id="b-mil" data-f="milhas" inputmode="numeric" placeholder="45 = 45.000" value="${v('milhas')}" ${marca('milhas')}></div>
-          <div class="campo"><label for="b-taxa">Taxa por pessoa</label><input id="b-taxa" data-f="taxa" inputmode="decimal" placeholder="R$" value="${v('taxa')}" ${marca('taxa')}></div></div>`}
-      <label class="b-check" ${marca('bagagem')}><input type="checkbox" data-f="bagagem" ${form.bagagem ? 'checked' : ''}>Com mala despachada</label>
-      <div class="campo"><label for="b-link">Link do preço</label><input id="b-link" data-f="link" placeholder="Colar link" value="${v('link')}" ${marca('link')}>
-        ${naExtensao && aba.url && /^https:/.test(aba.url) && form.link !== aba.url ? `<button type="button" class="b-usar" data-usar-aba>Usar o endereço da aba aberta</button>` : ''}</div>`;
-  }
+  const campos = () => KVOpcao.html(orc.trechos[trecho], form)
+    + (naExtensao && aba.url && /^https:/.test(aba.url) && form.link !== aba.url ? `<button type="button" class="b-usar" data-usar-aba>Usar o endereço da aba aberta como link</button>` : '');
   const lancar = (cls = 'btn primario largo', curto = false) => `<button class="${cls}" type="submit" form="b-form" data-lancar ${salvando ? 'disabled' : ''}>${icone(salvando ? 'loader' : 'plus')}${salvando ? 'Lançando…' : curto ? 'Lançar' : `Lançar no #${orc.id}`}</button>`;
   function lancadas() {
     const ops = (orc.opcoes || []).filter((x) => x.trecho === trecho);
@@ -299,48 +216,47 @@
       ${dono && outros.length ? `<h2 class="b-tit">Com a equipe <span class="n">${outros.length}</span></h2><ul class="b-lista">${outros.map((o) => item(o, ` · com ${esc(nomeDe(o.responsavel).split(' ')[0])}`)).join('')}</ul>` : ''}`;
   }
 
-  // ---------- A) Cockpit: cronômetro grande, a captura é o cartão laranja, formulário logo abaixo ----------
+  // ---------- A) Cockpit: cronômetro grande, os sites no cartão laranja, formulário logo abaixo ----------
   function versaoA() {
     const l = lancadas(), t = orc.trechos[trecho];
     return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron('cartao')}${avisos()}
       <div class="a-orc">${voltar()}<div><span class="a-id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span>
         <b class="a-rota">${rotaTxt()}</b><span class="a-dia">${O.diaCurto(t.data)} ${O.dataCurta(t.data)}${t.janela ? ' · janela de 14 dias' : ''}</span></div></div>
       ${trechos()}${nota()}
-      <section class="a-destaque">${captura('a-capturar')}<div class="a-buscar"><span>Abrir busca de ${O.dataCurta(form.data)}</span><div class="b-sites">${sites('a-site')}</div></div></section>
+      <section class="a-destaque"><div class="a-buscar"><span>Abrir a busca de ${O.diaCurto(form.data)} ${O.dataCurta(form.data)}</span><div class="b-sites">${sites('a-site')}</div></div></section>
       ${recadoHtml()}
-      <form class="b-form" id="b-form" autocomplete="off">${campos()}${lancar()}</form>
+      <form class="b-form form-op" id="b-form" autocomplete="off">${campos()}${lancar()}</form>
       <section class="b-bloco"><h3>Já lançadas neste trecho · ${l.n}</h3>${l.html}${abrirNoSistema()}</section>`;
   }
 
-  // ---------- B) Passo a passo: 1 buscar, 2 capturar, 3 conferir e lançar ----------
+  // ---------- B) Passo a passo: 1 buscar, 2 preencher e lançar ----------
   function versaoB() {
-    const l = lancadas(), capturou = Object.keys(veio).length > 0;
-    const passo = (n, titulo, corpo, feito) => `<section class="b-passo ${feito ? 'feito' : ''}"><span class="b-num">${feito ? icone('check') : n}</span><div class="b-passo-corpo"><h3>${titulo}</h3>${corpo}</div></section>`;
+    const l = lancadas();
+    const passo = (n, titulo, corpo) => `<section class="b-passo"><span class="b-num">${n}</span><div class="b-passo-corpo"><h3>${titulo}</h3>${corpo}</div></section>`;
     return `${cron('faixa')}
       <header class="b-topo">${voltar()}<div class="quem"><b>${rotaTxt()} <small>#${orc.id}</small></b><span>${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span></div>${avatar(eu)}</header>
       ${avisos()}${trechos()}${nota()}
-      ${passo(1, `Buscar ${O.diaCurto(form.data)} ${O.dataCurta(form.data)}`, `<div class="b-sites">${sites()}</div>`, false)}
-      ${passo(2, 'Capturar o voo', captura('btn primario largo'), capturou)}
-      ${passo(3, 'Conferir e lançar', `${recadoHtml()}<form class="b-form" id="b-form" autocomplete="off">${campos()}${lancar()}</form>`, false)}
+      ${passo(1, `Buscar ${O.diaCurto(form.data)} ${O.dataCurta(form.data)}`, `<div class="b-sites">${sites()}</div>`)}
+      ${passo(2, 'Preencher e lançar', `${recadoHtml()}<form class="b-form form-op" id="b-form" autocomplete="off">${campos()}${lancar()}</form>`)}
       <details class="b-bloco b-dobra"><summary><h3>Já lançadas neste trecho · ${l.n}</h3>${icone('chevron-down')}</summary>${l.html}${abrirNoSistema()}</details>`;
   }
 
-  // ---------- C) Formulário primeiro: topo fixo compacto, botões grudados embaixo ----------
+  // ---------- C) Formulário primeiro: topo fixo compacto, Lançar grudado embaixo ----------
   function versaoC() {
     const l = lancadas();
     return `<header class="c-topo">${voltar()}<div class="quem"><b>${rotaTxt()}</b><span>#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span></div>${cron('chip')}</header>
       ${avisos()}${trechos()}${nota()}
       <div class="c-sites"><span>Buscar ${O.dataCurta(form.data)}</span>${sites('c-site')}</div>
       ${recadoHtml()}
-      ${capturando ? captura() : ''}
-      <form class="b-form c-form" id="b-form" autocomplete="off">${campos()}</form>
+      <form class="b-form c-form form-op" id="b-form" autocomplete="off">${campos()}</form>
       <details class="b-bloco b-dobra"><summary><h3>Já lançadas neste trecho · ${l.n}</h3>${icone('chevron-down')}</summary>${l.html}${abrirNoSistema()}</details>
-      <div class="c-barra">${capturando ? '' : captura('btn c-cap')}${lancar('btn primario c-lancar', true)}</div>`;
+      <div class="c-barra">${lancar('btn primario c-lancar')}</div>`;
   }
 
   // guarda o que a pessoa digitou antes de mexer no estado (a tela é redesenhada inteira)
   function sincronizar() {
-    if (form) app.querySelectorAll('[data-f]').forEach((el) => { form[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value; });
+    const raiz = app.querySelector('#b-form');
+    if (form && raiz) Object.assign(form, KVOpcao.ler(raiz));
   }
   function desenhar() {
     if (!eu) return;
@@ -362,11 +278,12 @@
     if (b.dataset.voltar != null) { orc = null; form = null; recado = null; lembrar('kv-barra-orc', null); return desenhar(); }
     if (b.dataset.trecho) { sincronizar(); salvarRascunho(); trecho = +b.dataset.trecho; lembrar('kv-barra-trecho', trecho); recado = null; novoForm({ site: form.site }); restaurarRascunho(); return desenhar(); }
     if (b.dataset.buscar) { sincronizar(); return pedir('abrir', { url: BUSCA[b.dataset.buscar](orc.trechos[trecho], form.data, orc.passageiros) }); }
-    if (b.dataset.capturar != null) { sincronizar(); capturando = true; recado = null; desenhar(); return pedir('capturar'); }
-    if (b.dataset.cancelar != null) { sincronizar(); capturando = false; desenhar(); return pedir('cancelar'); }
-    if (b.dataset.maior != null) return pedir('maior');
-    if (b.dataset.menor != null) return pedir('menor');
-    if (b.dataset.usarAba != null) { sincronizar(); form.link = aba.url; veio.link = 1; return desenhar(); }
+    if (b.dataset.usarAba != null) { sincronizar(); form.link = aba.url; salvarRascunho(); return desenhar(); }
+    if (b.dataset.poeEsc != null) {
+      sincronizar(); form.escalasOnde = [...(form.escalasOnde || []), ['', '']]; salvarRascunho(); desenhar();
+      const el = app.querySelector(`[data-esc="${form.escalasOnde.length - 1}"][data-q="l"]`); if (el) el.focus(); return;
+    }
+    if (b.dataset.tiraEsc != null) { sincronizar(); form.escalasOnde.splice(+b.dataset.tiraEsc, 1); salvarRascunho(); return desenhar(); }
   });
   app.addEventListener('change', (e) => {
     const f = e.target.dataset && e.target.dataset.f;
@@ -382,39 +299,30 @@
     if (f === 'data') desenhar(); // o "Buscar dd/mm em" acompanha o dia escolhido
   });
   app.addEventListener('input', (e) => {
-    if (!e.target.dataset || !e.target.dataset.f) return;
-    if (e.target.hasAttribute('data-veio')) { e.target.removeAttribute('data-veio'); delete veio[e.target.dataset.f]; }
+    if (!e.target.dataset || (e.target.dataset.f == null && e.target.dataset.esc == null)) return;
     sincronizar(); salvarRascunho();
   });
 
-  // ---------- C) lançar ----------
-  const hora = (t) => { const mais = /\+/.test(t); const d = String(t || '').replace(/\D/g, '').slice(0, 4); if (d.length < 3) return null; const h = d.length === 3 ? '0' + d[0] : d.slice(0, 2), m = d.slice(-2); if (+h > 23 || +m > 59) return null; return `${h}:${m}${mais ? ' +1' : ''}`; };
-  const lerNum = (t) => { const n = +String(t || '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? n : null; };
+  // ---------- lançar (a conferência e o formato são os da tela de pesquisa: KVOpcao.montar) ----------
   app.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (salvando) return;
     sincronizar();
-    const din = O.site(form.site).forma === 'dinheiro', erros = [];
-    const sai = hora(form.sai), chega = hora(form.chega);
-    let milhas = lerNum(form.milhas); if (milhas && milhas < 1000) milhas *= 1000;
-    const taxa = String(form.taxa || '').trim() === '0' ? 0 : O.lerReais(form.taxa), preco = O.lerReais(form.preco);
-    if (!sai) erros.push('sai'); if (!chega) erros.push('chega');
-    if (din && !preco) erros.push('preco'); if (!din && !milhas) erros.push('milhas'); if (!din && taxa == null) erros.push('taxa');
+    const { erros, dados } = KVOpcao.montar(form, orc.trechos[trecho]);
     app.querySelectorAll('[data-f]').forEach((el) => el.classList.toggle('erro', erros.includes(el.dataset.f)));
     if (erros.length) { app.querySelector(`[data-f="${erros[0]}"]`).focus(); return; }
-    const voo = String(form.voo || '').trim().toUpperCase();
     salvando = true; salvarRascunho(); desenhar();
     try {
-      await KVApi.acao('op.salvar', { orcamento: orc.id, trecho, site: form.site, data: form.data, sai, chega, voo, cia: voo.split(' ')[0] || form.site,
-        escalas: +form.escalas, bagagem: !!form.bagagem, milhas: din ? null : Math.round(milhas), taxa: din ? null : taxa, preco: din ? preco : null, link: String(form.link || '').trim() });
-      recado = { ok: true, texto: `Lançada: ${form.site} ${sai} → ${chega}. Pode capturar a próxima.` };
-      const site = form.site, data = form.data;
+      await KVApi.acao('op.salvar', { orcamento: orc.id, trecho, ...dados });
+      recado = { ok: true, texto: `Lançada: ${dados.site} ${dados.sai} → ${dados.chega}. Site e dia continuam pra próxima.` };
+      const manter = { site: form.site, data: form.data, malaMao: form.malaMao };
       apagarRascunho();
       orc = await KVApi.orcamento(orc.id);
-      form = null; novoForm({ site, data }); // site e dia continuam pra próxima
+      form = null; novoForm(manter);
     } catch (err) { recado = { erro: true, texto: `Não lançou (${err.message}). Os campos continuam salvos aqui: é só tentar de novo.` }; }
     salvando = false;
     desenhar();
+    const prim = app.querySelector('[data-f="sai"]'); if (prim && recado && recado.ok) prim.focus();
   });
 
   function erro(e) { app.innerHTML = `<p class="b-recado erro">${esc(e.message || 'Erro ao carregar.')}</p><button class="btn" type="button" data-recarregar>Tentar de novo</button>`; }
@@ -422,5 +330,5 @@
   pedir('oi');
   carregar().catch(erro);
   // voltou pra barra depois de mexer no sistema em outra aba: confere se mudou algo
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !capturando && !salvando) { KVApi.esquecer(); carregar().catch(() => {}); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !salvando) { KVApi.esquecer(); carregar().catch(() => {}); } });
 })();

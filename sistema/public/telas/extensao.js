@@ -16,8 +16,8 @@ KVTelas['extensao'] = function () {
       app.innerHTML = `<div class="topo"><div><h1>Extensão do Chrome</h1><div class="muted">Barra lateral da pesquisa${versao.versao ? ` · versão ${versao.versao}` : ''}</div></div></div>
         <div class="ext">
           <section class="ext-o-que">
-            <p>Do lado do site da companhia, a barra mostra os orçamentos que estão com você. Ela <b>abre a busca já preenchida</b> (Smiles, Latam, Azul, Skyscanner)
-              e <b>captura o voo</b> que você clicar na página: horário, milhas e taxa vão pro formulário, você confere e lança. O que ela não achar, você completa à mão.</p>
+            <p>Do lado do site da companhia, a barra mostra o seu cronômetro e os orçamentos que estão com você. Ela <b>abre a busca já preenchida</b>
+              (Smiles, Latam, Azul, Skyscanner) e tem o <b>formulário da opção de voo</b>, igual ao da tela de pesquisa, pra lançar sem trocar de aba.</p>
             <a class="btn primario" href="/extensao/kv-pesquisa.zip" download>${'<i data-lucide="download"></i>'}Baixar a extensão</a>
           </section>
           <h2>Instalar (uma vez só, no computador)</h2>
@@ -34,9 +34,8 @@ KVTelas['extensao'] = function () {
             baixe de novo, troque o conteúdo da pasta <b>kv-pesquisa</b> pelo novo e clique no botão de recarregar (seta em círculo) do K&amp;V Pesquisa em <code>chrome://extensions</code>.</p>
           <h2>Como usar</h2>
           <ol class="ext-passos">
-            ${passo('A', 'Buscar', 'Escolha o orçamento e o dia e toque no site: a aba abre com a busca preenchida.')}
-            ${passo('B', 'Capturar', 'Toque em <b>Capturar voo da página</b> e clique no cartão do voo no site. Se pegou pedaço de menos, use <b>Pegar mais</b>. Se tiver texto selecionado na página, ele vai direto.')}
-            ${passo('C', 'Conferir e lançar', 'Os campos que vieram da página ficam em laranja. Complete o que faltar e toque em <b>Lançar</b>. Site e dia continuam pra próxima.')}
+            ${passo(1, 'Buscar', 'Escolha o orçamento e o dia e toque no site: a aba abre com a busca preenchida.')}
+            ${passo(2, 'Lançar', 'Preencha o voo no formulário da barra e toque em <b>Lançar</b> (ou Enter). Site e dia continuam pra próxima. O que você digitar fica salvo sozinho até ser lançado.')}
           </ol>
         </div>`;
       KVShell.icones();

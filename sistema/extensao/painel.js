@@ -1,5 +1,5 @@
 // Ponte entre a barra (página do sistema, no quadro) e a aba aberta ao lado (Smiles, Latam...).
-// A barra pede, a ponte faz: abrir um endereço na aba, capturar o voo que a pessoa clicar, dizer qual site está aberto.
+// A barra pede, a ponte faz: abrir a busca na aba e dizer qual site está aberto.
 const SISTEMA = 'https://kv-sistema.ikkysousa5.workers.dev';
 const VERSAO = chrome.runtime.getManifest().version;
 let quadro = null;
@@ -57,29 +57,12 @@ addEventListener('message', async (e) => {
       if (usar) await chrome.tabs.update(aba.id, { url: d.url }); else await chrome.tabs.create({ url: d.url });
       return;
     }
-    if (d.tipo === 'capturar') {
-      const aba = await abaAtual();
-      if (!aba || !/^https:/.test(aba.url || '')) return mandar({ tipo: 'erro', texto: 'Abra o site da companhia nesta janela antes de capturar.' });
-      await chrome.scripting.executeScript({ target: { tabId: aba.id }, files: ['captura.js'] });
-      return;
-    }
-    if (['cancelar', 'maior', 'menor'].includes(d.tipo)) {
-      const aba = await abaAtual();
-      if (aba) await chrome.scripting.executeScript({ target: { tabId: aba.id }, args: [d.tipo],
-        func: (t) => { const c = window.__kvCaptura; if (c) (t === 'cancelar' ? c.parar : t === 'maior' ? c.maior : c.menor)(); } }).catch(() => {});
-    }
   } catch (err) {
-    mandar({ tipo: 'erro', texto: 'Não deu pra mexer nessa aba (' + (err && err.message ? err.message : 'erro') + ').' });
+    mandar({ tipo: 'erro', texto: 'Não deu pra abrir a busca (' + (err && err.message ? err.message : 'erro') + ').' });
   }
 });
 
-// o voo clicado chega da aba (captura.js) e vai pra barra
-chrome.runtime.onMessage.addListener((msg, quem) => {
-  if (!msg || !msg.kvCaptura) return;
-  mandar({ tipo: 'capturado', ...msg.dados, url: quem.tab ? quem.tab.url : '' });
-});
-
-// a barra sabe qual site está aberto (escolhe o site sozinha e guarda o link do preço)
+// a barra sabe qual site está aberto (escolhe o site sozinha e oferece o endereço da aba como link do preço)
 async function avisarAba() {
   const aba = await abaAtual();
   mandar({ tipo: 'aba', versao: VERSAO, url: aba ? aba.url || '' : '', titulo: aba ? aba.title || '' : '' });
