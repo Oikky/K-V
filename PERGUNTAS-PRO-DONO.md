@@ -10,7 +10,8 @@ Dúvidas de negócio que só quem opera a K&V sabe responder. Enquanto não houv
    - TudoAzul: 5 CPFs (até 8 conforme a categoria), troca manual com 30 dias de carência.
    _Provisório:_ esses valores, editáveis numa tela de configuração.
 2. **Categoria da conta Azul.** Vocês acompanham a categoria de cada conta (ela muda o limite de CPFs)?
-   _Provisório:_ cada conta Azul guarda a sua categoria.
+   No documento antigo, as contas Azul tinham 7, 9 ou 10 vagas anotadas, mas o sistema só conhece de 5 a 8 (Básico a Diamante). Quantas vagas cada categoria dá de verdade?
+   _Provisório:_ cada conta Azul guarda a sua categoria; as importadas ficaram sem categoria (contam 5 vagas) e com as vagas do documento antigo na observação da conta.
 3. **Troca de CPF na Azul.** Vocês trocam CPF cadastrado? Precisa controlar os 30 dias de carência?
    _Provisório:_ o sistema registra a data da troca e avisa durante a carência.
 4. **Interline e vagas.** Emitir pelo Interline (Azul pelo Mundo) gasta vaga de beneficiário da conta Azul?
