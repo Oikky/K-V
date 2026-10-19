@@ -69,15 +69,14 @@ KVTelas['orcamento'] = function () {
     return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>Trecho ${i + 1}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
       + (opsDo(ti).length || o.opcoes.length ? filtroDias(ti, dias) : '');
   }
-  // ---------- filtro de dias: mês primeiro, depois os dias dele; o ano contorna os meses dele ----------
-  // os dias de um trecho podem se espalhar por um mês ou mais e virar o ano
+  // ---------- filtro de dias: calendário do trecho com o mais barato de cada dia ----------
+  // os dias de um trecho podem se espalhar por um mês ou mais e virar o ano: com dois anos, cada ano fica no seu contorno
   const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const MESES_LONGOS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
   const SEMANA = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
   const mesDe = (iso) => +iso.slice(5, 7) - 1;
   const somaDia = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return O.isoDia(d); };
   const segunda = (iso) => somaDia(iso, -((new Date(iso + 'T12:00:00').getDay() + 6) % 7));
-  const agrupar = (lista, chave) => lista.reduce((m, x) => { const k = chave(x); (m.get(k) || m.set(k, []).get(k)).push(x); return m; }, new Map());
   // milhas curtas: 51.000 → 51k, 129.500 → 130k
   const kMil = (n) => `${(n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: n >= 100000 ? 0 : 1 })}k`;
   // o mais barato: pro dono, pelo custo; pra quem pesquisa, pelas milhas (ou o preço em dinheiro)
@@ -86,100 +85,64 @@ KVTelas['orcamento'] = function () {
   const curto = (x) => (x.milhas != null ? kMil(x.milhas) : `R$${Math.round(x.preco / 100)}`);
 
   function filtroDias(ti, dias) {
-    const dia = KVShell.param('dia'), mes = KVShell.param('mes'), pedido = o.trechos[ti].data;
-    const n = (pre) => opsDo(ti).filter((x) => x.data.startsWith(pre)).length;
-    const meses = [...new Set(dias.map((d) => d.slice(0, 7)))];
-    const mesAberto = mes || (dia && dia.slice(0, 7)) || null;
-    const abre = `<button class="cal-abre" data-abre-cal aria-label="Calendário de todos os trechos" title="Calendário de todos os trechos"><i data-lucide="calendar-days"></i></button>`;
-    const todos = `<button class="dia-c todos" data-dia="" aria-pressed="${!dia && !mes}">Todos</button>`;
-    const chip = (d) => `<button class="dia-c ${d === pedido ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}" aria-label="${O.diaCurto(d)} ${+d.slice(8)} de ${MESES[mesDe(d)]}: ${n(d)} opções"><small>${O.diaCurto(d)}</small><b>${d.slice(8)}</b><i>${n(d)}</i></button>`;
-    const pilulas = dias.length > 1 ? [...agrupar(meses, (m) => m.slice(0, 4))].map(([ano, ms]) => `<div class="fd-ano"><span class="fd-ano-n">${ano}</span>${ms.map((m) => `<button class="fd-mes" data-mes="${m}" aria-pressed="${m === mesAberto && !dia}"><b>${MESES[mesDe(m)]}</b><i>${n(m)}</i></button>`).join('')}</div>`).join('') : '';
-    return `<div class="fa-dias">${abre}${dias.length > 1 ? todos : ''}${pilulas}</div>
-      ${mesAberto && dias.length > 1 ? `<div class="fa-dias fd-b-dias">${dias.filter((d) => d.startsWith(mesAberto)).map(chip).join('')}</div>` : ''}`;
-  }
-
-  // ---------- calendário de todos os trechos (abre no botão do calendário). 3 variações pra escolher, trocadas no rodapé ----------
-  const VERSOES_CAL = ['1', '2', '3'];
-  let versaoCal = (() => { try { const v = localStorage.getItem('kv-versao-cal2'); return VERSOES_CAL.includes(v) ? v : '1'; } catch (_) { return '1'; } })();
-  let calDia = null; // variação 1: o dia tocado mostra os trechos dele embaixo
-  // cada trecho tem cor e número; as cores fogem das dos sites (laranja, vermelho, azul, verde)
-  const marcaT = (ti, extra = '') => `<span class="tmarca t${ti % 4}" ${extra}>${ti + 1}</span>`;
-  function calendario() {
-    const ti = trechoSel(), dia = KVShell.param('dia');
-    const datas = [...new Set(o.opcoes.map((x) => x.data))].sort();
-    const anos = new Set(datas.map((d) => d.slice(0, 4)));
-    // num dia: o que tem de cada trecho
-    const noDia = (d) => o.trechos.map((t, i) => ({ i, t, ops: o.opcoes.filter((x) => x.trecho === i && x.data === d) })).filter((g) => g.ops.length);
-    const ir = (i, d) => `data-ir="${i}|${d}"`;
-    const legenda = `<div class="cal-legenda">${o.trechos.map((t, i) => `<span class="${i === ti ? 'atual' : ''}">${marcaT(i)}${esc(t.de)} → ${esc(t.para)}${i === ti ? ' <em>(aberto)</em>' : ''}</span>`).join('')}</div>`;
+    const dia = KVShell.param('dia'), pedido = o.trechos[ti].data, ops = opsDo(ti);
+    const doDia = (d) => ops.filter((x) => x.data === d);
+    const melhor = (d) => maisBarata(doDia(d));
+    // 0 = o dia mais barato do trecho, 1 = o mais caro; pela posição na fila, pra um dia muito caro não apagar a diferença dos outros
+    const fila = [...new Set(dias.map((d) => peso(melhor(d))))].sort((a, b) => a - b);
+    const nivel = (d) => (fila.length < 2 ? 0 : fila.indexOf(peso(melhor(d))) / (fila.length - 1));
+    const anos = new Set(dias.map((d) => d.slice(0, 4)));
     const nomeMes = (ym) => `${MESES_LONGOS[mesDe(ym)]}${anos.size === 1 && ym.slice(0, 4) !== String(new Date().getFullYear()) ? ` <span>${ym.slice(0, 4)}</span>` : ''}`;
     const porAno = (meses, desenha) => (anos.size > 1
       ? [...anos].map((a) => `<fieldset class="cal-anobox"><legend>${a}</legend><div class="cal-meses">${meses.filter((m) => m.startsWith(a)).map(desenha).join('')}</div></fieldset>`).join('')
       : `<div class="cal-meses">${meses.map(desenha).join('')}</div>`);
-    if (!datas.length) return '<p class="vazio">Ainda não tem nenhum voo lançado.</p>';
-
-    if (versaoCal === '3') {
-      // 3: linha do tempo — os dias em colunas, um trecho por linha; dá pra ver a viagem andando
-      const cols = [];
-      for (let d = datas[0]; d <= datas[datas.length - 1]; d = somaDia(d, 1)) cols.push(d);
-      // trecho de dias sem nenhum voo vira uma coluna estreita "…"
-      const vazio = (d) => !datas.includes(d);
-      const mostra = cols.filter((d, k) => !vazio(d) || !(vazio(cols[k - 1] || datas[0]) && vazio(cols[k + 1] || datas[0])));
-      const celulas = [];
-      mostra.forEach((d, k) => { if (k && somaDia(mostra[k - 1], 1) !== d) celulas.push(null); celulas.push(d); });
-      // o mês aparece onde ele começa (pulando os "…"); o ano junto, no começo e quando vira
-      let ultimo = null;
-      const cab = celulas.map((d) => {
-        if (!d) return '<span class="tl-pulo">…</span>';
-        const novoMes = !ultimo || ultimo.slice(0, 7) !== d.slice(0, 7), novoAno = !ultimo || ultimo.slice(0, 4) !== d.slice(0, 4);
-        ultimo = d;
-        return `<span class="tl-dia ${novoMes ? 'novo-mes' : ''} ${d === dia ? 'sel' : ''}">${novoMes ? `<em>${MESES[mesDe(d)]}${novoAno ? ` ${d.slice(0, 4)}` : ''}</em>` : ''}<small>${O.diaCurto(d).slice(0, 1)}</small><b>${+d.slice(8)}</b></span>`;
-      }).join('');
-      const linhas = o.trechos.map((t, i) => `<div class="tl-linha ${i === ti ? 'atual' : ''}"><span class="tl-rot">${marcaT(i)}<b>${esc(t.de)} → ${esc(t.para)}</b></span>${celulas.map((d) => {
-        if (!d) return '<span class="tl-pulo"></span>';
-        const ops = o.opcoes.filter((x) => x.trecho === i && x.data === d);
-        return ops.length ? `<button class="tl-c t${i % 4} ${d === dia && i === ti ? 'sel' : ''}" ${ir(i, d)} aria-label="Trecho ${i + 1}, ${+d.slice(8)} de ${MESES[mesDe(d)]}: ${ops.length} opções, a partir de ${curto(maisBarata(ops))}">${curto(maisBarata(ops))}${ops.length > 1 ? `<i>${ops.length}</i>` : ''}</button>` : '<span class="tl-c vazio"></span>';
-      }).join('')}</div>`).join('');
-      // colunas: o rótulo do trecho, um dia por coluna e uma estreita onde pulou dias sem voo
-      return `<div class="tl" style="--tpl:${celulas.map((d) => (d ? 'var(--c)' : '18px')).join(' ')}"><div class="tl-grade"><div class="tl-linha cab"><span class="tl-rot"></span>${cab}</div>${linhas}</div></div>`;
-    }
-
-    if (versaoCal === '2') {
-      // 2: só as semanas que têm voo; em cada dia, uma etiqueta por trecho (cor + número + o mais barato), tocar leva direto
-      const linhasMes = [];
-      [...new Set(datas.map(segunda))].sort().forEach((s) => {
-        const ds = Array.from({ length: 7 }, (_, k) => somaDia(s, k));
-        [...new Set(ds.map((d) => d.slice(0, 7)))].forEach((ym) => { if (ds.some((d) => d.startsWith(ym) && datas.includes(d))) linhasMes.push({ s, ym, ds }); });
-      });
-      let linhas = '', antes = null;
-      linhasMes.forEach((l) => {
-        if (!antes || l.ym.slice(0, 4) !== antes.ym.slice(0, 4)) linhas += `<div class="cal-ano ${antes ? '' : 'primeiro'}"><span>${l.ym.slice(0, 4)}</span></div>`;
-        else if (l.s !== antes.s && l.s !== somaDia(antes.s, 7)) linhas += '<div class="cal-pulo" aria-hidden="true"></div>';
-        const novoMes = !antes || l.ym !== antes.ym;
-        linhas += `<div class="cal-semana ${novoMes ? 'novo-mes' : ''}"><span class="cal-rot">${novoMes ? MESES[mesDe(l.ym)] : ''}</span>${l.ds.map((d) => {
-          if (!d.startsWith(l.ym)) return '<span class="sd nada"></span>';
-          const gs = noDia(d);
-          return `<div class="sd ${gs.length ? 'tem' : ''} ${d === dia ? 'sel' : ''}"><b>${+d.slice(8)}</b>${gs.map((g) => `<button class="setq t${g.i % 4} ${g.i === ti && d === dia ? 'sel' : ''}" ${ir(g.i, d)} aria-label="Trecho ${g.i + 1}, ${+d.slice(8)} de ${MESES[mesDe(d)]}: ${g.ops.length} opções, a partir de ${curto(maisBarata(g.ops))}"><span>${g.i + 1}</span>${curto(maisBarata(g.ops))}</button>`).join('')}</div>`;
-        }).join('')}</div>`;
-        antes = l;
-      });
-      return `${legenda}<div class="cal-semanas v2t"><div class="cal-semana cab"><span class="cal-rot"></span>${SEMANA.map((x) => `<span class="cal-sem">${x}</span>`).join('')}</div>${linhas}</div>`;
-    }
-
-    // 1: calendário do mês com uma marquinha colorida por trecho; tocar no dia mostra os trechos dele embaixo
-    const mesGrade = (ym) => {
+    const abre = o.trechos.length > 1 ? '<button class="cal-abre" data-abre-cal aria-label="Linha do tempo de todos os trechos" title="Todos os trechos"><i data-lucide="calendar-range"></i></button>' : '';
+    const resumo = dias.length ? `${ops.length} ${ops.length > 1 ? 'opções' : 'opção'} em ${dias.length} ${dias.length > 1 ? 'dias' : 'dia'} · ${O.dataCurta(dias[0])}${dias.length > 1 ? ` a ${O.dataCurta(dias[dias.length - 1])}` : ''}` : 'Nenhuma opção neste trecho ainda';
+    const topo = `<div class="cal-topo">${abre}${dias.length > 1 ? `<button class="cal-todos" data-dia="" aria-pressed="${!dia}">Todos os dias</button>` : ''}<span class="cal-resumo">${resumo}</span></div>`;
+    if (dias.length < 2) return `<div class="cal v2">${topo}</div>`;
+    const rotuloDia = (d) => `${O.diaCurto(d)} ${+d.slice(8)} de ${MESES[mesDe(d)]} de ${d.slice(0, 4)}: ${doDia(d).length} ${doDia(d).length > 1 ? 'opções' : 'opção'}, a partir de ${curto(melhor(d))}`;
+    const celula = (d) => (dias.includes(d)
+      ? `<button class="cal-d ${d === pedido ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}" aria-label="${rotuloDia(d)}" style="--nivel:${nivel(d).toFixed(2)}"><b>${+d.slice(8)}</b><small>${curto(melhor(d))}</small></button>`
+      : `<span class="cal-d vazio ${d === pedido ? 'pedido' : ''}">${+d.slice(8)}</span>`);
+    // um mês inteiro, de segunda a domingo
+    const mes = (ym) => {
       const ult = `${ym}-${String(new Date(+ym.slice(0, 4), mesDe(ym) + 1, 0).getDate()).padStart(2, '0')}`, cel = [];
-      for (let d = segunda(`${ym}-01`); d <= ult || cel.length % 7; d = somaDia(d, 1)) {
-        if (!d.startsWith(ym)) { cel.push('<span class="cal-d nada"></span>'); continue; }
-        const gs = noDia(d);
-        cel.push(gs.length ? `<button class="cal-d ${d === calDia ? 'aberto' : ''}" data-cal-dia="${d}" aria-pressed="${d === calDia}" aria-label="${+d.slice(8)} de ${MESES[mesDe(d)]}: ${gs.map((g) => `trecho ${g.i + 1}`).join(', ')}"><b>${+d.slice(8)}</b><i class="cal-tr">${gs.map((g) => `<u class="t${g.i % 4}"></u>`).join('')}</i></button>` : `<span class="cal-d vazio">${+d.slice(8)}</span>`);
-      }
+      for (let d = segunda(`${ym}-01`); d <= ult || cel.length % 7; d = somaDia(d, 1)) cel.push(d.startsWith(ym) ? celula(d) : '<span class="cal-d nada"></span>');
       return `<div class="cal-mes"><h4>${nomeMes(ym)}</h4><div class="cal-grade">${SEMANA.map((s) => `<span class="cal-sem">${s}</span>`).join('')}${cel.join('')}</div></div>`;
     };
-    const meses = [...new Set(datas.map((d) => d.slice(0, 7)))];
-    const det = calDia ? `<div class="cal-det"><h5>${O.diaCurto(calDia)} ${+calDia.slice(8)} de ${MESES[mesDe(calDia)]} de ${calDia.slice(0, 4)}</h5>${noDia(calDia).map((g) => `<button class="cal-det-l" ${ir(g.i, calDia)}>${marcaT(g.i)}<b>${esc(g.t.de)} → ${esc(g.t.para)}</b><span>${g.ops.length} ${g.ops.length > 1 ? 'opções' : 'opção'} · a partir de ${curto(maisBarata(g.ops))}</span><i data-lucide="chevron-right"></i></button>`).join('')}</div>`
-      : '<p class="cal-dica">Toque num dia pra ver os voos dele.</p>';
-    return `${legenda}<div class="cal v1t">${porAno(meses, mesGrade)}</div>${det}`;
+    const legenda = `<div class="cal-legenda"><span><i class="barato"></i>mais barato</span><span><i class="caro"></i>mais caro</span><span><i class="ped"></i>dia pedido</span><span class="faint">${dono ? 'pelo custo' : 'pelas milhas'}</span></div>`;
+    return `<div class="cal v2">${topo}${porAno([...new Set(dias.map((d) => d.slice(0, 7)))], mes)}${legenda}</div>`;
+  }
+
+  // ---------- linha do tempo de todos os trechos (abre no botão antes do "Todos os dias") ----------
+  // os dias em colunas, um trecho por linha, cada trecho com sua cor e número (as cores fogem das dos sites)
+  const marcaT = (ti) => `<span class="tmarca t${ti % 4}">${ti + 1}</span>`;
+  function linhaDoTempo() {
+    const ti = trechoSel(), dia = KVShell.param('dia');
+    const datas = [...new Set(o.opcoes.map((x) => x.data))].sort();
+    if (!datas.length) return '<p class="vazio">Ainda não tem nenhum voo lançado.</p>';
+    const cols = [];
+    for (let d = datas[0]; d <= datas[datas.length - 1]; d = somaDia(d, 1)) cols.push(d);
+    // dias seguidos sem nenhum voo viram uma coluna estreita "…"
+    const vazio = (d) => !datas.includes(d);
+    const mostra = cols.filter((d, k) => !vazio(d) || !(vazio(cols[k - 1] || datas[0]) && vazio(cols[k + 1] || datas[0])));
+    const celulas = [];
+    mostra.forEach((d, k) => { if (k && somaDia(mostra[k - 1], 1) !== d) celulas.push(null); celulas.push(d); });
+    // o mês aparece onde ele começa (pulando os "…"); o ano junto, no começo e quando vira
+    let ultimo = null;
+    const cab = celulas.map((d) => {
+      if (!d) return '<span class="tl-pulo">…</span>';
+      const novoMes = !ultimo || ultimo.slice(0, 7) !== d.slice(0, 7), novoAno = !ultimo || ultimo.slice(0, 4) !== d.slice(0, 4);
+      ultimo = d;
+      return `<span class="tl-dia ${novoMes ? 'novo-mes' : ''} ${d === dia ? 'sel' : ''}">${novoMes ? `<em>${MESES[mesDe(d)]}${novoAno ? ` ${d.slice(0, 4)}` : ''}</em>` : ''}<small>${O.diaCurto(d).slice(0, 1)}</small><b>${+d.slice(8)}</b></span>`;
+    }).join('');
+    const linhas = o.trechos.map((t, i) => `<div class="tl-linha ${i === ti ? 'atual' : ''}"><span class="tl-rot">${marcaT(i)}<b>${esc(t.de)} → ${esc(t.para)}</b></span>${celulas.map((d) => {
+      if (!d) return '<span class="tl-pulo"></span>';
+      const ops = o.opcoes.filter((x) => x.trecho === i && x.data === d);
+      return ops.length ? `<button class="tl-c t${i % 4} ${d === dia && i === ti ? 'sel' : ''}" data-ir="${i}|${d}" aria-label="Trecho ${i + 1}, ${+d.slice(8)} de ${MESES[mesDe(d)]}: ${ops.length} opções, a partir de ${curto(maisBarata(ops))}">${curto(maisBarata(ops))}${ops.length > 1 ? `<i>${ops.length}</i>` : ''}</button>` : '<span class="tl-c vazio"></span>';
+    }).join('')}</div>`).join('');
+    // colunas: o rótulo do trecho, um dia por coluna e uma estreita onde pulou dias sem voo
+    return `<div class="tl" style="--tpl:${celulas.map((d) => (d ? 'var(--c)' : '18px')).join(' ')}"><div class="tl-grade"><div class="tl-linha cab"><span class="tl-rot"></span>${cab}</div>${linhas}</div></div>`;
   }
 
   let menuAberto = null, confirmarApagar = null, editando = null;
@@ -201,8 +164,7 @@ KVTelas['orcamento'] = function () {
   }
   function opcoes() {
     const dia = KVShell.param('dia');
-    const mes = KVShell.param('mes');
-    const l = opsDo(trechoSel()).filter((x) => (!dia || x.data === dia) && (!mes || x.data.startsWith(mes)))
+    const l = opsDo(trechoSel()).filter((x) => !dia || x.data === dia)
       .sort(dono ? (a, b) => O.custoPessoa(a) - O.custoPessoa(b) : (a, b) => a.data.localeCompare(b.data) || (a.milhas || 1e9) - (b.milhas || 1e9));
     // o lugar do próximo cartão, tracejado: tocar nele lança mais um voo (igual à "Outra combinação" da proposta)
     const t = o.trechos[trechoSel()];
@@ -347,11 +309,9 @@ KVTelas['orcamento'] = function () {
     } else if (j === 'cal') {
       dlg.classList.add('calj');
       const desenha = () => {
-        dlg.innerHTML = cab('Calendário', `Todos os voos dos ${o.trechos.length} trechos`) + `<div class="corpo">${calendario()}</div>
-          <footer><div class="cal-versoes" role="group" aria-label="Variação do calendário"><span>Variação</span>${VERSOES_CAL.map((v) => `<button data-vcal="${v}" aria-pressed="${v === versaoCal}">${v}</button>`).join('')}</div><button class="btn" data-x>Fechar</button></footer>`;
+        dlg.innerHTML = cab('Todos os trechos', 'Toque num voo pra abrir aquele trecho naquele dia') + `<div class="corpo">${linhaDoTempo()}</div>
+          <footer><span></span><button class="btn" data-x>Fechar</button></footer>`;
         dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fecharJanela);
-        dlg.querySelectorAll('[data-vcal]').forEach((b) => b.onclick = () => { versaoCal = b.dataset.vcal; try { localStorage.setItem('kv-versao-cal2', versaoCal); } catch (_) {} desenha(); KVShell.icones(); });
-        dlg.querySelectorAll('[data-cal-dia]').forEach((b) => b.onclick = () => { calDia = calDia === b.dataset.calDia ? null : b.dataset.calDia; desenha(); KVShell.icones(); const d = dlg.querySelector('.cal-det'); if (d) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
         // tocar num voo do calendário: fecha e abre aquele trecho naquele dia
         dlg.querySelectorAll('[data-ir]').forEach((b) => b.onclick = () => { const [t, d] = b.dataset.ir.split('|'); dlg.close(); rascunho = null; KVShell.irPara({ t, dia: d, mes: null, janela: null }); render(); });
         // linha do tempo: já abre no dia escolhido, ou no primeiro voo do trecho aberto
@@ -405,10 +365,9 @@ KVTelas['orcamento'] = function () {
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto && !dlg.open) { const mid = menuAberto; menuAberto = confirmarApagar = null; render(); const b = app.querySelector(`[data-menu="${mid}"]`); if (b) b.focus(); } });
     app.addEventListener('click', async (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;
-      if (b.dataset.t != null) { if (+b.dataset.t !== trechoSel()) { rascunho = null; KVShell.irPara({ t: b.dataset.t, dia: null, mes: null }); render(); } }
-      else if (b.dataset.dia != null) { if (b.dataset.dia !== (KVShell.param('dia') || '')) { KVShell.irPara({ dia: b.dataset.dia || null, mes: null }); render(); } }
-      else if (b.dataset.mes != null) { if (b.dataset.mes !== (KVShell.param('mes') || '')) { KVShell.irPara({ mes: b.dataset.mes || null, dia: null }); render(); } }
-      else if (b.hasAttribute('data-abre-cal')) { calDia = KVShell.param('dia'); KVShell.irPara({ janela: 'cal' }); sincJanela(); }
+      if (b.dataset.t != null) { if (+b.dataset.t !== trechoSel()) { rascunho = null; KVShell.irPara({ t: b.dataset.t, dia: null }); render(); } }
+      else if (b.dataset.dia != null) { if (b.dataset.dia !== (KVShell.param('dia') || '')) { KVShell.irPara({ dia: b.dataset.dia || null }); render(); } }
+      else if (b.hasAttribute('data-abre-cal')) { KVShell.irPara({ janela: 'cal' }); sincJanela(); }
       else if (b.hasAttribute('data-nova')) { salvasAgora = 0; editando = null; rascunho = rascunho && { site: rascunho.site, data: rascunho.data }; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.dup) { const op = o.opcoes.find((x) => x.id === +b.dataset.dup); rascunho = paraForm(op); salvasAgora = 0; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.del) { if (await fazer('op.apagar', { orcamento: o.id, id: +b.dataset.del })) KVShell.aviso('Opção apagada'); render(); }
