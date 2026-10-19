@@ -26,7 +26,7 @@ KVTelas['extensao'] = function () {
             ${passo(2, 'Abra as extensões do Chrome', 'Na barra de endereço, digite <code>chrome://extensions</code> e aperte Enter.')}
             ${passo(3, 'Ligue o modo do desenvolvedor', 'Botão no canto de cima, à direita. Ele só libera instalar extensão a partir de uma pasta.')}
             ${passo(4, 'Carregue a pasta', 'Clique em <b>Carregar sem compactação</b> e escolha a pasta <b>kv-pesquisa</b>.')}
-            ${passo(5, 'Fixe o ícone', 'Clique na peça de quebra-cabeça ao lado da barra de endereço e no alfinete do <b>K&amp;V Pesquisa</b>. Clicar no ícone laranja abre a barra; o atalho <b>Ctrl+Shift+K</b> também abre. Pra trocar o atalho: <code>chrome://extensions/shortcuts</code>.')}
+            ${passo(5, 'Fixe o ícone', 'Clique na peça de quebra-cabeça ao lado da barra de endereço e no alfinete do <b>K&amp;V Pesquisa</b>. Clicar no ícone laranja abre a barra; o atalho <b>Alt+K</b> também abre. Se o atalho não funcionar, defina em <code>chrome://extensions/shortcuts</code> (no Edge, <code>edge://extensions/shortcuts</code>).')}
             ${passo(6, 'Entre', 'Na primeira vez, a barra pede pra entrar no sistema (o mesmo login Google). Depois disso, ela sabe quem é você.')}
           </ol>
           <h2>Atualizar</h2>
