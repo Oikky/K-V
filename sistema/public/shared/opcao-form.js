@@ -1,7 +1,8 @@
 /* Formulário de uma opção de voo: os campos da página de voo do documento antigo, na ordem em que aparecem no resumo escrito.
    Usado na tela de pesquisa (telas/orcamento.js) e na barra da extensão (barra.js), pra as duas ficarem sempre iguais.
    KVOpcao.html(trecho, valores, { dia }) desenha; KVOpcao.ler(raiz) pega o que está nos campos;
-   KVOpcao.montar(valores, trecho) confere e devolve { erros, dados } no formato da ação op.salvar (sem orcamento e trecho). */
+   KVOpcao.montar(valores, trecho) confere e devolve { erros, dados } no formato da ação op.salvar (sem orcamento e trecho);
+   KVOpcao.deOpcao(opção) transforma uma opção gravada nos valores do formulário (editar, duplicar). */
 (function () {
   const O = KVOrc, esc = O.esc;
   const DESTAQUES = ['‼️Opção mais barata‼️', '‼️Opção a noite‼️', '‼️Outra opção de volta‼️', '‼️Volta indisponível em milhas‼️', '‼️Voo indisponível‼️', '‼️Taxa total ida e volta‼️'];
@@ -83,5 +84,13 @@
       malaMao: v.malaMao === '' ? null : v.malaMao === '1', destaque: String(v.destaque || '').trim() || null, obs: String(v.obs || '').trim() } };
   }
 
-  window.KVOpcao = { html, ler, montar, DESTAQUES, eDinheiro };
+  // uma opção já gravada → valores do formulário (pra editar ou duplicar)
+  const reais = (c) => c == null ? '' : (c / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const deOpcao = (op) => ({ site: op.site, data: op.data, cia: op.cia === op.site ? '' : op.cia, voo: op.voo, de: op.de || '', para: op.para || '', sai: op.sai,
+    chega: op.chega.replace(/ \+\d$/, ''), depois: (/ \+(\d)$/.exec(op.chega) || [])[1] || 0, duracao: op.duracao || '',
+    escalasOnde: op.escalasOnde || Array.from({ length: op.escalas }, () => ['', '']), bagagem: op.bagagem, malaMao: op.mala_mao == null ? '' : String(op.mala_mao),
+    milhas: op.milhas ? op.milhas / 1000 : '', taxa: reais(op.taxa), preco: reais(op.preco), milhasMala: op.milhas_mala ? op.milhas_mala / 1000 : '',
+    destaque: op.destaque || '', obs: op.obs || '', link: op.link });
+
+  window.KVOpcao = { html, ler, montar, deOpcao, DESTAQUES, eDinheiro };
 })();

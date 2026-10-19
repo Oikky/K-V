@@ -16,7 +16,6 @@ KVTelas['orcamento'] = function () {
   const podeLancar = () => dono || (o.responsavel === eu.email && o.etapa === 'pesquisa');
   // quem pode pegar orçamento; quem já está com ele aparece mesmo que não pesquise (ex.: o dono pegou)
   const pesquisadores = () => est.usuarios.filter((u) => ((u.papel === 'pesquisador' || u.pesquisa) && u.ativo !== 0) || u.email === o.responsavel);
-  const reais = (c) => c == null ? '' : (c / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   function foraDoPedido(op) {
     const p = o.pedido || '', l = [];
     if (p.includes('Só voo direto') && op.escalas > 0) l.push('não é direto');
@@ -208,11 +207,7 @@ KVTelas['orcamento'] = function () {
     // Enter salva (no campo de observações, pula linha)
     dlg.onkeydown = (e) => { if (e.key === 'Enter' && !['BUTTON', 'TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); salvarOp(); } };
   }
-  const paraForm = (op) => ({ site: op.site, data: op.data, cia: op.cia === op.site ? '' : op.cia, voo: op.voo, de: op.de || '', para: op.para || '', sai: op.sai,
-    chega: op.chega.replace(/ \+\d$/, ''), depois: (/ \+(\d)$/.exec(op.chega) || [])[1] || 0, duracao: op.duracao || '',
-    escalasOnde: op.escalasOnde || Array.from({ length: op.escalas }, () => ['', '']), bagagem: op.bagagem, malaMao: op.mala_mao == null ? '' : String(op.mala_mao),
-    milhas: op.milhas ? op.milhas / 1000 : '', taxa: reais(op.taxa), preco: reais(op.preco), milhasMala: op.milhas_mala ? op.milhas_mala / 1000 : '',
-    destaque: op.destaque || '', obs: op.obs || '', link: op.link });
+  const paraForm = KVOpcao.deOpcao;
   function sincJanela() {
     const j = KVShell.param('janela');
     if (j === 'nova' && podeLancar()) {
