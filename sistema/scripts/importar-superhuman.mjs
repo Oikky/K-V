@@ -313,17 +313,19 @@ for (const viagem of viagens) {
   const trechos = viagem.flatMap((p) => p.trechos).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999'));
   if (!trechos.length) trechos.push({ de: null, para: null, data: null, filhas: [], pz });
   const etapa = recente(ultimo) ? 'pesquisado' : 'perdido';
+  // várias pastas juntas: cada anotação diz de qual trecho era
+  const comRota = (txt, i) => (viagem.length > 1 && txt && viagem[i].trechos[0] ? `${viagem[i].trechos[0].de || '?'} a ${viagem[i].trechos[viagem[i].trechos.length - 1].para || '?'}:\n${txt}` : txt);
   const observacao = viagem.map(({ pz: x }) => [
     x['Observações'], x['Data Ida Orçamento'] && `Datas de ida pedidas: ${x['Data Ida Orçamento'].replace(/\n/g, ', ')}`,
     x['Data Volta Orçamento'] && `Datas de volta pedidas: ${x['Data Volta Orçamento'].replace(/\n/g, ', ')}`,
-    x.Skyscanner && `Skyscanner:\n${x.Skyscanner}`, x['Em função site'] && `Anotações:\n${x['Em função site']}`,
-  ].filter(Boolean).map(espacos).join('\n\n')).map((o, i, todas) => (todas.length > 1 && o && viagem[i].trechos[0] ? `${viagem[i].trechos[0].de || '?'} a ${viagem[i].trechos[viagem[i].trechos.length - 1].para || '?'}:\n${o}` : o))
-    .filter(Boolean).join('\n\n');
+  ].filter(Boolean).map(espacos).join('\n\n')).map(comRota).filter(Boolean).join('\n\n');
+  // o "Em função site" era o resumo escrito montado pela fórmula: o sistema monta de novo com as opções, então não vem
+  const skyscanner = viagem.map(({ pz: x }) => (x.Skyscanner ? espacos(x.Skyscanner) : '')).map(comRota).filter(Boolean).join('\n\n');
   const orcId = cria('orcamentos', {
     contato_nome: nome, contato_whatsapp: '', etapa, antes_de_perder: etapa === 'perdido' ? 'pesquisado' : null,
     motivo: etapa === 'perdido' ? 'Veio do Superhuman Docs sem desfecho anotado' : null, responsavel: quem,
     adultos: pessoasN ? Math.max(1, Math.min(9, +pessoasN[1])) : 1, criancas: 0, bebes: 0,
-    pedido: [detalhe, viagem.some((p) => p.pz['Voo Direto'] === true || p.pz['Voo Direto'] === 'true') ? 'Só voo direto' : ''].filter(Boolean).join(' · '), observacao, faltando: '[]', origem: 'superhuman', audio: 0,
+    pedido: [detalhe, viagem.some((p) => p.pz['Voo Direto'] === true || p.pz['Voo Direto'] === 'true') ? 'Só voo direto' : ''].filter(Boolean).join(' · '), observacao, skyscanner, faltando: '[]', origem: 'superhuman', audio: 0,
     criado_em: pz.criado, criado_por: POR,
   });
   trechos.forEach((t, i) => poe('trechos', { orcamento_id: orcId, ordem: i, de: t.de || '???', para: t.para || '???', data: t.data || diaBR(t.pz.criado), janela: 0 }));
@@ -340,9 +342,11 @@ for (const viagem of viagens) {
       escalas: escalas.length, bagagem: /^\s*[1-9]/.test(mala) && !/n[aã]o/i.test(mala) ? 1 : 0,
       milhas: pontos ? inteiro(f['Quantidade de Milhas']) : null, taxa: pontos ? centavos(f.Taxa) ?? 0 : null,
       preco: pontos ? null : centavos(f.Taxa) ?? 0, link: '',
-      obs: [escalas.map((k, n) => [f[k], f[TEMPO_ESCALA[n]]].filter(Boolean).join(' ')).join(', '),
-        f['Tempo de Viagem'] && `Duração ${f['Tempo de Viagem']}`, f['Valor com Mala'] && `Com mala: ${Number(f['Valor com Mala']).toLocaleString('pt-BR')} milhas`,
-        f['Observações'], f['Observação Data']].filter(Boolean).map(espacos).join(' · '),
+      obs: [f['Observação Data'], f['Observações']].filter(Boolean).map(espacos).join(' · '),
+      de: iata(f.Origem), para: iata(f.Destino), duracao: f['Tempo de Viagem'] ? espacos(f['Tempo de Viagem']) : null,
+      escalas_onde: escalas.length ? JSON.stringify(escalas.map((k, n) => [espacos(f[k]), f[TEMPO_ESCALA[n]] ? espacos(f[TEMPO_ESCALA[n]]) : ''])) : null,
+      milhas_mala: pontos && f['Valor com Mala'] ? inteiro(f['Valor com Mala']) : null,
+      mala_mao: f['Mala de Mão'] === true || f['Mala de Mão'] === 'true' ? 1 : f['Mala de Mão'] === false || f['Mala de Mão'] === 'false' ? 0 : null,
       criada_em: f.criado, criada_por: String(f.Column || POR).toLowerCase() });
   }));
 }

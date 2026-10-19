@@ -57,6 +57,7 @@ KVTelas['orcamento'] = function () {
           <span class="kpi"><b>${pessoas()}</b><span>${pessoas() > 1 ? 'pessoas' : 'pessoa'}</span></span><span class="kpi ${dono && o.etapa === 'pesquisado' ? 'destaque' : ''}"><b>${o.opcoes.length}</b><span>opções</span></span></div>
         <div class="linha-acoes">${o.pedido ? `<span class="pedido-pilula"><i data-lucide="message-square-quote"></i>${esc(o.pedido)}</span>` : ''}
           <button class="btn" data-conf><i data-lucide="list-checks"></i>Conferência ${feitos}/${o.conferencia.length}</button>
+          <button class="btn" data-resumo><i data-lucide="file-text"></i>Resumo escrito</button>
           <span class="acoes">${acoes}</span></div></div>`;
   }
 
@@ -240,6 +241,19 @@ KVTelas['orcamento'] = function () {
         const por = async () => { const v = dlg.querySelector('#novo-item').value.trim(); if (v && await fazer('conf.adicionar', { orcamento: o.id, texto: v })) { render(); sincJanela(); dlg.querySelector('#novo-item').focus(); } };
         add.onclick = por; dlg.querySelector('#novo-item').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); por(); } };
       }
+    } else if (j === 'resumo') {
+      // resumo escrito: o texto pro WhatsApp, montado com o que está lançado; a prévia mostra o negrito como o WhatsApp mostra
+      dlg.classList.add('resumo');
+      const txt = KVResumo.resumo(o, { comValor: dono });
+      const previa = esc(txt).replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
+      dlg.innerHTML = cab('Resumo escrito', 'Montado com as opções lançadas, pra colar no WhatsApp') + `<div class="corpo"><div class="resumo-txt">${previa}</div>
+        ${o.opcoes.length ? '' : '<p class="resumo-nota">Ainda não tem nenhuma opção lançada; quando tiver, ela entra aqui.</p>'}</div>
+        <footer><span class="resumo-nota">${dono ? '' : 'Sem o valor em R$: ele sai no resumo do dono.'}</span><button class="btn primario" data-copiar><i data-lucide="copy"></i>Copiar</button></footer>`;
+      dlg.querySelector('[data-copiar]').onclick = async (e) => {
+        const b = e.currentTarget;
+        try { await navigator.clipboard.writeText(txt); b.innerHTML = '<i data-lucide="check"></i>Copiado'; KVShell.icones(); }
+        catch (_) { KVShell.aviso('Não deu pra copiar sozinho; selecione o texto e copie', { erro: true }); }
+      };
     } else if (j === 'pesquisado') {
       const falta = o.conferencia.filter((c) => !c.feito), semOp = o.trechos.map((t, i) => ({ t, i })).filter(({ i }) => !opsDo(i).length), tudo = !falta.length && !semOp.length;
       dlg.innerHTML = cab('Marcar como pesquisado?', 'Vai pro dono revisar e montar a proposta') + `<div class="corpo" style="display:grid;gap:10px;padding-bottom:14px">
@@ -277,6 +291,7 @@ KVTelas['orcamento'] = function () {
       else if (b.hasAttribute('data-nova')) { salvasAgora = 0; editando = null; rascunho = rascunho && { site: rascunho.site, data: rascunho.data }; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.dup) { const op = o.opcoes.find((x) => x.id === +b.dataset.dup); rascunho = paraForm(op); salvasAgora = 0; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.del) { if (await fazer('op.apagar', { orcamento: o.id, id: +b.dataset.del })) KVShell.aviso('Opção apagada'); render(); }
+      else if (b.hasAttribute('data-resumo')) { KVShell.irPara({ janela: 'resumo' }); sincJanela(); }
       else if (b.hasAttribute('data-conf')) { KVShell.irPara({ janela: 'conf' }); sincJanela(); }
       else if (b.hasAttribute('data-pesquisado')) { KVShell.irPara({ janela: 'pesquisado' }); sincJanela(); }
       else if (b.hasAttribute('data-pegar')) { b.disabled = true; await fazer('orc.pegar', { id: o.id }); render(); }

@@ -80,3 +80,9 @@
     .filtro-linha { flex-wrap: nowrap; overflow-x: auto; margin-left: -16px; margin-right: -16px; padding: 0 16px 4px; scrollbar-width: none; }
     .filtro-linha .pilula, .filtro-linha .rot { flex: none; }
   }
+  /* resumo escrito: o texto como vai aparecer no WhatsApp (negrito no lugar dos asteriscos) */
+  .janela.resumo { width: min(520px, calc(100vw - 32px)); }
+  .resumo-txt { margin: 0 0 14px; padding: 14px 16px; border-radius: 16px; background: var(--surface-2); font: 500 14.5px/1.5 var(--font); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+  .resumo-txt b { font-weight: 800; }
+  .resumo-nota { font-size: 13px; color: var(--text-3); font-weight: 600; }
+  @media (max-width: 760px) { .janela.resumo { width: 100vw; } }

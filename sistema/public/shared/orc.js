@@ -12,9 +12,14 @@
     ['CXJ', 'Caxias do Sul'], ['PNZ', 'Petrolina'], ['FEN', 'Fernando de Noronha'], ['JDO', 'Juazeiro do Norte'], ['STM', 'Santarém'], ['IMP', 'Imperatriz'], ['XAP', 'Chapecó'], ['CAC', 'Cascavel'],
     ['MIA', 'Miami'], ['MCO', 'Orlando'], ['JFK', 'Nova York'], ['EZE', 'Buenos Aires'], ['SCL', 'Santiago'], ['LIM', 'Lima'], ['CUN', 'Cancún'], ['PTY', 'Cidade do Panamá'], ['DXB', 'Dubai'], ['FLL', 'Fort Lauderdale'], ['EWR', 'Newark'], ['LAX', 'Los Angeles'], ['MEX', 'Cidade do México'], ['BOG', 'Bogotá'], ['MVD', 'Montevidéu'],
     ['ASU', 'Assunção'], ['CUZ', 'Cusco'], ['PUJ', 'Punta Cana'], ['ZRH', 'Zurique'], ['MUC', 'Munique'], ['IST', 'Istambul'], ['DOH', 'Doha'], ['MXP', 'Milão'], ['ATL', 'Atlanta'],
+    ['MOC', 'Montes Claros'], ['AUX', 'Araguaína'], ['RIA', 'Santa Maria'],
+    ['LGA', 'Nova York (LaGuardia)'], ['BOS', 'Boston'], ['SFO', 'São Francisco'], ['ORD', 'Chicago'], ['IAD', 'Washington (Dulles)'], ['DCA', 'Washington (Reagan)'],
+    ['BWI', 'Baltimore'], ['PHL', 'Filadélfia'], ['TPA', 'Tampa'], ['DFW', 'Dallas'], ['TUL', 'Tulsa'], ['MSN', 'Madison'],
+    ['DUB', 'Dublin'], ['ORK', 'Cork'], ['LGW', 'Londres (Gatwick)'], ['GLA', 'Glasgow'], ['EDI', 'Edimburgo'], ['BRU', 'Bruxelas'], ['ADB', 'Esmirna'],
+    ['DSS', 'Dakar'], ['NBJ', 'Luanda'], ['NRT', 'Tóquio (Narita)'], ['HND', 'Tóquio (Haneda)'],
   ].map(([cod, cidade]) => ({ cod, cidade }));
   // aeroportos do Brasil: fora daqui é voo internacional (aviso de passaporte)
-  const NACIONAIS = new Set('GRU CGH VCP GIG SDU BSB CNF PLU SSA REC FOR POA CWB FLN GYN MAO BEL NAT MCZ IGU JPA AJU THE SLZ CGB CGR VIX NVT JOI LDB MGF UDI IOS BPS PMW PVH RBR MCP BVB SJP RAO CXJ PNZ FEN JDO STM IMP XAP CAC'.split(' '));
+  const NACIONAIS = new Set('GRU CGH VCP GIG SDU BSB CNF PLU SSA REC FOR POA CWB FLN GYN MAO BEL NAT MCZ IGU JPA AJU THE SLZ CGB CGR VIX NVT JOI LDB MGF UDI IOS BPS PMW PVH RBR MCP BVB SJP RAO CXJ PNZ FEN JDO STM IMP XAP CAC MOC AUX RIA'.split(' '));
   const aeroporto = (cod) => ({ ...(AEROPORTOS.find((a) => a.cod === cod) || { cod, cidade: cod }), int: !NACIONAIS.has(cod) });
   const cidadeCurta = (cod) => aeroporto(cod).cidade.replace(/ \(.*\)/, '');
 
