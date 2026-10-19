@@ -4,7 +4,7 @@
    O estilo desta tela está em telas/orcamentos.css. */
 KVTelas['orcamentos'] = function () {
   const O = KVOrc, { esc } = KVOrc;
-  let eu = null, dono = false, nomes = {}, lista = [], app = null;
+  let eu = null, dono = false, nomes = {}, lista = [], app = null, equipe = [], ligados = {};
   let textoBusca = '', menuAberto = null, confirmarApagar = null;
 
   const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -66,13 +66,34 @@ KVTelas['orcamentos'] = function () {
     app.innerHTML = `<div class="cab-fila"><h1>Orçamentos</h1>
         <div class="kpis"><span class="kpi"><b>${l.filter((o) => O.etapa(o.etapa).aberta).length}</b><span>abertos</span></span><span class="kpi destaque"><b>${n('pesquisado')}</b><span>pra revisar</span></span><span class="kpi"><b>${n('enviado')}</b><span>esperando resposta</span></span><span class="kpi"><b>${n('fechado')}</b><span>fechados</span></span></div>
         <a class="btn primario" href="novo-orcamento.html"><i data-lucide="plus"></i>Novo orçamento</a></div>
+      ${equipeHtml()}
       <div class="secao"><h2>Pra revisar</h2><span class="n">${revisar.length} pesquisados</span></div>
       ${revisar.length ? `<div class="grade-ref">${revisar.map((o, i) => cartao(o, { cheio: i === 0, rodape: (x) => `${quemPesquisa(x)}<span class="pq">pesquisou ${O.idade(x.pesquisadoEm || x.criadoEm)}</span>${seletorEtapa(x)}` })).join('')}</div>` : '<div class="vazio">Nada esperando você.</div>'}
       <div class="secao"><h2>Todos os orçamentos</h2><span class="n">${resto.length}</span>${buscaHtml()}</div>
       <div class="pilulas rolar" style="margin:-4px 0 18px">${FILTROS.map((x) => `<button class="pilula" data-f="${x.id}" aria-pressed="${x.id === f}">${x.nome} <span class="cont">${l.filter((o) => passa(x.id, o)).length}</span></button>`).join('')}</div>
       ${resto.length ? `<div class="grade-ref">${resto.map((o) => cartao(o, { rodape: (x) => `${falta(x)}${quemPesquisa(x)}<span class="pq">${O.idade(x.criadoEm)}</span>${seletorEtapa(x)}` })).join('')}</div>` : `<div class="vazio">${l.length ? 'Nenhum orçamento aqui.' : 'Nenhum orçamento ainda. Os pedidos mandados pro bot do Telegram aparecem aqui.'}</div>`}`;
   }
-  const quemPesquisa = (o) => o.responsavel ? `<span class="ava" title="${esc(nomeDe(o.responsavel))}">${esc(iniciais(nomeDe(o.responsavel)))}</span>` : '<span class="etiqueta">na fila</span>';
+  const quemPesquisa = (o) => o.responsavel ? `<span class="quem-pq"><span class="ava" aria-hidden="true">${esc(iniciais(nomeDe(o.responsavel)))}</span>${esc(primeiro(nomeDe(o.responsavel)))}</span>` : '<span class="etiqueta">na fila</span>';
+
+  // Equipe agora (dono e admin): cada pesquisador, se o cronômetro está ligado e os orçamentos em pesquisa com ele
+  function equipeHtml() {
+    if (!equipe.length) return '';
+    // 'desde 14:02' hoje; 'desde 27/09 14:02' se ligou em outro dia
+    const hora = (iso) => { const d = new Date(iso), h = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      return d.toDateString() === new Date().toDateString() ? h : `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} ${h}`; };
+    const nLigados = equipe.filter((u) => ligados[u.email]).length;
+    return `<div class="secao"><h2>Equipe agora</h2><span class="n">${nLigados ? `${nLigados} com o cronômetro ligado` : 'ninguém com o cronômetro ligado'}</span></div>
+      <div class="equipe">${equipe.map((u) => {
+        const meus = lista.filter((o) => o.responsavel === u.email && o.etapa === 'pesquisa').sort(antigo);
+        const on = ligados[u.email];
+        return `<section class="membro"><div class="m-topo"><span class="avc">${esc(iniciais(u.nome))}</span>
+            <span class="m-nome"><b>${esc(u.nome)}</b><small class="${on ? 'on' : ''}">${on ? `<span class="pulso"></span>Trabalhando desde ${hora(on)}` : 'Pausado'}</small></span>
+            <span class="m-n" aria-label="${meus.length} em pesquisa">${meus.length}</span></div>
+          ${meus.length ? `<div class="m-orcs">${meus.map((o) => `<a class="m-orc" href="${link(o)}"><span class="m-r">${esc(siglas(o))}</span>
+              <span class="m-d">#${o.id} · ${esc(doisNomes(o.contato.nome))} · ${o.nOpcoes ? `${o.nOpcoes} ${o.nOpcoes === 1 ? 'opção' : 'opções'}` : 'nenhuma opção ainda'} · ${o.conferencia.feitos}/${o.conferencia.total} conferidos</span></a>`).join('')}</div>`
+            : '<div class="m-vazio">Nenhum orçamento em pesquisa com ele agora.</div>'}</section>`;
+      }).join('')}</div>`;
+  }
   const seletorEtapa = (o) => `<label class="sel-pilula"><span class="escondido">Etapa</span><select data-etapa-de="${o.id}">${O.etapas.map((e) => `<option value="${e.id}" ${e.id === o.etapa ? 'selected' : ''}>${e.nome}</option>`).join('')}</select></label>`;
 
   function vistaPesquisador() {
@@ -170,8 +191,12 @@ KVTelas['orcamentos'] = function () {
   // ---------- carregar e manter atualizado ----------
   let ultimoJson = '';
   async function recarregar() {
-    const l = await KVApi.orcamentos();
-    const j = JSON.stringify(l);
+    const [l, pt] = await Promise.all([KVApi.orcamentos(), dono ? KVApi.ponto().catch(() => null) : null]);
+    if (pt) {
+      equipe = pt.pesquisadores.map(({ email, nome }) => ({ email, nome }));
+      ligados = Object.fromEntries(pt.trechos.filter((t) => !t.fim).map((t) => [t.email, t.inicio]));
+    }
+    const j = JSON.stringify([l, equipe, ligados]);
     if (j === ultimoJson) return;
     ultimoJson = j; lista = l;
     // com o menu aberto, espera fechar pra não sumir debaixo do dedo

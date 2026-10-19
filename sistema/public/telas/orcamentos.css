@@ -15,6 +15,28 @@
   .cartao-ref.cheio .avc { background: rgb(0 0 0 / .12); color: var(--orange-ink); }
   .grade-ref .ca:has(.menu-orc) { z-index: 5; }
   .grade-ref .ca { display: flex; flex-direction: column; gap: 14px; padding-bottom: 18px; }
+  /* quem está com o orçamento, no rodapé do cartão */
+  .quem-pq { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; }
+  /* Equipe agora: um bloco por pesquisador */
+  .equipe { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-bottom: 28px; }
+  .membro { background: var(--surface-1); border-radius: 22px; padding: 16px; display: grid; gap: 12px; align-content: start; }
+  .m-topo { display: flex; align-items: center; gap: 10px; }
+  .m-nome { flex: 1; min-width: 0; }
+  .m-nome b { display: block; font-size: 15px; }
+  .m-nome small { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-3); font-weight: 600; }
+  .m-nome small.on { color: var(--orange); }
+  .m-nome .pulso { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); }
+  @media (prefers-reduced-motion: no-preference) {
+    .m-nome .pulso { animation: kv-pulso-eq 1.6s ease-out infinite; }
+    @keyframes kv-pulso-eq { 0% { box-shadow: 0 0 0 0 rgb(255 137 17 / .55); } 100% { box-shadow: 0 0 0 7px rgb(255 137 17 / 0); } }
+  }
+  .m-n { min-width: 34px; height: 34px; padding: 0 10px; border-radius: var(--r-pill); background: var(--surface-2); display: grid; place-items: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .m-orcs { display: grid; gap: 6px; }
+  .m-orc { display: grid; gap: 2px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2); color: var(--text); text-decoration: none; transition: background .15s; }
+  .m-orc:hover { background: var(--surface-3); }
+  .m-r { font-size: 16px; font-variant-numeric: tabular-nums; }
+  .m-d { font-size: 12.5px; color: var(--text-2); }
+  .m-vazio { font-size: 13.5px; color: var(--text-3); }
   .ca .grupos { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: auto; padding-top: 4px; }
   .ca .tags { display: flex; gap: 6px; }
   .ca .dir { text-align: right; }
