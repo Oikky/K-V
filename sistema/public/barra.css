@@ -140,3 +140,7 @@ body { background: var(--bg); }
 .c-barra:has(.c-lancar:only-child) { grid-template-columns: 1fr; }
 .c-barra .btn { justify-content: center; height: 50px; padding: 0 10px; }
 .c-cap span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- ver como (só admin) ---------- */
+.b-vercomo { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.b-vercomo select { flex: 1; min-width: 0; height: 34px; padding: 0 10px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); color: var(--text); font: 600 13.5px var(--font); }

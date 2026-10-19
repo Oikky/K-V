@@ -225,7 +225,13 @@
   // ---------- versões (enquanto o usuário escolhe; depois fica só a escolhida) ----------
   const VERSOES = { A: 'Cockpit', B: 'Passo a passo', C: 'Formulário primeiro' };
   let versao = VERSOES[lembrado('kv-barra-versao')] ? lembrado('kv-barra-versao') : 'A';
-  const seletorVersao = () => `<nav class="b-versoes" aria-label="Versão da barra">${Object.entries(VERSOES).map(([k, n]) => `<button type="button" data-versao="${k}" aria-pressed="${k === versao}" title="${n}">${k}<small>${n}</small></button>`).join('')}</nav>`;
+  // só o admin: usar a barra como outra pessoa da equipe (igual ao "ver como" do sistema; esta escolha fica só na barra)
+  function verComo() {
+    if (!est || !est.equipe) return '';
+    const real = eu.admin ? eu.admin.email : eu.email;
+    return `<label class="b-vercomo">${icone('eye')}<span>Ver como</span><select data-ver-como>${est.equipe.map((u) => `<option value="${esc(u.email === real ? '' : u.email)}" ${u.email === eu.email ? 'selected' : ''}>${esc(u.nome)}${u.email === real ? ' (você)' : ''}</option>`).join('')}</select></label>`;
+  }
+  const seletorVersao = () => verComo() + `<nav class="b-versoes" aria-label="Versão da barra">${Object.entries(VERSOES).map(([k, n]) => `<button type="button" data-versao="${k}" aria-pressed="${k === versao}" title="${n}">${k}<small>${n}</small></button>`).join('')}</nav>`;
 
   // ---------- peças ----------
   const icone = (n) => `<i data-lucide="${n}"></i>`;
@@ -240,7 +246,7 @@
     return `${velha ? `<a class="b-aviso" href="/extensao.html" target="_blank">${icone('download')}Tem versão nova da extensão. Toque pra atualizar.</a>` : ''}
       ${!naExtensao ? `<p class="b-aviso calmo">${icone('info')}Aberto fora da extensão: dá pra lançar, mas não pra capturar nem abrir a busca.</p>` : ''}`;
   }
-  const quem = () => `<div class="quem"><b>${esc(eu.nome)}</b><span>${PAPEL[eu.papel] || ''}${eu.admin ? ` · vendo como (você é ${esc(eu.admin.nome)})` : ''}</span></div>`;
+  const quem = () => `<div class="quem"><b>${esc(eu.nome)}</b><span>${PAPEL[eu.papel] || ''}</span></div>`;
   const recarregar = () => `<button class="btn icone fantasma" type="button" data-recarregar aria-label="Atualizar">${icone('refresh-cw')}</button>`;
   const recadoHtml = () => (recado ? `<p class="b-recado ${recado.erro ? 'erro' : recado.ok ? 'ok' : ''}" role="status">${esc(recado.texto)}</p>` : '');
   const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
@@ -364,6 +370,13 @@
   });
   app.addEventListener('change', (e) => {
     const f = e.target.dataset && e.target.dataset.f;
+    if (e.target.dataset && e.target.dataset.verComo != null) {
+      sincronizar(); salvarRascunho();
+      lembrar('kv-ver-como', e.target.value || null);
+      KVApi.esquecer(); orc = null; form = null; recado = null; lembrar('kv-barra-orc', null);
+      app.innerHTML = '<p class="carregando">Carregando…</p>';
+      return carregar().catch(erro);
+    }
     if (f) { sincronizar(); salvarRascunho(); }
     if (f === 'site') { form.travadoSite = true; desenhar(); }
     if (f === 'data') desenhar(); // o "Buscar dd/mm em" acompanha o dia escolhido
