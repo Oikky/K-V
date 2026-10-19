@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "K&V Pesquisa",
   "short_name": "K&V",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Barra lateral da pesquisa de voos da K&V: cronômetro, busca já preenchida nos sites e lançamento da opção de voo.",
   "icons": {
     "16": "icone-16.png",
@@ -30,7 +30,7 @@
     "https://kv-sistema.ikkysousa5.workers.dev/*"
   ],
   "commands": {
-    "_execute_action": {
+    "abrir-barra": {
       "suggested_key": {
         "default": "Ctrl+Shift+K",
         "mac": "Command+Shift+K"
