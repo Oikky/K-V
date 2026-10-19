@@ -1,0 +1,60 @@
+/* Barra da pesquisa (extensão): coluna estreita, ~360 px. Tokens e peças vêm do base.css. */
+body { background: var(--bg); }
+.pesq > * { min-width: 0; }
+.pesq { padding: 14px 16px 40px; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.pesq .btn.largo { width: 100%; justify-content: center; height: 48px; }
+.pesq .btn[disabled] { opacity: .45; cursor: not-allowed; }
+.pesq svg.lucide { width: 18px; height: 18px; flex: none; }
+
+.b-topo { display: flex; align-items: center; gap: 10px; }
+.b-topo .quem { display: grid; min-width: 0; flex: 1; }
+.b-topo .quem b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-topo .quem span { font-size: 12.5px; color: var(--text-2); }
+.b-aviso { display: flex; gap: 8px; align-items: center; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--orange-soft); color: var(--orange); font-size: 13.5px; font-weight: 600; text-decoration: none; }
+.b-aviso.calmo { background: var(--surface-1); color: var(--text-2); font-weight: 500; }
+
+.b-tit { font-size: 16px; margin-top: 6px; }
+.b-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.b-orc { width: 100%; display: grid; gap: 2px; text-align: left; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-1); color: inherit; font: inherit; cursor: pointer; }
+.b-orc:hover { background: var(--surface-2); }
+.b-orc .rota { font-size: 17px; font-weight: 600; }
+.b-orc .sub { font-size: 13px; color: var(--text-2); }
+.b-orc .quem-pesq { color: var(--teal-soft); font-weight: 600; }
+.b-vazio { margin: 0; color: var(--text-3); font-size: 14px; }
+
+.b-cab { display: flex; align-items: center; gap: 8px; }
+.b-cab div { display: grid; } .b-cab span { font-size: 13px; color: var(--text-2); }
+.b-nota { border-radius: 12px; background: var(--warn-bg); color: var(--warn); font-size: 13.5px; }
+.b-nota summary { display: flex; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; }
+.b-nota summary::-webkit-details-marker { display: none; }
+.b-nota summary span { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.b-nota[open] summary span { display: block; }
+.b-rota { margin: 0; font-size: 20px; font-weight: 600; } .b-rota small { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); }
+.b-trechos { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.b-trechos button { flex: none; display: grid; text-align: left; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-1); color: var(--text-2); font: 600 14px/1.2 inherit; font-family: inherit; cursor: pointer; }
+.b-trechos button small { font-weight: 500; font-size: 12px; }
+.b-trechos button[aria-selected="true"] { background: var(--surface-3); color: var(--text); border-color: var(--orange); }
+
+.b-bloco { display: grid; gap: 8px; }
+.b-bloco h3 { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.b-sites { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.b-sites .btn { justify-content: center; }
+.b-captura { border: 2px dashed var(--orange); border-radius: 16px; padding: 12px; display: grid; gap: 10px; }
+.b-captura p { display: flex; gap: 8px; align-items: center; margin: 0; font-weight: 600; color: var(--orange); }
+.b-captura .linha { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (prefers-reduced-motion: no-preference) { .b-captura p svg { animation: b-pulsa 1.2s ease-in-out infinite; } @keyframes b-pulsa { 50% { transform: scale(1.15); } } }
+.b-recado { margin: 0; font-size: 13.5px; padding: 10px 12px; border-radius: 12px; background: var(--surface-1); color: var(--text-2); }
+.b-recado.ok { background: var(--ok-bg); color: var(--ok); } .b-recado.erro { background: var(--danger-bg); color: var(--danger); }
+
+.b-form { display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: var(--surface-1); }
+.b-form .duas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.b-form .campo input, .b-form .campo select { height: 42px; padding: 0 12px; }
+.b-form [data-veio] { border-color: var(--orange) !important; background: var(--orange-soft) !important; }
+.b-form .erro { border-color: var(--danger) !important; }
+.b-check { display: flex; gap: 10px; align-items: center; font-size: 15px; cursor: pointer; padding: 4px 6px; border-radius: 10px; border: 1px solid transparent; }
+.b-check input { width: 20px; height: 20px; accent-color: var(--orange); }
+.b-usar { justify-self: start; border: 0; background: none; color: var(--orange); font: 600 13px inherit; font-family: inherit; padding: 2px 0; cursor: pointer; text-decoration: underline; }
+
+.b-ops { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+.b-ops li { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: var(--surface-1); color: var(--text-2); }
+.b-ops li b { color: var(--text); } .b-ops li span { margin-left: auto; color: var(--text); font-weight: 600; }

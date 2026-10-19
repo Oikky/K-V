@@ -19,6 +19,10 @@
        ponto            Ponto do pesquisador (cronômetro) (quem vê: quem pesquisa)  →  telas/ponto.js e telas/ponto.css
        folha            Folha do ponto (pagamento das semanas) (quem vê: dono)  →  telas/folha.js e telas/folha.css
        programas        Configurações dos programas (quem vê: dono)  →  telas/programas.js e telas/programas.css
+       extensao         Instalar a extensão do Chrome (quem vê: todos, pelo menu da foto)  →  telas/extensao.js e telas/extensao.css
+
+     Fora da página única: barra.html (+ barra.js, barra.css) é a barra da pesquisa que aparece dentro da extensão.
+     A extensão em si fica em sistema/extensao/; "npm run extensao" gera public/extensao/kv-pesquisa.zip e versao.json.
 
      Peças que várias telas usam, em shared/:
        base.css        cores, letras e peças visuais aprovadas (docs/direcao-visual.md)
@@ -54,6 +58,7 @@
 <link rel="stylesheet" href="telas/ponto.css?r=1" data-tela="ponto" media="not all">
 <link rel="stylesheet" href="telas/folha.css?r=2" data-tela="folha" media="not all">
 <link rel="stylesheet" href="telas/programas.css?r=1" data-tela="programas" media="not all">
+<link rel="stylesheet" href="telas/extensao.css?r=1" data-tela="extensao" media="not all">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
@@ -64,7 +69,7 @@
 <script src="shared/contas.js?r=3"></script>
 <script src="shared/pessoas.js?r=2"></script>
 <script src="shared/ponto.js?r=2"></script>
-<script src="shared/shell.js?r=8"></script>
+<script src="shared/shell.js?r=9"></script>
 <script src="shared/combo.js?r=2"></script>
 <script src="shared/pessoa-form.js?r=3"></script>
 <script src="telas/orcamentos.js?r=4"></script>
@@ -83,6 +88,7 @@
 <script src="telas/ponto.js?r=1"></script>
 <script src="telas/folha.js?r=2"></script>
 <script src="telas/programas.js?r=1"></script>
+<script src="telas/extensao.js?r=1"></script>
 <script>KVRota.iniciar();</script>
 </body>
 </html>

@@ -90,9 +90,10 @@
           <p class="perfil-sub">Igual a entrar na conta da pessoa: o que você gravar sai no nome dela (o histórico anota que foi você).</p>
           <ul class="perfil-lista">${equipe.map(linha).join('')}</ul>` : `<p class="perfil-sub">${papelDe(eu)}</p>`}
       </div>
-      <footer><button class="btn" type="button" data-tema-j><i data-lucide="sun-moon"></i>Trocar tema</button></footer>`;
+      <footer><a class="btn" href="extensao.html" data-ext-j><i data-lucide="puzzle"></i>Extensão do Chrome</a><button class="btn" type="button" data-tema-j><i data-lucide="sun-moon"></i>Trocar tema</button></footer>`;
     dlg.querySelector('[data-fechar]').onclick = () => dlg.close();
     dlg.querySelector('[data-tema-j]').onclick = trocarTema;
+    dlg.querySelector('[data-ext-j]').onclick = () => { dlg.onclose = null; dlg.close(); };
     dlg.querySelectorAll('[data-como]').forEach((b) => { b.onclick = () => (b.hasAttribute('aria-current') ? dlg.close() : verComo(b.dataset.como)); });
     if (window.lucide) lucide.createIcons();
   }

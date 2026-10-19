@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- A barra lateral. Quase tudo o que aparece aqui vem do sistema (barra.html, dentro do quadro),
+     então corrigir a barra é só publicar o sistema: ninguém precisa reinstalar a extensão. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>K&amp;V</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #010E1F; color: #F3F6FA; font: 15px/1.4 system-ui, sans-serif; }
+  iframe { border: 0; width: 100%; height: 100%; display: block; }
+  .entrar { display: none; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; box-sizing: border-box; }
+  .entrar.ver { display: flex; }
+  .marca { font: 800 22px system-ui, sans-serif; } .marca b { color: #FF8911; }
+  .entrar p { margin: 0; color: #A9B8CC; max-width: 280px; }
+  button { height: 44px; padding: 0 20px; border-radius: 999px; border: 0; background: #FF8911; color: #1F1000; font: 700 15px system-ui, sans-serif; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="entrar" id="entrar">
+  <div class="marca">K<b>&amp;</b>V</div>
+  <p id="msg">Entre no sistema com a sua conta Google pra usar a barra.</p>
+  <button type="button" id="botao">Entrar no sistema</button>
+</div>
+<script src="painel.js"></script>
+</body>
+</html>
