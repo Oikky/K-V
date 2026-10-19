@@ -1,7 +1,6 @@
-/* Barra da pesquisa (dentro da extensão do Chrome): quem está usando, o cronômetro, os orçamentos em pesquisa com a pessoa,
-   os botões que abrem a busca do site já com rota, dia e passageiros, e o formulário da opção de voo, preenchido à mão
-   (o mesmo da tela de pesquisa: shared/opcao-form.js). Os endereços de busca (BUSCA) ficam aqui no sistema:
-   se um site mudar, corrige e publica, sem reinstalar a extensão. */
+/* Barra da pesquisa (dentro da extensão do Chrome): quem está usando, o cronômetro, os orçamentos em pesquisa com a pessoa
+   e o formulário da opção de voo, preenchido à mão (o mesmo da tela de pesquisa: shared/opcao-form.js).
+   Da aba aberta ao lado, a barra só usa o endereço: escolhe o site sozinha e oferece o endereço como link do preço. */
 (function () {
   const O = KVOrc, esc = O.esc;
   const app = document.getElementById('barra');
@@ -35,29 +34,7 @@
     }
   });
 
-  // ---------- A) endereço da busca de cada site (um trecho só ida) ----------
   const pad = (n) => String(n).padStart(2, '0');
-  const BUSCA = {
-    Smiles: (t, dia, p) => {
-      const [a, m, d] = dia.split('-').map(Number);
-      return `https://www.smiles.com.br/mfe/emissao-passagem/?adults=${p.adultos}&children=${p.criancas}&infants=${p.bebes}&cabin=ALL`
-        + `&departureDate=${Date.UTC(a, m - 1, d, 15)}&returnDate=&isFlexibleDateChecked=false&searchType=g3&segments=1&tripType=2`
-        + `&originAirport=${t.de}&originAirportIsAny=false&destinationAirport=${t.para}&destinAirportIsAny=false&novo-resultado-voos=true`;
-    },
-    Latam: (t, dia, p) => `https://www.latamairlines.com/br/pt/oferta-voos?origin=${t.de}&outbound=${dia}T15%3A00%3A00.000Z&destination=${t.para}`
-      + `&inbound=null&adt=${p.adultos}&teen=0&chd=${p.criancas}&inf=${p.bebes}&trip=OW&cabin=Economy&redemption=true&sort=RECOMMENDED`,
-    TudoAzul: (t, dia, p) => {
-      const [a, m, d] = dia.split('-');
-      return `https://www.voeazul.com.br/br/pt/home/selecao-voo?c[0].ds=${t.de}&c[0].std=${m}/${d}/${a}&c[0].as=${t.para}`
-        + `&p[0].t=ADT&p[0].c=${p.adultos}&p[0].cp=false&p[1].t=CHD&p[1].c=${p.criancas}&p[1].cp=false&p[2].t=INF&p[2].c=${p.bebes}&p[2].cp=false&f.dl=3&f.dr=3&cc=PTS`;
-    },
-    Skyscanner: (t, dia, p) => {
-      const kids = [...Array(p.criancas).fill(8), ...Array(p.bebes).fill(1)].join('%7C');
-      return `https://www.skyscanner.com.br/transporte/passagens-aereas/${t.de.toLowerCase()}/${t.para.toLowerCase()}/${dia.slice(2).replace(/-/g, '')}/`
-        + `?adultsv2=${p.adultos}&childrenv2=${kids}&cabinclass=economy&rtn=0`;
-    },
-  };
-  const NOME_BUSCA = { Smiles: 'Smiles', Latam: 'Latam', TudoAzul: 'Azul', Skyscanner: 'Skyscanner' };
 
   function siteDaUrl(u) {
     const h = (() => { try { return new URL(u).hostname; } catch (e) { return ''; } })();
@@ -192,14 +169,13 @@
   function avisos() {
     const velha = naExtensao && aba.versao && EXT_VERSAO && maisVelha(aba.versao, EXT_VERSAO);
     return `${velha ? `<a class="b-aviso" href="/extensao.html" target="_blank">${icone('download')}<span>Tem versão nova da extensão (a instalada é a ${esc(aba.versao)}, a nova é a ${esc(EXT_VERSAO)}). Toque pra ver como atualizar.</span></a>` : ''}
-      ${!naExtensao ? `<p class="b-aviso calmo">${icone('info')}Aberto fora da extensão: dá pra lançar, mas não pra abrir a busca nos sites.</p>` : ''}`;
+`;
   }
   const quem = () => `<div class="quem"><b>${esc(eu.nome)}</b><span>${PAPEL[eu.papel] || ''}</span></div>`;
   const recarregar = () => `<button class="btn icone fantasma" type="button" data-recarregar aria-label="Atualizar">${icone('refresh-cw')}</button>`;
   const recadoHtml = () => (recado ? `<p class="b-recado ${recado.erro ? 'erro' : recado.ok ? 'ok' : ''}" role="status">${esc(recado.texto)}</p>` : '');
   const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
   const trechos = () => (orc.trechos.length > 1 ? `<div class="b-trechos" role="tablist">${orc.trechos.map((x, i) => `<button type="button" role="tab" aria-selected="${i === trecho}" data-trecho="${i}">${x.de} → ${x.para}<small>${O.dataCurta(x.data)}</small></button>`).join('')}</div>` : '');
-  const sites = () => Object.keys(BUSCA).map((s) => `<button type="button" class="a-site" data-buscar="${s}" ${naExtensao ? '' : 'disabled'}>${NOME_BUSCA[s]}${icone('arrow-up-right')}</button>`).join('');
   const campos = () => KVOpcao.html(orc.trechos[trecho], form)
     + (naExtensao && aba.url && /^https:/.test(aba.url) && form.link !== aba.url ? `<button type="button" class="b-usar" data-usar-aba>Usar o endereço da aba aberta como link</button>` : '');
   const opResumo = (x) => `${esc(x.site)} ${O.dataCurta(x.data)} · ${esc(x.sai)} → ${esc(x.chega)}`;
@@ -229,14 +205,13 @@
       ${dono && outros.length ? `<h2 class="b-tit">Com a equipe <span class="n">${outros.length}</span></h2><ul class="b-lista">${outros.map((o) => item(o, ` · com ${esc(nomeDe(o.responsavel).split(' ')[0])}`)).join('')}</ul>` : ''}`;
   }
 
-  // ---------- um orçamento: cronômetro, sites no cartão laranja, formulário e as opções já lançadas (com Editar) ----------
+  // ---------- um orçamento: cronômetro, formulário e as opções já lançadas (com Editar) ----------
   function telaOrc() {
     const l = lancadas(), t = orc.trechos[trecho], ed = editando && (orc.opcoes || []).find((x) => x.id === editando);
     return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}
       <div class="a-orc">${voltar()}<div><span class="a-id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span>
         <b class="a-rota">${rotaTxt()}</b><span class="a-dia">${O.diaCurto(t.data)} ${O.dataCurta(t.data)}${t.janela ? ' · janela de 14 dias' : ''}</span></div></div>
       ${trechos()}${nota()}
-      <section class="a-destaque"><div class="b-sites">${sites()}</div></section>
       ${recadoHtml()}
       ${ed ? `<div class="b-editando">${icone('pencil')}<span>Editando <b>${opResumo(ed)}</b></span><button type="button" class="btn pequeno fantasma" data-cancelar-edicao>Cancelar</button></div>` : ''}
       <form class="b-form form-op ${ed ? 'em-edicao' : ''}" id="b-form" autocomplete="off">${campos()}
@@ -297,7 +272,6 @@
     if (b.dataset.abrir) { recado = null; return abrir(+b.dataset.abrir).catch(erro); }
     if (b.dataset.voltar != null) { sincronizar(); salvarRascunho(); orc = null; form = null; recado = null; lembrar('kv-barra-orc', null); return desenhar(); }
     if (b.dataset.trecho) { sincronizar(); salvarRascunho(); trecho = +b.dataset.trecho; lembrar('kv-barra-trecho', trecho); recado = null; novoForm({ site: form.site }); restaurarRascunho(); return desenhar(); }
-    if (b.dataset.buscar) { sincronizar(); return pedir('abrir', { url: BUSCA[b.dataset.buscar](orc.trechos[trecho], form.data, orc.passageiros) }); }
     if (b.dataset.editar) { sincronizar(); const id = +b.dataset.editar; return perguntar(() => editar(id), { oQue: 'Quer salvar antes de abrir a outra?' }); }
     if (b.dataset.cancelarEdicao != null) { sincronizar(); return perguntar(voltarPraNova, { oQue: 'Quer salvar antes de sair da edição?' }); }
     if (b.dataset.usarAba != null) { sincronizar(); form.link = aba.url; salvarRascunho(); return desenhar(); }

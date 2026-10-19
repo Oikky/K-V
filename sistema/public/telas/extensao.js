@@ -16,8 +16,8 @@ KVTelas['extensao'] = function () {
       app.innerHTML = `<div class="topo"><div><h1>Extensão do Chrome</h1><div class="muted">Barra lateral da pesquisa${versao.versao ? ` · versão ${versao.versao}` : ''}</div></div></div>
         <div class="ext">
           <section class="ext-o-que">
-            <p>Do lado do site da companhia, a barra mostra o seu cronômetro e os orçamentos que estão com você. Ela <b>abre a busca já preenchida</b>
-              (Smiles, Latam, Azul, Skyscanner) e tem o <b>formulário da opção de voo</b>, igual ao da tela de pesquisa, pra lançar sem trocar de aba.</p>
+            <p>Do lado do site da companhia, a barra mostra o seu cronômetro e os orçamentos que estão com você, com o <b>formulário da opção de voo</b>
+              igual ao da tela de pesquisa, pra lançar e editar sem trocar de aba.</p>
             <a class="btn primario" href="/extensao/kv-pesquisa.zip" download>${'<i data-lucide="download"></i>'}Baixar a extensão</a>
           </section>
           <h2>Instalar (uma vez só, no computador)</h2>
@@ -34,8 +34,9 @@ KVTelas['extensao'] = function () {
             baixe de novo, troque o conteúdo da pasta <b>kv-pesquisa</b> pelo novo e clique no botão de recarregar (seta em círculo) do K&amp;V Pesquisa em <code>chrome://extensions</code>.</p>
           <h2>Como usar</h2>
           <ol class="ext-passos">
-            ${passo(1, 'Buscar', 'Escolha o orçamento e o dia e toque no site: a aba abre com a busca preenchida.')}
+            ${passo(1, 'Escolher', 'Toque no orçamento e, se tiver mais de um trecho, no trecho que está pesquisando.')}
             ${passo(2, 'Lançar', 'Preencha o voo no formulário da barra e toque em <b>Lançar</b> (ou Enter). Site e dia continuam pra próxima. O que você digitar fica salvo sozinho até ser lançado.')}
+            ${passo(3, 'Editar', 'Nas opções já lançadas, no fim da barra, toque em <b>Editar</b>. Se tiver algo não salvo no formulário, a barra pergunta antes.')}
           </ol>
         </div>`;
       KVShell.icones();
