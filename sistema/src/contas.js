@@ -13,29 +13,30 @@ export async function contasCompletas(env, filtro = {}) {
   if (filtro.programa) { onde = 'c.programa_id = ?'; args = [filtro.programa]; }
   if (filtro.ids) { onde = `c.id IN (${filtro.ids.map(() => '?').join(',') || 'NULL'})`; args = filtro.ids; }
   const contas = await todos(db, `
-    SELECT c.id, c.titular_id, p.nome AS titular, p.cpf AS titular_cpf, c.programa_id, c.clube, c.clube_custo, c.categoria, c.numero, c.ativa,
+    SELECT c.id, c.titular_id, p.nome AS titular, p.cpf AS titular_cpf, c.programa_id, c.clube, c.clube_custo, c.categoria, c.numero, c.ativa, c.obs,
            pr.nome AS programa, pr.limite, pr.regra, pr.renovacao, pr.valor_milha,
            COALESCE((SELECT SUM(CASE m.lado WHEN 'entrada' THEN m.pontos ELSE -m.pontos END) FROM movimentos m WHERE m.conta_id = c.id), 0) AS saldo,
-           -- custo real: o que se pagou pelos pontos que entraram (sem saldo antigo nem estorno)
-           (SELECT SUM(m.custo) FROM movimentos m WHERE m.conta_id = c.id AND m.lado = 'entrada' AND m.tipo NOT IN ('inicial', 'estorno')) AS custo_total,
-           (SELECT SUM(m.pontos) FROM movimentos m WHERE m.conta_id = c.id AND m.lado = 'entrada' AND m.tipo NOT IN ('inicial', 'estorno')) AS custo_pontos
+           -- custo real: o que se pagou pelos pontos que entraram (sem saldo antigo, estorno, nem o que veio do Superhuman, que não anotava custo)
+           (SELECT SUM(m.custo) FROM movimentos m WHERE m.conta_id = c.id AND m.lado = 'entrada' AND m.tipo NOT IN ('inicial', 'estorno') AND m.criado_por <> 'superhuman') AS custo_total,
+           (SELECT SUM(m.pontos) FROM movimentos m WHERE m.conta_id = c.id AND m.lado = 'entrada' AND m.tipo NOT IN ('inicial', 'estorno') AND m.criado_por <> 'superhuman') AS custo_pontos
     FROM contas c JOIN pessoas p ON p.id = c.titular_id JOIN programas pr ON pr.id = c.programa_id
     WHERE ${onde} ORDER BY p.nome COLLATE NOCASE`, ...args);
   if (!contas.length) return [];
-  const ids = contas.map((c) => c.id), marcas = ids.map(() => '?').join(',');
+  // as mesmas contas, por subconsulta: uma lista de ids passaria do limite de 100 valores por consulta do D1
+  const dasContas = `(SELECT c.id FROM contas c WHERE ${onde})`;
   const [lotes, voaram, manuais, categorias] = await Promise.all([
-    todos(db, `SELECT id, conta_id, vence, resta, data, tipo, origem FROM movimentos WHERE conta_id IN (${marcas}) AND lado = 'entrada' AND resta > 0
-               ORDER BY conta_id, vence IS NULL, vence, data, id`, ...ids),
+    todos(db, `SELECT id, conta_id, vence, resta, data, tipo, origem FROM movimentos WHERE conta_id IN ${dasContas} AND lado = 'entrada' AND resta > 0
+               ORDER BY conta_id, vence IS NULL, vence, data, id`, ...args),
     // quem voou por cada conta e quando foi a última vez (emissões não canceladas)
-    todos(db, `SELECT e.conta_id, ep.pessoa_id, MAX(m.data) AS ultima FROM emissoes e
+    todos(db, `SELECT e.conta_id, ep.pessoa_id, ps.nome, ps.cpf, MAX(m.data) AS ultima FROM emissoes e
                JOIN emissao_passageiros ep ON ep.emissao_id = e.id JOIN movimentos m ON m.emissao_id = e.id AND m.lado = 'saida'
-               WHERE e.conta_id IN (${marcas}) AND e.cancelada = 0 GROUP BY e.conta_id, ep.pessoa_id`, ...ids),
-    todos(db, `SELECT conta_id, pessoa_id, data AS ultima FROM beneficiarios_manuais WHERE conta_id IN (${marcas})`, ...ids),
+               JOIN pessoas ps ON ps.id = ep.pessoa_id
+               WHERE e.conta_id IN ${dasContas} AND e.cancelada = 0 GROUP BY e.conta_id, ep.pessoa_id`, ...args),
+    todos(db, `SELECT b.conta_id, b.pessoa_id, ps.nome, ps.cpf, b.data AS ultima FROM beneficiarios_manuais b JOIN pessoas ps ON ps.id = b.pessoa_id
+               WHERE b.conta_id IN ${dasContas}`, ...args),
     todos(db, 'SELECT programa_id, nome, limite FROM categorias'),
   ]);
-  const idsPessoas = [...new Set([...voaram, ...manuais].map((b) => b.pessoa_id))];
-  const nomes = Object.fromEntries((idsPessoas.length ? await todos(db, `SELECT id, nome, cpf FROM pessoas WHERE id IN (${idsPessoas.map(() => '?').join(',')})`, ...idsPessoas) : [])
-    .map((p) => [p.id, { nome: p.nome, cpf: p.cpf }]));
+  const nomes = Object.fromEntries([...voaram, ...manuais].map((b) => [b.pessoa_id, { nome: b.nome, cpf: b.cpf }]));
   const ano = hoje.slice(0, 4);
   const umAnoAntes = (() => { const d = new Date(hoje + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 365); return d.toISOString().slice(0, 10); })();
   const em60 = (() => { const d = new Date(hoje + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 60); return d.toISOString().slice(0, 10); })();

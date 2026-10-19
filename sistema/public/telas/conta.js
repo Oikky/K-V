@@ -115,7 +115,7 @@ KVTelas['conta'] = function () {
     const v = KV.vencendo(c);
     const movs = [...c.movimentos].reverse();
     app.innerHTML = `<a class="voltar" href="contas.html"><i data-lucide="arrow-left"></i>Contas de pontos</a>
-      <div class="topo"><div><h1>${esc(c.titular)}</h1><div class="muted"><span class="prog" data-p="${c.programaId}">${p.nome}</span>${c.categoria ? ` · categoria ${c.categoria}` : ''}${c.clube ? ` · clube de ${fmt.pts(c.clube)}/mês` : ''}</div></div>
+      <div class="topo"><div><h1>${esc(c.titular)}</h1><div class="muted"><span class="prog" data-p="${c.programaId}">${p.nome}</span>${c.categoria ? ` · categoria ${c.categoria}` : ''}${c.clube ? ` · clube de ${fmt.pts(c.clube)}/mês` : ''}</div>${c.obs ? `<div class="muted" style="margin-top:4px">${esc(c.obs)}</div>` : ''}</div>
       <div class="acoes"><select class="trocar" aria-label="Ver outra conta" onchange="KVRota.ir('?id='+this.value)">
         ${KV.contas().map((x) => `<option value="${x.id}" ${x.id === c.id ? 'selected' : ''}>${esc(x.titular)} · ${KV.programa(x.programaId).nome}</option>`).join('')}</select>
         <a class="btn" href="saida.html?conta=${c.id}"><i data-lucide="minus"></i>Saída</a><a class="btn primario" href="entrada.html?conta=${c.id}"><i data-lucide="plus"></i>Entrada</a></div></div>

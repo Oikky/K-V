@@ -26,16 +26,19 @@ export async function clientes(env) {
                FROM orcamentos WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL`),
   ]);
   if (!orcs.length) return { pessoas, viagens: [] };
-  const ids = orcs.map((o) => o.id), m = ids.map(() => '?').join(',');
-  const [trechos, combos, pax, emissoes] = await Promise.all([
-    todos(db, `SELECT orcamento_id, de, para, data FROM trechos WHERE orcamento_id IN (${m}) ORDER BY orcamento_id, ordem`, ...ids),
-    todos(db, `SELECT id, orcamento_id, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE id IN (${orcs.map(() => '?').join(',')})`, ...orcs.map((o) => o.combo_aceita)),
-    todos(db, `SELECT orcamento_id, pessoa_id FROM orcamento_passageiros WHERE orcamento_id IN (${m}) ORDER BY orcamento_id, ordem`, ...ids),
+  // as viagens fechadas por subconsulta: uma lista de ids passaria do limite de 100 valores por consulta do D1
+  const fechadas = "(SELECT id FROM orcamentos WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL)";
+  const aceitas = "(SELECT combo_aceita FROM orcamentos WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL)";
+  const [trechos, combos, pax, emissoes, opcoes] = await Promise.all([
+    todos(db, `SELECT orcamento_id, de, para, data FROM trechos WHERE orcamento_id IN ${fechadas} ORDER BY orcamento_id, ordem`),
+    todos(db, `SELECT id, orcamento_id, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE id IN ${aceitas}`),
+    todos(db, `SELECT orcamento_id, pessoa_id FROM orcamento_passageiros WHERE orcamento_id IN ${fechadas} ORDER BY orcamento_id, ordem`),
     todos(db, `SELECT e.orcamento_id, e.trecho, e.localizador, e.cancelada, e.devolvido, c.programa_id FROM emissoes e LEFT JOIN contas c ON c.id = e.conta_id
-               WHERE e.orcamento_id IN (${m}) ORDER BY e.orcamento_id, e.trecho`, ...ids),
+               WHERE e.orcamento_id IN ${fechadas} ORDER BY e.orcamento_id, e.trecho`),
+    // as opções escolhidas nas combinações aceitas (a escolha é uma lista JSON de ids)
+    todos(db, `SELECT id, trecho, site, data, milhas, taxa, preco FROM opcoes
+               WHERE id IN (SELECT j.value FROM combos c, json_each(c.escolha) j WHERE c.id IN ${aceitas})`),
   ]);
-  const escolhas = [...new Set(combos.flatMap((c) => JSON.parse(c.escolha)))];
-  const opcoes = escolhas.length ? await todos(db, `SELECT id, trecho, site, data, milhas, taxa, preco FROM opcoes WHERE id IN (${escolhas.map(() => '?').join(',')})`, ...escolhas) : [];
   const viagens = orcs.map((o) => {
     const c = combos.find((x) => x.id === o.combo_aceita);
     return {
