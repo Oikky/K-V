@@ -224,6 +224,8 @@ for (const t of limpas('Tempos').sort((a, b) => String(a.Inicio).localeCompare(S
   if (!emails.has(email) || !t.Inicio) { pontoFora++; continue; }
   const rodando = t.Rodando === true || t.Rodando === 'true';
   if (!t.Fim && !rodando) { pontoFora++; continue; }
+  // cronômetro ligado há mais de um dia é esquecido (no documento havia um de 20 dias, solto, sem dia de ponto): não entra
+  if (!t.Fim && Date.now() - Date.parse(t.Inicio) > 24 * 3600e3) { avisa(`Cronômetro esquecido ligado desde ${diaBR(t.Inicio)}: ficou só na cópia.`); continue; }
   cria('ponto', { email: emails.get(email), inicio: new Date(t.Inicio).toISOString(), fim: t.Fim ? new Date(t.Fim).toISOString() : null, manual: 0 });
 }
 if (pontoFora) avisa(`${pontoFora} registro(s) de ponto sem e-mail da equipe ou sem hora ficaram só na cópia.`);

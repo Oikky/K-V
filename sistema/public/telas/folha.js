@@ -11,6 +11,16 @@ KVTelas['folha'] = function () {
     render();
   }
   const pagosAgora = new Set(); // pagamentos marcados nesta visita: dá pra desfazer
+  const todasAbertas = new Set(); // pesquisadores com a lista inteira de semanas aberta
+  const ESQUECIDO = 16 * 60; // cronômetro ligado há mais que isso (minutos) provavelmente foi esquecido
+  const diasTrabalhados = (s) => s.dias.filter((d) => d.minutos > 0).length;
+  // semanas fechadas com horas ou pagamento, da mais nova pra mais antiga (o servidor manda os últimos 6 meses)
+  const historico = (pid) => P.semanas(pid, 26).filter((x) => !x.atual && (x.minutos > 0 || x.pagamento));
+  const linhaSemana = (p, x) => { const d = diasTrabalhados(x);
+    return `<button class="sem-linha" data-semana="${esc(p.id)}|${x.offset}" aria-label="Ver a semana ${periodo(x)}">
+      <span class="q"><b>${periodo(x)}</b><span>${F.dur(x.minutos)} · ${d} dia${d === 1 ? '' : 's'}</span></span>
+      <span class="v num">${brl(x.pagamento ? x.pagamento.valor : x.ganho)}</span>
+      ${x.pagamento ? `<span class="chip ok">Paga ${F.dataCurta(dt(x.pagamento.data))}</span>` : '<span class="chip warn">A pagar</span>'}<i data-lucide="chevron-right"></i></button>`; };
   const dt = (iso) => new Date(iso + 'T12:00');
   const periodo = (s) => `${F.dataCurta(dt(s.inicio))} a ${F.dataCurta(dt(s.fim))}`;
   const nomeSemana = (s) => s.atual ? 'Esta semana' : s.offset === -1 ? 'Semana passada' : `Semana ${periodo(s)}`;
@@ -46,17 +56,24 @@ KVTelas['folha'] = function () {
         const aPagar = P.aPagar().filter((x) => x.pid === p.id);
         const pagas = P.semanas(p.id, 5).filter((x) => x.pagamento).slice(0, 3);
         const correcoes = [...s.correcoes, ...aPagar.flatMap((x) => x.correcoes)];
+        const r = P.rodando(p.id), hist = historico(p.id), todas = todasAbertas.has(p.id);
+        const esquecido = r && P.duracao(r) > ESQUECIDO
+          ? `<div class="aviso warn">O cronômetro está ligado desde ${F.quando(r.inicio, P.agora())} (${F.dur(P.duracao(r))}). Parece esquecido: essas horas estão entrando na conta. Peça pra ${esc(primeiroNome(p))} corrigir no ponto.</div>` : '';
         return `<section class="card pesq">
           <div class="pesq-topo"><div><h2>${esc(p.nome)}</h2>${agoraChip(p.id)}</div>
             <div class="hora-val"><span>${P.valorHora(p.id) ? `<b>${brl(P.valorHora(p.id))}</b> por hora` : '<b style="color:var(--warn)">definir o valor da hora</b>'}</span><button class="btn icone fantasma" data-valor="${esc(p.id)}" aria-label="Mudar valor da hora de ${esc(primeiroNome(p))}"><i data-lucide="pencil"></i></button></div></div>
-          <div><div class="bloco-t"><span>Esta semana · ${periodo(s)}</span><span class="faint">parcial</span></div>
+          ${esquecido}
+          <div><div class="bloco-t"><span>Esta semana · ${periodo(s)}</span><button class="link-mini" data-semana="${esc(p.id)}|0">Ver os dias</button></div>
             <div class="semana-num"><span class="val" data-vivo-semana="${p.id}">${brl(s.ganho)}</span><span class="det" data-vivo-semana-dur="${p.id}">${F.dur(s.minutos)}</span></div>
             <div class="dias7">${s.dias.map((d) => `<div class="${d.hoje ? 'hoje' : ''} ${d.futuro ? 'futuro' : ''} ${!d.minutos && !d.futuro ? 'zero' : ''} ${d.trechos.some((t) => t.original || t.manual) ? 'corr' : ''}">${F.diaCurto(d.date)}<b ${d.hoje ? `data-vivo-hoje="${p.id}"` : ''}>${d.futuro ? '·' : d.minutos ? F.durCurta(d.minutos) : '—'}</b></div>`).join('')}</div></div>
           ${correcoes.length ? `<div><div class="bloco-t"><span>Correções feitas por ${esc(primeiroNome(p))}</span><span class="faint">${correcoes.length}</span></div>${correcoes.map(correcaoItem).join('')}</div>` : ''}
           <div><div class="bloco-t"><span>Pagamento</span></div>
             ${aPagar.length ? aPagar.map((x) => `<div class="pagar"><div class="q"><b>${nomeSemana(x)}</b><span>${periodo(x)} · ${F.dur(x.minutos)}${x.correcoes.length ? ` · ${x.correcoes.length} correç${x.correcoes.length > 1 ? 'ões' : 'ão'}` : ''}</span></div><span class="v">${brl(x.ganho)}</span><button class="btn primario" data-pagar="${p.id}|${x.inicio}"><i data-lucide="check"></i>Marcar como pago</button></div>`).join('')
               : `<div class="em-dia"><i data-lucide="circle-check"></i>Tudo pago até ${pagas[0] ? F.dataCurta(dt(pagas[0].fim)) : '—'}</div>`}
-            <div style="margin-top:10px">${pagas.map((x) => `<div class="paga"><span class="q">${periodo(x)} · ${F.dur(x.minutos)}</span><span class="num">${brl(x.pagamento.valor)}</span><span class="chip ok">Paga em ${F.dataCurta(dt(x.pagamento.data))}</span>${pagosAgora.has(p.id + '|' + x.inicio) ? `<button class="btn pequeno fantasma" data-desfazer="${p.id}|${x.inicio}">Desfazer</button>` : ''}</div>`).join('')}</div></div>
+            <div style="margin-top:10px">${pagas.filter((x) => pagosAgora.has(p.id + '|' + x.inicio)).map((x) => `<div class="paga"><span class="q">${periodo(x)} · ${F.dur(x.minutos)}</span><span class="num">${brl(x.pagamento.valor)}</span><span class="chip ok">Paga em ${F.dataCurta(dt(x.pagamento.data))}</span><button class="btn pequeno fantasma" data-desfazer="${p.id}|${x.inicio}">Desfazer</button></div>`).join('')}</div></div>
+          ${hist.length ? `<div><div class="bloco-t"><span>Semanas</span><span class="faint">${hist.length}</span></div>
+            <div class="semanas">${(todas ? hist : hist.slice(0, 6)).map((x) => linhaSemana(p, x)).join('')}</div>
+            ${hist.length > 6 ? `<button class="btn pequeno fantasma" data-todas="${esc(p.id)}" style="margin-top:6px">${todas ? 'Mostrar menos' : `Ver as ${hist.length} semanas`}</button>` : ''}</div>` : ''}
         </section>`;
       }).join('')}</div>`;
     },
@@ -106,7 +123,16 @@ KVTelas['folha'] = function () {
       ex();
     } else if (j === 'semana') {
       const [pid, off] = alvo.split('|'); const p = P.pesquisador(pid); const s = P.semana(pid, +off);
-      dlg.innerHTML = cabeca(`${esc(p.nome)}`, `${nomeSemana(s)} · ${periodo(s)}`) + `<div class="corpo">
+      const nd = diasTrabalhados(s), vh = P.valorHora(pid, dt(s.fim));
+      dlg.innerHTML = cabeca(`${esc(p.nome)}`, s.atual || s.offset === -1 ? `${nomeSemana(s)} · ${periodo(s)}` : `Semana de ${periodo(s)}`) + `<div class="corpo">
+        <div class="sem-resumo">
+          <div><span class="faint">Horas</span><b class="num">${F.dur(s.minutos)}</b></div>
+          <div><span class="faint">Dias trabalhados</span><b class="num">${nd} de 7</b></div>
+          <div><span class="faint">Média por dia</span><b class="num">${nd ? F.dur(s.minutos / nd) : '—'}</b></div>
+          <div><span class="faint">Valor da hora</span><b class="num">${vh ? brl(vh) : '—'}</b></div>
+          <div><span class="faint">${s.atual ? 'Até agora' : 'Calculado'}</span><b class="num">${brl(s.ganho)}</b></div>
+          ${s.pagamento ? `<div><span class="faint">Pago</span><b class="num">${brl(s.pagamento.valor)}</b></div>` : ''}
+        </div>
         <table class="dias-tab"><thead><tr><th>Dia</th><th>Trechos</th><th class="dir">Horas</th><th class="dir">Valor</th></tr></thead><tbody>
           ${s.dias.filter((d) => !d.futuro).map((d) => `<tr><td><b>${F.diaCurto(d.date)}</b> <span class="faint">${F.dataCurta(d.date)}</span></td>
             <td class="${d.trechos.some((t) => t.original || t.manual) ? 'corr' : ''}" style="white-space:normal">${d.trechos.map((t) => `${F.hora(t.inicio)}–${t.fim ? F.hora(t.fim) : 'agora'}`).join(', ') || '<span class="faint">—</span>'}</td>
@@ -129,6 +155,8 @@ KVTelas['folha'] = function () {
     const b = e.target.closest('button');
     if (b && b.dataset.pagar) { e.stopPropagation(); KVShell.irPara({ janela: 'pagar', alvo: b.dataset.pagar }); sincJanela(); return; }
     if (b && b.dataset.valor) { KVShell.irPara({ janela: 'valor', alvo: b.dataset.valor }); sincJanela(); return; }
+    if (b && b.dataset.semana) { KVShell.irPara({ janela: 'semana', alvo: b.dataset.semana }); sincJanela(); return; }
+    if (b && b.dataset.todas) { const id = b.dataset.todas; todasAbertas.has(id) ? todasAbertas.delete(id) : todasAbertas.add(id); render(); return; }
     if (b && b.dataset.desfazer) { const [pid, ini] = b.dataset.desfazer.split('|'); const k = b.dataset.desfazer; fazer(() => P.desfazerPago(pid, ini), () => pagosAgora.delete(k)); return; }
   });
   }
