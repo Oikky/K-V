@@ -241,35 +241,92 @@ const recente = (iso) => iso >= '2026-10-12';
 const TEMPO_ESCALA = ['Tempo da Escala 1', 'Tempo da Escala 2', 'Tempo da escala 3'];
 const SITE = { smiles: 'Smiles', latam: 'Latam', azul: 'TudoAzul', interline: 'Interline', skyscanner: 'Skyscanner' };
 let opcoesFora = 0;
-for (const pz of pastas) {
+// aeroportos da mesma cidade contam como o mesmo ponto do trecho (GRU, CGH e VCP são São Paulo); CBW é CWB digitado errado
+const CIDADE = { GRU: 'SAO', CGH: 'SAO', VCP: 'SAO', GIG: 'RIO', SDU: 'RIO', CNF: 'BHZ', PLU: 'BHZ', JFK: 'NYC', LGA: 'NYC', EWR: 'NYC',
+  IAD: 'WAS', DCA: 'WAS', BWI: 'WAS', LHR: 'LON', LGW: 'LON', STN: 'LON', LCY: 'LON', ORD: 'CHI', MDW: 'CHI', NRT: 'TYO', HND: 'TYO', CBW: 'CWB' };
+const cidade = (c) => (c ? CIDADE[c] || c : '?');
+function porRota(filhas) {
+  const m = new Map();
+  for (const f of filhas) { const k = `${cidade(iata(f.Origem))}>${cidade(iata(f.Destino))}`; (m.get(k) || m.set(k, []).get(k)).push(f); }
+  return [...m.values()];
+}
+// cada pasta: nome, o que vem entre parênteses e os trechos (ida e volta pelo que foi pesquisado; sem opções, pelo que está na pasta)
+const PASTAS = pastas.map((pz) => {
   const filhas = (filhasDe.get(pz._id) || []).sort((a, b) => a.criado.localeCompare(b.criado));
   // "Jandira (3 pessoas e pet)": o nome vai pro cartão e o que está entre parênteses vai pro pedido
   const viagem = espacos(pz.Viagem), parenteses = /^(.*?)\s*\((.*)\)?\s*$/.exec(viagem);
   const nome = (parenteses && parenteses[1]) || viagem, detalhe = parenteses ? parenteses[2].replace(/\)\s*$/, '').trim() : '';
-  const pessoasN = /(\d+)\s*(pessoas?|adultos?|pax)/i.exec(viagem);
-  const ultimo = [pz.criado, ...filhas.map((f) => f.criado)].sort().pop();
-  const quem = emails.get(maisComum(filhas.map((f) => String(f.Column || '').toLowerCase()).filter((e) => emails.has(e)))) || null;
-  // trechos: ida (0) e volta (1), pelo que foi pesquisado; sem opções, pelo que está na pasta
-  const grupos = ['Ida', 'Volta'].map((iv) => filhas.filter((f) => (f['Ida/Volta'] || 'Ida') === iv)).filter((g) => g.length);
-  let trechos = grupos.map((g) => ({ de: maisComum(g.map((f) => iata(f.Origem))), para: maisComum(g.map((f) => iata(f.Destino))), data: g.map((f) => dia(f.Data)).filter(Boolean).sort()[0], filhas: g }));
-  if (!trechos.length) {
-    trechos = [{ de: iata(pz.Origem), para: iata(pz.Destino), data: null, filhas: [] }];
-    if (pz.Trechos === 'Ida e Volta') trechos.push({ de: iata(pz.Destino), para: iata(pz.Origem), data: null, filhas: [] });
+  // origem com uma cidade por linha ("São Paulo", "Orlando", "New York") é uma pasta com vários trechos (o campo Ida/Volta não separa);
+  // já "Montes Claros MOC/Belo Horizonte BHZ" na mesma linha são aeroportos alternativos do mesmo trecho
+  const multi = /\n/.test(String(pz.Origem || '').trim());
+  const grupos = multi ? porRota(filhas) : ['Ida', 'Volta'].map((iv) => filhas.filter((f) => (f['Ida/Volta'] || 'Ida') === iv)).filter((g) => g.length);
+  // data do trecho = a mais pesquisada (uma data digitada errada não puxa o trecho pra outro mês)
+  let trechos = grupos.map((g) => ({ de: maisComum(g.map((f) => iata(f.Origem))), para: maisComum(g.map((f) => iata(f.Destino))), data: maisComum(g.map((f) => dia(f.Data)).filter(Boolean).sort()), filhas: g, pz }));
+  if (multi) trechos.sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999'));
+  if (!trechos.length && multi) {
+    const de = pz.Origem.trim().split('\n'), para = String(pz.Destino || '').trim().split('\n');
+    trechos = de.map((d, i) => ({ de: iata(d), para: iata(para[i]), data: null, filhas: [], pz }));
+  } else if (!trechos.length && (pz.Origem || pz.Destino)) {
+    trechos = [{ de: iata(pz.Origem), para: iata(pz.Destino), data: null, filhas: [], pz }];
+    if (pz.Trechos === 'Ida e Volta') trechos.push({ de: iata(pz.Destino), para: iata(pz.Origem), data: null, filhas: [], pz });
   }
+  const datas = trechos.map((t) => t.data).filter(Boolean).sort();
+  // "Pr Danielle" e "Danielle", "Marinês" e "Marines": mesma pessoa
+  const quem = chave(nome).replace(/^(pr|pra|pastora|pastor)\.?\s+/, '').split(' ')[0];
+  return { pz, filhas, viagem, nome, detalhe, trechos, quem, de: datas[0] || null, ate: datas[datas.length - 1] || null };
+});
+
+// Uma viagem com vários trechos era montada no documento como várias pastas (uma por trecho): mesmo nome, criadas em sequência,
+// datas uma depois da outra. Essas viram um orçamento só. Pastas da mesma pessoa com as mesmas datas são alternativas
+// (outra cidade, outro aeroporto) e continuam separadas.
+const HORAS_ENTRE_PASTAS = 4, DIAS_ENTRE_TRECHOS = 10;
+const horas = (a, b) => Math.abs(Date.parse(b) - Date.parse(a)) / 3600e3;
+const dias = (a, b) => (Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5;
+function encaixa(viagem, p) {
+  const ps = [...viagem, p].filter((x) => x.de).sort((a, b) => a.de.localeCompare(b.de));
+  return ps.every((x, i) => i === 0 || (x.de > ps[i - 1].ate && dias(ps[i - 1].ate, x.de) <= DIAS_ENTRE_TRECHOS));
+}
+const viagens = [];
+for (const p of PASTAS.filter((p) => p.de)) {
+  const v = viagens.find((v) => v[0].quem === p.quem && horas(v[v.length - 1].pz.criado, p.pz.criado) <= HORAS_ENTRE_PASTAS && encaixa(v, p));
+  if (v) v.push(p); else viagens.push([p]);
+}
+// pasta sem nenhuma opção pesquisada: só se junta se estiver pela metade (criada por engano ao lado da certa); senão fica sozinha
+for (const p of PASTAS.filter((p) => !p.de)) {
+  const v = (!p.pz.Origem || !p.pz.Destino) && viagens.find((v) => v[0].quem === p.quem && v.some((x) => horas(x.pz.criado, p.pz.criado) <= HORAS_ENTRE_PASTAS));
+  if (v) { p.trechos = []; v.push(p); } else viagens.push([p]);
+}
+viagens.sort((a, b) => a[0].pz.criado.localeCompare(b[0].pz.criado));
+const juntadas = viagens.filter((v) => v.length > 1);
+if (juntadas.length) avisa(`${juntadas.reduce((s, v) => s + v.length, 0)} pastas viraram ${juntadas.length} orçamento(s) com vários trechos: ${juntadas.map((v) => `${v[0].nome} (${v.length})`).join(', ')}.`);
+
+for (const viagem of viagens) {
+  viagem.sort((a, b) => a.pz.criado.localeCompare(b.pz.criado));
+  const pz = viagem[0].pz;
+  const filhas = viagem.flatMap((p) => p.filhas);
+  const nome = viagem[0].nome;
+  // "(ida)", "(Só volta)" só diziam qual pedaço era a pasta
+  const detalhe = [...new Set(viagem.map((p) => p.detalhe).filter((d) => d && !/^(s[oó]\s+)?(ida|volta)$/i.test(d)))].join(' · ');
+  const pessoasN = viagem.map((p) => /(\d+)\s*(pessoas?|adultos?|pax)/i.exec(p.viagem)).find(Boolean);
+  const ultimo = [...viagem.map((p) => p.pz.criado), ...filhas.map((f) => f.criado)].sort().pop();
+  const quem = emails.get(maisComum(filhas.map((f) => String(f.Column || '').toLowerCase()).filter((e) => emails.has(e)))) || null;
+  const trechos = viagem.flatMap((p) => p.trechos).sort((a, b) => (a.data || '9999').localeCompare(b.data || '9999'));
+  if (!trechos.length) trechos.push({ de: null, para: null, data: null, filhas: [], pz });
   const etapa = recente(ultimo) ? 'pesquisado' : 'perdido';
-  const observacao = [
-    pz['Observações'], pz['Data Ida Orçamento'] && `Datas de ida pedidas: ${pz['Data Ida Orçamento'].replace(/\n/g, ', ')}`,
-    pz['Data Volta Orçamento'] && `Datas de volta pedidas: ${pz['Data Volta Orçamento'].replace(/\n/g, ', ')}`,
-    pz.Skyscanner && `Skyscanner:\n${pz.Skyscanner}`, pz['Em função site'] && `Anotações:\n${pz['Em função site']}`,
-  ].filter(Boolean).map(espacos).join('\n\n');
+  const observacao = viagem.map(({ pz: x }) => [
+    x['Observações'], x['Data Ida Orçamento'] && `Datas de ida pedidas: ${x['Data Ida Orçamento'].replace(/\n/g, ', ')}`,
+    x['Data Volta Orçamento'] && `Datas de volta pedidas: ${x['Data Volta Orçamento'].replace(/\n/g, ', ')}`,
+    x.Skyscanner && `Skyscanner:\n${x.Skyscanner}`, x['Em função site'] && `Anotações:\n${x['Em função site']}`,
+  ].filter(Boolean).map(espacos).join('\n\n')).map((o, i, todas) => (todas.length > 1 && o && viagem[i].trechos[0] ? `${viagem[i].trechos[0].de || '?'} a ${viagem[i].trechos[viagem[i].trechos.length - 1].para || '?'}:\n${o}` : o))
+    .filter(Boolean).join('\n\n');
   const orcId = cria('orcamentos', {
     contato_nome: nome, contato_whatsapp: '', etapa, antes_de_perder: etapa === 'perdido' ? 'pesquisado' : null,
     motivo: etapa === 'perdido' ? 'Veio do Superhuman Docs sem desfecho anotado' : null, responsavel: quem,
     adultos: pessoasN ? Math.max(1, Math.min(9, +pessoasN[1])) : 1, criancas: 0, bebes: 0,
-    pedido: [detalhe, pz['Voo Direto'] === true || pz['Voo Direto'] === 'true' ? 'Só voo direto' : ''].filter(Boolean).join(' · '), observacao, faltando: '[]', origem: 'superhuman', audio: 0,
+    pedido: [detalhe, viagem.some((p) => p.pz['Voo Direto'] === true || p.pz['Voo Direto'] === 'true') ? 'Só voo direto' : ''].filter(Boolean).join(' · '), observacao, faltando: '[]', origem: 'superhuman', audio: 0,
     criado_em: pz.criado, criado_por: POR,
   });
-  trechos.forEach((t, i) => poe('trechos', { orcamento_id: orcId, ordem: i, de: t.de || '???', para: t.para || '???', data: t.data || diaBR(pz.criado), janela: 0 }));
+  trechos.forEach((t, i) => poe('trechos', { orcamento_id: orcId, ordem: i, de: t.de || '???', para: t.para || '???', data: t.data || diaBR(t.pz.criado), janela: 0 }));
   trechos.forEach((t, i) => t.filhas.forEach((f) => {
     const site = SITE[chave(f.Site)] || (f.Site ? String(f.Site) : 'Skyscanner');
     const sai = hora(f['Horário de Saída 24HRS']), chega = hora(f['Horário de Chegada 24HRS']);
