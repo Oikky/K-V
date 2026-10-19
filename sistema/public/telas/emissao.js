@@ -8,7 +8,7 @@ KVTelas['emissao'] = function () {
   const id = Number(KVShell.param('id'));
   let o = null, app = null, contas = [], escolhas = {}, buscaConta = '';
   const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const hora = (x) => `${x.sai} → ${x.chega.replace(' +1', '')}${x.chega.includes('+1') ? '<sup>+1</sup>' : ''}`;
+  const hora = (x) => `${x.sai} → ${x.chega.replace(/ \+\d$/, '')}${/\+\d$/.test(x.chega) ? `<sup>${x.chega.slice(-2)}</sup>` : ''}`;
   const iniciais = (n) => n.split(' ').filter((x) => x.length > 2).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
   const hoje = O.isoDia(new Date());
   const diasAte = (s) => Math.round((new Date(s + 'T12:00:00') - new Date(hoje + 'T12:00:00')) / 864e5);

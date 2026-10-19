@@ -86,3 +86,13 @@
   .resumo-txt b { font-weight: 800; }
   .resumo-nota { font-size: 13px; color: var(--text-3); font-weight: 600; }
   @media (max-width: 760px) { .janela.resumo { width: 100vw; } }
+  /* formulário completo da opção: grupos com título pequeno, escalas em linhas */
+  .form-op .form-grupo { margin: 10px 0 -2px; font: 800 12px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); display: flex; gap: 8px; align-items: baseline; }
+  .form-op .form-grupo:first-child { margin-top: 0; }
+  .form-op .form-grupo span { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12.5px; }
+  .form-op .esc-linha { display: grid; grid-template-columns: minmax(0, 1fr) 96px 44px; gap: 8px; align-items: end; }
+  .form-op .esc-linha .btn.icone { height: 44px; width: 44px; }
+  .form-op > .btn { justify-self: start; }
+  .form-op .campo textarea { width: 100%; resize: vertical; }
+  .form-op #f-de, .form-op #f-para { text-transform: uppercase; }
+  .bot-obs { white-space: pre-line; }

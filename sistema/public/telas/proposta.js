@@ -11,7 +11,7 @@ KVTelas['proposta'] = function () {
   const editavel = () => ['pesquisado', 'enviado'].includes(o.etapa);
   const lerNum = (t) => { const n = +String(t || '').replace(/[^\d,]/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? n : null; };
   const numCampo = (c) => c == null ? '' : (c / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
-  const hora = (x) => `${x.sai} → ${x.chega.replace(' +1', '')}${x.chega.includes('+1') ? '<sup>+1</sup>' : ''}`;
+  const hora = (x) => `${x.sai} → ${x.chega.replace(/ \+\d$/, '')}${/\+\d$/.test(x.chega) ? `<sup>${x.chega.slice(-2)}</sup>` : ''}`;
   const detalhe = (x) => [x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto', x.bagagem && 'mala'].filter(Boolean).join(' · ');
   const valorOp = (x) => O.site(x.site).forma === 'dinheiro' ? fmt.brl(x.preco) : `${fmt.pts(x.milhas)} pts + ${fmt.brl(x.taxa)}`;
   const teto = () => P.teto(o);

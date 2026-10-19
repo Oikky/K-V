@@ -239,6 +239,10 @@ const filhasDe = new Map();
 for (const o of ORC.filter((o) => o['Viagem(Pasta)'])) { const pid = idDe(o['Viagem(Pasta)']); (filhasDe.get(pid) || filhasDe.set(pid, []).get(pid)).push(o); }
 const recente = (iso) => iso >= '2026-10-12';
 const TEMPO_ESCALA = ['Tempo da Escala 1', 'Tempo da Escala 2', 'Tempo da escala 3'];
+// "1", "2", "1 inclusa" = quantas malas despachadas; "não inclusa", "?" = nenhuma
+const malas = (t) => { const m = /^\s*([1-9])/.exec(String(t || '')); return m && !/n[aã]o/i.test(t) ? +m[1] : 0; };
+// chegada N dias depois da saída (Data de Chegada); no máximo 3
+const diasDepois = (d, dChega) => (dChega && dChega > d ? Math.min(3, Math.round((Date.parse(dChega) - Date.parse(d)) / 864e5)) : 0);
 const SITE = { smiles: 'Smiles', latam: 'Latam', azul: 'TudoAzul', interline: 'Interline', skyscanner: 'Skyscanner' };
 let opcoesFora = 0;
 // aeroportos da mesma cidade contam como o mesmo ponto do trecho (GRU, CGH e VCP são São Paulo); CBW é CWB digitado errado
@@ -338,11 +342,11 @@ for (const viagem of viagens) {
     const mala = String(f['Mala Despachada'] || '');
     const pontos = site !== 'Skyscanner';
     poe('opcoes', { id: null, orcamento_id: orcId, trecho: i, site, data: d, sai,
-      chega: `${chega}${dChega && dChega > d ? ' +1' : ''}`, cia: f['CIA Aérea'] || '', voo: '',
-      escalas: escalas.length, bagagem: /^\s*[1-9]/.test(mala) && !/n[aã]o/i.test(mala) ? 1 : 0,
+      chega: `${chega}${diasDepois(d, dChega) ? ` +${diasDepois(d, dChega)}` : ''}`, cia: f['CIA Aérea'] || '', voo: '',
+      escalas: escalas.length, bagagem: malas(mala),
       milhas: pontos ? inteiro(f['Quantidade de Milhas']) : null, taxa: pontos ? centavos(f.Taxa) ?? 0 : null,
       preco: pontos ? null : centavos(f.Taxa) ?? 0, link: '',
-      obs: [f['Observação Data'], f['Observações']].filter(Boolean).map(espacos).join(' · '),
+      obs: f['Observações'] ? espacos(f['Observações']) : '', destaque: f['Observação Data'] ? espacos(f['Observação Data']) : null,
       de: iata(f.Origem), para: iata(f.Destino), duracao: f['Tempo de Viagem'] ? espacos(f['Tempo de Viagem']) : null,
       escalas_onde: escalas.length ? JSON.stringify(escalas.map((k, n) => [espacos(f[k]), f[TEMPO_ESCALA[n]] ? espacos(f[TEMPO_ESCALA[n]]) : ''])) : null,
       milhas_mala: pontos && f['Valor com Mala'] ? inteiro(f['Valor com Mala']) : null,

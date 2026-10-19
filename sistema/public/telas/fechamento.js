@@ -9,7 +9,7 @@ KVTelas['fechamento'] = function () {
   let o = null, app = null, pessoas = [], juntos = [], N = 0, preencheu = false;
   const lerNum = (t) => O.lerReais(t) || 0;
   const numCampo = (c) => (c ? (c / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '');
-  const hora = (x) => `${x.sai} → ${x.chega.replace(' +1', '')}${x.chega.includes('+1') ? '<sup>+1</sup>' : ''}`;
+  const hora = (x) => `${x.sai} → ${x.chega.replace(/ \+\d$/, '')}${/\+\d$/.test(x.chega) ? `<sup>${x.chega.slice(-2)}</sup>` : ''}`;
   const fechado = () => !['pesquisado', 'enviado'].includes(o.etapa);
   const emitido = () => o.etapa === 'emitido';
   const pessoa = (pid) => pessoas.find((p) => p.id === pid);

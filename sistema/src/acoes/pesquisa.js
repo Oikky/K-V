@@ -18,6 +18,26 @@ function podeLancar(u, o) {
 const ehHora = (s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 const ehData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+const texto = (v, max) => { const t = String(v ?? '').trim().slice(0, max); return t || null; };
+const ehAeroporto = (s) => /^[A-Z]{3}$/.test(s);
+
+// o resto da página de voo do documento antigo: só grava o que veio (a barra da extensão não manda nada disso)
+function detalhes(d) {
+  const x = {};
+  if ('de' in d) { x.de = texto(d.de, 3); if (x.de && !ehAeroporto(x.de)) throw new Recusa('Aeroporto de saída inválido'); }
+  if ('para' in d) { x.para = texto(d.para, 3); if (x.para && !ehAeroporto(x.para)) throw new Recusa('Aeroporto de chegada inválido'); }
+  if ('duracao' in d) x.duracao = texto(d.duracao, 20);
+  if ('escalasOnde' in d) {
+    const l = Array.isArray(d.escalasOnde) ? d.escalasOnde.map((e) => [texto(e && e[0], 60), texto(e && e[1], 20) || '']).filter((e) => e[0]) : [];
+    if (l.length > 3) throw new Recusa('No máximo 3 escalas');
+    x.escalas_onde = l.length ? JSON.stringify(l) : null;
+  }
+  if ('milhasMala' in d) { x.milhas_mala = d.milhasMala == null ? null : d.milhasMala; if (x.milhas_mala != null && !inteiro(x.milhas_mala, 1, 10_000_000)) throw new Recusa('Milhas com mala inválidas'); }
+  if ('malaMao' in d) x.mala_mao = d.malaMao == null ? null : d.malaMao ? 1 : 0;
+  if ('destaque' in d) x.destaque = texto(d.destaque, 120);
+  if ('obs' in d) x.obs = texto(d.obs, 1000) || '';
+  return x;
+}
 
 // cria (sem id) ou altera uma opção de voo. Milhas por pessoa; taxa e preço em centavos, por pessoa.
 acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
@@ -28,15 +48,22 @@ acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
   if (!(d.site in SITES)) throw new Recusa('Site inválido');
   const pontos = SITES[d.site] != null;
   const chega = String(d.chega || '');
-  if (!ehData(d.data) || !ehHora(d.sai) || !ehHora(chega.replace(/ \+1$/, ''))) throw new Recusa('Dia ou horário inválido');
-  if (!inteiro(d.escalas, 0, 5)) throw new Recusa('Escalas inválidas');
+  if (!ehData(d.data) || !ehHora(d.sai) || !ehHora(chega.replace(/ \+[1-3]$/, ''))) throw new Recusa('Dia ou horário inválido');
+  const extra = detalhes(d);
+  // com as escalas escritas, a quantidade é a da lista
+  const escalas = extra.escalas_onde ? JSON.parse(extra.escalas_onde).length : 'escalasOnde' in d ? 0 : d.escalas;
+  if (!inteiro(escalas, 0, 5)) throw new Recusa('Escalas inválidas');
+  // malas despachadas: quantidade (a barra manda sim/não)
+  const malas = d.bagagem === true ? 1 : d.bagagem === false || d.bagagem == null ? 0 : d.bagagem;
+  if (!inteiro(malas, 0, 9)) throw new Recusa('Malas inválidas');
   const milhas = pontos ? d.milhas : null, taxa = pontos ? d.taxa : null, preco = pontos ? null : d.preco;
   if (pontos && (!inteiro(milhas, 1, 10_000_000) || !inteiro(taxa, 0, 100_000_00))) throw new Recusa('Milhas ou taxa inválidas');
   if (!pontos && !inteiro(preco, 1, 1_000_000_00)) throw new Recusa('Preço inválido');
   const voo = String(d.voo || '').trim().toUpperCase().slice(0, 20);
   const cia = String(d.cia || voo.split(' ')[0] || d.site).slice(0, 40);
   const link = String(d.link || '').trim().slice(0, 2000);
-  const campos = [d.trecho, d.site, d.data, d.sai, chega, cia, voo, d.escalas, d.bagagem ? 1 : 0, milhas, taxa, preco, link];
+  const campos = [d.trecho, d.site, d.data, d.sai, chega, cia, voo, escalas, malas, milhas, taxa, preco, link];
+  const colsExtra = Object.keys(extra), valsExtra = Object.values(extra);
 
   if (d.id) {
     const antes = await db.prepare('SELECT * FROM opcoes WHERE id = ? AND orcamento_id = ?').bind(d.id, o.id).first();
@@ -44,7 +71,7 @@ acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
     return {
       resultado: { id: d.id },
       comandos: [db.prepare(`UPDATE opcoes SET trecho = ?, site = ?, data = ?, sai = ?, chega = ?, cia = ?, voo = ?, escalas = ?, bagagem = ?,
-        milhas = ?, taxa = ?, preco = ? , link = ? WHERE id = ?`).bind(...campos, d.id)],
+        milhas = ?, taxa = ?, preco = ? , link = ?${colsExtra.map((c) => `, ${c} = ?`).join('')} WHERE id = ?`).bind(...campos, ...valsExtra, d.id)],
       eventos: [{ entidade: 'orcamento', id: o.id, texto: `Alterou a opção ${d.site} das ${d.sai}`, antes }],
     };
   }
@@ -53,7 +80,8 @@ acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
   return {
     resultado: { id },
     comandos: [db.prepare(`INSERT INTO opcoes (id, orcamento_id, trecho, site, data, sai, chega, cia, voo, escalas, bagagem, milhas, taxa, preco, link,
-      criada_em, criada_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(id, o.id, ...campos, quando, usuario.email)],
+      criada_em, criada_por${colsExtra.map((c) => `, ${c}`).join('')}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${colsExtra.map(() => ', ?').join('')})`)
+      .bind(id, o.id, ...campos, quando, usuario.email, ...valsExtra)],
     eventos: [{ entidade: 'orcamento', id: o.id, texto: `Lançou a opção ${d.site} das ${d.sai}` }],
   };
 });

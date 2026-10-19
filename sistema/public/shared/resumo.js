@@ -11,7 +11,9 @@
   const nomeSite = (s) => (s === 'TudoAzul' ? 'Azul' : s);
   const lugar = (cod) => { const c = O.cidadeCurta(cod); return c === cod ? cod : `${c} ${cod}`; };
   const dataLonga = (iso) => iso.split('-').reverse().join('/');
-  const maisUmDia = (iso) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + 1); return O.isoDia(d).split('-').reverse().slice(0, 2).join('/'); };
+  // "06:10 +1": chega N dias depois da saída
+  const diasDepois = (chega) => { const m = / \+(\d)$/.exec(chega); return m ? +m[1] : 0; };
+  const somaDias = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return O.isoDia(d).split('-').reverse().slice(0, 2).join('/'); };
 
   function escalas(op) {
     const n = op.escalas;
@@ -30,12 +32,14 @@
     const cia = [op.cia && op.cia !== op.site ? op.cia : '', op.voo].filter(Boolean).join(' · ');
     const linhas = ['', `${KVProp.nomeTrecho(o, op.trecho)}:`];
     if (cia) linhas.push(`(${cia})`);
+    if (op.destaque) linhas.push(`- ${op.destaque}`);
+    const depois = diasDepois(op.chega);
     linhas.push(`- ${dataLonga(op.data)}`, `- ${op.sai} - ${lugar(op.de || t.de)}`,
-      `- ${op.chega.replace(' +1', '')} - ${lugar(op.para || t.para)}${op.chega.includes('+1') ? ` (chegando no dia ${maisUmDia(op.data)})` : ''}`,
+      `- ${op.chega.replace(/ \+\d$/, '')} - ${lugar(op.para || t.para)}${depois ? ` (chegando no dia ${somaDias(op.data, depois)})` : ''}`,
       `- ${escalas(op)}`);
     if (op.duracao) linhas.push(`- Tempo de Viagem: ${op.duracao}`);
     if (op.mala_mao != null) linhas.push(`- Mala de mão: ${op.mala_mao ? 'Inclusa' : 'Não Inclusa'}`);
-    if (op.bagagem) linhas.push('- Mala Despachada: inclusa');
+    if (op.bagagem) linhas.push(`- Mala Despachada: ${op.bagagem}`);
     const comMala = op.milhas_mala && op.milhas_mala !== op.milhas;
     linhas.push(`Quantidade de Milhas: ${O.fmt.pts(op.milhas)}${comMala ? ` ou ${O.fmt.pts(op.milhas_mala)} com mala` : ''}${op.taxa ? ` + ${brl(op.taxa)}` : ''}`);
     if (comValor && vm) linhas.push(`Valor: ${valor(op.milhas)}${comMala ? ` ou ${valor(op.milhas_mala)} com mala` : ''}`);

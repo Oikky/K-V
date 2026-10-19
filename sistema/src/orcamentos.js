@@ -52,7 +52,7 @@ export async function abrirOrcamento(env, usuario, id) {
     todos(db, 'SELECT de, para, data, janela FROM trechos WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, 'SELECT ordem, texto, feito FROM conferencia WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, `SELECT id, trecho, site, data, sai, chega, cia, voo, escalas, bagagem, milhas, taxa, preco, link, obs, criada_por,
-                      de, para, duracao, escalas_onde, milhas_mala, mala_mao
+                      de, para, duracao, escalas_onde, milhas_mala, mala_mao, destaque
                FROM opcoes WHERE orcamento_id = ? ORDER BY id`, id),
   ]);
   const base = {
@@ -64,7 +64,7 @@ export async function abrirOrcamento(env, usuario, id) {
     origem: o.origem, textoOriginal: o.texto_original, audio: !!o.audio, criadoEm: o.criado_em,
     trechos: trechos.map((t) => ({ ...t, janela: !!t.janela })),
     conferencia: conferencia.map((c) => ({ ...c, feito: !!c.feito })),
-    opcoes: opcoes.map((p) => ({ ...p, bagagem: !!p.bagagem, escalasOnde: p.escalas_onde ? JSON.parse(p.escalas_onde) : null, escalas_onde: undefined })),
+    opcoes: opcoes.map((p) => ({ ...p, escalasOnde: p.escalas_onde ? JSON.parse(p.escalas_onde) : null, escalas_onde: undefined })),
   };
   if (!dono) return base;
 
