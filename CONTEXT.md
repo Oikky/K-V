@@ -259,3 +259,13 @@ Uma versão só de cada tela, no jeito da rodada 8. Uma trilha no topo (Pesquisa
 - **Lista longa vira busca:** toda seleção com muitas opções deixa digitar, e o que se escreve filtra as opções antes de escolher.
 - **Voltar desfaz o último passo:** ver `PRODUCT.md`.
 
+**Revisão de UI/UX (2026-10-22)**
+- **Todo clique responde:** o botão que grava fica ocupado (girador no lugar do texto, travado) até o servidor responder, e uma linha laranja corre no topo enquanto algo grava ou carrega. Gravação automática (proposta, fechamento) não trava botão.
+- **Tudo tem volta:** aviso com "Desfazer" (8 s) depois de ações simples. Emissão: menu no cartão do voo com "Corrigir localizador ou observação", "Lancei errado: desfazer" (some o registro, os pontos voltam pros mesmos lotes, o orçamento volta pra Fechado) e "A passagem foi cancelada" (pontos que o programa devolveu entram como estorno, valor devolvido ao cliente fica anotado, o CPF continua ocupando a vaga por padrão; tudo cancelado = orçamento Cancelado). Fechamento: "Desfazer fechamento" enquanto não houver voo emitido (volta pra Enviado). Entrada e saída: corrigir (data, observação; pontos, custo e vencimento onde não bagunça o resto) e apagar (a saída devolve os pontos pros lotes; transferência apaga as duas pontas; lote já usado não se apaga).
+- **De qual lote saiu cada saída** fica anotado (tabela `consumos`); saídas antigas, sem anotação, devolvem enchendo os lotes que vencem antes.
+- **Observação em tudo:** entrada, saída, transferência e emissão, até 2.000 caracteres, editável no detalhe. As do documento antigo vieram inteiras (campo "Informações"), ligadas à linha original.
+- **Extrato clicável:** tocar numa linha abre o detalhe (voo, passageiros, localizador, de quais lotes saiu, quem usou o lote, a outra ponta da transferência, a linha do documento antigo, quem lançou).
+- **Vaga extra de beneficiário:** quando o programa libera mais CPFs pra uma conta. Soma no limite até a data escolhida, ou até alguém tirar.
+- **Fechamento:** "Quem paga" virou **Cliente** (quem está comprando) e "Quem voa" virou **Passageiros** (os nomes que vão na passagem). O cliente entra como passageiro sozinho; "também viaja" desmarcado tira ele.
+- **Recebimento:** 3 versões no ar pra escolher (A resumo com barra, B recibo, C cartões; seletor em cima do bloco). Escolhida a versão, as outras saem.
+
