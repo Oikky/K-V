@@ -56,3 +56,19 @@ acao('fech.salvar', ['dono'], async ({ db }, d) => {
   else if (recebido !== o.receb_recebido && jaFechado) eventos.push({ entidade: 'orcamento', id: o.id, texto: `Recebido: R$ ${(recebido / 100).toFixed(2).replace('.', ',')}`, antes: { recebido: o.receb_recebido } });
   return { resultado: { id: o.id, fechou: fechar }, comandos, eventos };
 });
+
+// desfaz o fechamento: o orçamento volta pra Enviado (ou Pesquisado, se a proposta nunca foi marcada como enviada).
+// A combinação aceita, as pessoas e o recebimento continuam marcados. Com voo emitido, desfaça a emissão antes.
+acao('fech.reabrir', ['dono'], async ({ db }, { id }) => {
+  const o = Number.isInteger(id) ? await db.prepare('SELECT * FROM orcamentos WHERE id = ?').bind(id).first() : null;
+  if (!o) throw new Recusa('Orçamento não encontrado', 404);
+  if (o.etapa !== 'fechado') throw new Recusa(o.etapa === 'emitido' ? 'Tem voo emitido: desfaça as emissões antes de reabrir' : 'Esse orçamento não está fechado', 409);
+  const emitiu = await db.prepare('SELECT COUNT(*) AS n FROM emissoes WHERE orcamento_id = ?').bind(o.id).first();
+  if (emitiu.n) throw new Recusa(`Tem ${emitiu.n} voo${emitiu.n > 1 ? 's' : ''} emitido${emitiu.n > 1 ? 's' : ''}: desfaça na emissão antes de reabrir`, 409);
+  const volta = o.enviada_em ? 'enviado' : 'pesquisado';
+  return {
+    resultado: { id: o.id, etapa: volta },
+    comandos: [db.prepare('UPDATE orcamentos SET etapa = ? WHERE id = ?').bind(volta, o.id)],
+    eventos: [{ entidade: 'orcamento', id: o.id, texto: `Desfez o fechamento (voltou pra ${volta === 'enviado' ? 'Enviado' : 'Pesquisado'})`, antes: { etapa: o.etapa } }],
+  };
+});

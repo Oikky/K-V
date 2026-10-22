@@ -51,7 +51,8 @@ KVTelas['fechamento'] = function () {
       <div class="topo-orc"><span class="quem">${esc(o.contato.nome)}${o.contato.whatsapp ? ` · ${fmt.fone(o.contato.whatsapp)}` : ''} · #${o.id}</span>
         <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1></div>
       ${o.etapa === 'pesquisado' ? '<div class="aviso warn" style="margin-top:12px">A proposta ainda não foi marcada como enviada. Dá pra fechar mesmo assim.</div>' : ''}
-      ${fechado() ? `<div class="aviso ok" style="margin-top:12px">Orçamento fechado. Passageiros e recebimento ainda podem ser completados aqui. <a href="emissao.html?id=${o.id}" style="font-weight:700">Ir pra emissão →</a></div>` : ''}`;
+      ${fechado() ? `<div class="aviso ok aviso-acoes" style="margin-top:12px"><span>Orçamento ${o.etapa === 'cancelado' ? 'cancelado' : 'fechado'}. Passageiros e recebimento ainda podem ser completados aqui.</span>
+        <span class="acoes">${o.etapa === 'fechado' && !o.emissoes.length ? '<button class="btn pequeno" data-reabrir><i data-lucide="undo-2"></i>Desfazer fechamento</button>' : ''}<a class="btn pequeno" href="emissao.html?id=${o.id}">Ir pra emissão<i data-lucide="arrow-right"></i></a></span></div>` : ''}`;
   }
   const cabSecao = (n, titulo, feito, extra = '') => `<div class="secao"><span class="passo-n ${feito ? 'ok' : ''}">${feito ? '<i data-lucide="check"></i>' : n}</span><h2>${titulo}</h2>${extra}</div>`;
 
@@ -172,6 +173,10 @@ KVTelas['fechamento'] = function () {
       else if (b.dataset.novaPessoa) { KVShell.irPara({ janela: b.dataset.novaPessoa }); sinc(); }
       else if (b.dataset.forma) { o.receb.forma = b.dataset.forma; if (b.dataset.forma === 'parcelado' && P.aceita(o)) o.receb.parcelas = P.aceita(o).vezes; marcarSujo(); render(); }
       else if (b.dataset.rec != null) { o.receb.recebido = +b.dataset.rec; marcarSujo(); render(); }
+      else if (b.hasAttribute('data-reabrir')) {
+        try { const r = await KVApi.acao('fech.reabrir', { id: o.id }); await recarregar(); render(); KVShell.aviso(`Fechamento desfeito: voltou pra ${r.etapa === 'enviado' ? 'Enviado' : 'Pesquisado'}. O que estava marcado continua aqui.`); }
+        catch (err) { KVShell.aviso(err.message, { erro: true }); }
+      }
       else if (b.hasAttribute('data-fechar')) {
         b.disabled = true;
         await salvar();

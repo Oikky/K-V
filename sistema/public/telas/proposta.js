@@ -101,12 +101,12 @@ KVTelas['proposta'] = function () {
     const ed = editavel();
     if (!ed && !c.parcelado) return '';
     return `<div class="parc"><label class="rot" for="p-${c._k}">Parcelado</label>
-      <div class="parc-linha"><div class="caixa pq-caixa"><span>R$</span><input id="p-${c._k}" data-parc="${c._k}" inputmode="decimal" autocomplete="off" placeholder="não oferecer" value="${numCampo(c.parcelado)}" ${ed ? '' : 'readonly'}></div>
-        <label class="sel-pilula vezes"><span class="escondido">Vezes</span><select data-vezes="${c._k}" ${ed ? '' : 'disabled'}>${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option value="${n}" ${n === c.vezes ? 'selected' : ''}>em ${n}x</option>`).join('')}</select></label></div>
+      <div class="parc-linha"><div class="caixa pq-caixa"><span>R$</span><input id="p-${c._k}" data-parc="${c._k}" inputmode="decimal" autocomplete="off" placeholder="valor total parcelado" value="${numCampo(c.parcelado)}" ${ed ? '' : 'readonly'}></div>
+        <label class="sel-pilula vezes"><span class="escondido">Vezes</span><select data-vezes="${c._k}" data-combo="nao" ${ed ? '' : 'disabled'}>${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option value="${n}" ${n === c.vezes ? 'selected' : ''}>em ${n}x</option>`).join('')}</select></label></div>
       <span class="parc-info" data-pinfo="${c._k}">${parcInfo(c)}</span></div>`;
   }
   function parcInfo(c) {
-    if (!c.parcelado) return 'Deixe vazio pra não oferecer parcelado.';
+    if (!c.parcelado) return 'Valor total no cartão. Vazio = não oferece parcelado.';
     const v = venda(c), dif = c.parcelado - v, pct = Math.round((dif / v) * 1000) / 10;
     return `${c.vezes}x de ${fmt.brl(Math.round(c.parcelado / c.vezes))} · ${dif >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do à vista (${dif >= 0 ? '+' : '−'}${String(Math.abs(pct)).replace('.', ',')}%)`;
   }

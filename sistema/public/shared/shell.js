@@ -134,13 +134,26 @@
   const param = (k) => new URLSearchParams(location.search).get(k);
 
   let avisoTimer = null;
-  function aviso(texto, { erro = false } = {}) {
+  // aviso no rodapé. Com { desfazer: async () => {...} } ganha o botão "Desfazer" e fica mais tempo (8 s);
+  // passar o mouse ou o dedo segura o aviso na tela.
+  function aviso(texto, { erro = false, desfazer = null, rotulo = 'Desfazer' } = {}) {
     let el = document.querySelector('.recado');
     if (!el) { el = document.createElement('div'); el.setAttribute('role', 'status'); document.body.append(el); }
-    el.className = 'recado' + (erro ? ' erro' : '');
-    el.textContent = texto;
-    clearTimeout(avisoTimer);
-    avisoTimer = setTimeout(() => el.remove(), erro ? 6000 : 3000);
+    el.className = 'recado' + (erro ? ' erro' : '') + (desfazer ? ' com-acao' : '');
+    el.textContent = '';
+    const t = document.createElement('span'); t.textContent = texto; el.append(t);
+    const tempo = erro ? 6000 : desfazer ? 8000 : 3000;
+    const sumir = () => { clearTimeout(avisoTimer); avisoTimer = setTimeout(() => el.remove(), tempo); };
+    if (desfazer) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn pequeno'; b.textContent = rotulo;
+      b.onclick = async () => {
+        clearTimeout(avisoTimer);
+        try { await desfazer(); el.remove(); } catch (e) { aviso(e.message, { erro: true }); }
+      };
+      el.append(b);
+      el.onpointerenter = () => clearTimeout(avisoTimer); el.onpointerleave = sumir;
+    } else { el.onpointerenter = el.onpointerleave = null; }
+    sumir();
   }
 
   window.KVShell = { montar, verComo, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };

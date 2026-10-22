@@ -185,7 +185,7 @@ for (const [contaId, movs] of porConta) {
     if (x.lado === 'entrada') {
       const tipo = tipoEntrada(txt);
       const lote = { conta_id: contaId, lado: 'entrada', tipo, data: x.data, pontos: x.pontos, custo: 0, vence: somaMeses(x.data, 24), resta: x.pontos,
-        origem: tipo === 'transferencia' ? origemDe(txt) : null, obs: espacos(txt), criado_em: x.m.criado, criado_por: POR };
+        origem: tipo === 'transferencia' ? origemDe(txt) : null, obs: espacos(txt), coda_id: x.m._id || null, criado_em: x.m.criado, criado_por: POR };
       // saída que veio antes da entrada no documento (mesma data, ordem trocada): desconta deste lote
       const usa = Math.min(divida, lote.resta); lote.resta -= usa; divida -= usa;
       cria('movimentos', lote);
@@ -193,8 +193,9 @@ for (const [contaId, movs] of porConta) {
     } else {
       const tipo = tipoSaida(txt);
       cria('movimentos', { conta_id: contaId, lado: 'saida', tipo, data: x.data, pontos: x.pontos, custo: 0, vence: null, resta: null, origem: null,
-        obs: tipo === 'emissao' ? resumoEmissao(txt) : tipo === 'ajuste' ? 'Sem descrição no Superhuman' : espacos(txt).split('\n')[0],
-        criado_em: x.m.criado, criado_por: POR });
+        // o texto inteiro (na emissão, a tela monta o título "passageiro · rota" com as duas primeiras linhas)
+        obs: tipo === 'ajuste' ? 'Sem descrição no Superhuman' : espacos(txt),
+        coda_id: x.m._id || null, criado_em: x.m.criado, criado_por: POR });
       let falta = x.pontos;
       for (const l of [...lotes].sort((a, b) => a.vence.localeCompare(b.vence))) { if (falta <= 0) break; const usa = Math.min(l.resta, falta); l.resta -= usa; falta -= usa; }
       divida += falta;

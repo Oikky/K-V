@@ -13,7 +13,7 @@ import './acoes/contas.js';
 import './acoes/ponto.js';
 import { lerPonto } from './ponto.js';
 import { listarPessoas, viajaCom, clientes } from './pessoas.js';
-import { contasCompletas, contaDetalhe } from './contas.js';
+import { contasCompletas, contaDetalhe, movimentoDetalhe } from './contas.js';
 import './acoes/base.js';
 import './acoes/orcamentos.js';
 
@@ -37,7 +37,7 @@ export default {
         }
         if (url.pathname === '/api/ponto' && req.method === 'GET') return json(await lerPonto(env, usuario));
         // só o dono: cadastro de pessoas e contas de pontos
-        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta', '/api/clientes'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
+        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta', '/api/movimento', '/api/clientes'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
         if (url.pathname === '/api/clientes' && req.method === 'GET') return json(await clientes(env));
         if (url.pathname === '/api/pessoas' && req.method === 'GET') return json(await listarPessoas(env));
         if (url.pathname === '/api/pessoas/juntos' && req.method === 'GET') return json(await viajaCom(env, Number(url.searchParams.get('id'))));
@@ -45,6 +45,10 @@ export default {
         if (url.pathname === '/api/conta' && req.method === 'GET') {
           const c = await contaDetalhe(env, Number(url.searchParams.get('id')));
           return c ? json(c) : json({ erro: 'Conta não encontrada' }, 404);
+        }
+        if (url.pathname === '/api/movimento' && req.method === 'GET') {
+          const m = await movimentoDetalhe(env, Number(url.searchParams.get('id')));
+          return m ? json(m) : json({ erro: 'Movimento não encontrado (talvez tenha sido apagado)' }, 404);
         }
         if (url.pathname === '/api/acao' && req.method === 'POST') {
           return json({ ok: true, resultado: await executar(env, usuario, await req.json()) });

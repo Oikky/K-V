@@ -25,6 +25,13 @@
   .loc input { font: 800 20px var(--font-brand) !important; letter-spacing: .12em; text-transform: uppercase; height: 50px !important; }
   .loc .btn { height: 50px; }
   .voo.feito { background: var(--surface-1); }
+  .voo.feito .cab { padding-right: 60px; }
+  .voo.cancelada .hora, .voo.cancelada .gasto b, .voo.cancelada .locz { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--text-3); }
+  .obs-voo { flex-basis: 100%; font-size: 13.5px; color: var(--text-2); white-space: pre-line; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+  .menu-orc.confirma { min-width: 260px; max-width: 300px; }
+  .menu-orc.confirma p span { display: block; margin-top: 4px; font-size: 13px; }
+  .loc-grande { font: 800 22px var(--font-brand) !important; letter-spacing: .12em; text-transform: uppercase; }
+  .fim.cancelado { background: var(--danger-bg); }
   .feito-linha { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .feito-linha .locz { font: 800 22px var(--font-brand); letter-spacing: .1em; }
   .chip.ok svg.lucide, .etiqueta svg.lucide { width: 14px; height: 14px; }

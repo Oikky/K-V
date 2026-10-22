@@ -26,7 +26,7 @@
   function beneficiarios(c) {
     const b = c.beneficiarios;
     if (!b) return null;
-    return { usados: b.usados, limite: b.limite, livres: b.livres, regra: c.renovacao, lista: b.lista.map((x) => ({ ...x, nome: x.nome || '—', cpf: x.cpf || '' })) };
+    return { usados: b.usados, limite: b.limite, base: b.base ?? b.limite, extras: b.extras || [], livres: b.livres, regra: c.renovacao, lista: b.lista.map((x) => ({ ...x, nome: x.nome || '—', cpf: x.cpf || '' })) };
   }
   const vencendo = (c) => { const lotes = c.lotes.filter((l) => l.vence && diasAte(l.vence) <= 60); return { pontos: lotes.reduce((s, l) => s + l.resta, 0), lotes, primeiro: lotes[0] ? lotes[0].vence : null }; };
   function alertas() {

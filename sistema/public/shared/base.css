@@ -131,10 +131,28 @@ td .combo-in { height: 38px; border-radius: 10px; border-color: transparent; fon
 /* ---------- janela (popup) ---------- */
 .janela { border: 0; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: min(760px, calc(100dvh - 48px)); border-radius: 24px; background: var(--surface-1); color: var(--text); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden; }
 .janela:not([open]) { display: none; }
+.janela:focus-visible { outline: none; }
 .janela::backdrop { background: rgb(1 8 18 / .62); }
 .janela header { display: flex; align-items: center; gap: 10px; padding: 18px 18px 12px 22px; }
 .janela header .sub { font-size: 13px; color: var(--text-2); font-weight: 600; }
 .janela .corpo { padding: 0 22px 8px; overflow-y: auto; }
+/* janela com formulário: campos empilhados, rodapé fixo embaixo */
+.janela form.form-j { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.form-j .corpo { display: grid; gap: 16px; padding-top: 4px; padding-bottom: 18px; }
+.form-j textarea { width: 100%; min-height: 84px; resize: vertical; }
+.form-j .caixa { display: flex; align-items: center; height: 48px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); padding: 0 14px; gap: 6px; }
+.form-j .caixa:focus-within { border-color: var(--orange); }
+.form-j .caixa span { font-weight: 700; color: var(--text-3); }
+.form-j .caixa input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; outline: none; padding: 0; font-size: 16px; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .form-j footer .btn { flex: 1 1 auto; justify-content: center; } }
+label.check { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-field); background: var(--surface-2); cursor: pointer; font-weight: 600; font-size: 14.5px; }
+label.check input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--orange); }
+label.check small { display: block; margin-top: 2px; font-size: 13px; font-weight: 500; color: var(--text-2); }
+.btn.primario.perigo { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.primario.perigo.kv-ocupado::after { border-color: #fff; border-right-color: transparent; }
+.aviso.aviso-acoes { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.aviso.aviso-acoes > span:first-child { flex: 1 1 260px; }
+.aviso.aviso-acoes .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
 .janela footer { padding: 14px 22px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 @media (max-width: 760px) { .janela { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: 24px 24px 0 0; } }
 @media (prefers-reduced-motion: no-preference) {
@@ -264,6 +282,9 @@ button.tr:hover .troca { background: var(--surface-3); color: var(--text); }
 /* ---------- recado rápido (erro de rede, recusa do servidor) ---------- */
 .recado { position: fixed; left: 50%; bottom: 20px; translate: -50% 0; z-index: 60; max-width: calc(100vw - 32px); padding: 12px 18px; border-radius: var(--r-field); background: var(--surface-3); color: var(--text); box-shadow: var(--shadow-pop); font-weight: 600; font-size: 14px; }
 .recado.erro { background: var(--danger); color: #fff; }
+.recado.com-acao { display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 18px; }
+.recado.com-acao .btn { flex: none; background: var(--surface-1); }
+@media (prefers-reduced-motion: no-preference) { .recado { animation: kv-recado .22s cubic-bezier(.2, .8, .2, 1); } @keyframes kv-recado { from { opacity: 0; transform: translateY(8px); } } }
 @media (max-width: 760px) { .recado { bottom: 84px; } }
 
 /* ---------- todo clique responde (api.js) ----------

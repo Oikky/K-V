@@ -72,7 +72,7 @@ export async function abrirOrcamento(env, usuario, id) {
     todos(db, 'SELECT id, ordem, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, `SELECT p.id, p.nome, p.cpf, p.nascimento, p.whatsapp, p.passaporte_numero, p.passaporte_validade
                FROM orcamento_passageiros op JOIN pessoas p ON p.id = op.pessoa_id WHERE op.orcamento_id = ? ORDER BY op.ordem`, id),
-    todos(db, 'SELECT id, trecho, conta_id, pontos, localizador, cancelada, em FROM emissoes WHERE orcamento_id = ? ORDER BY trecho', id),
+    todos(db, 'SELECT id, trecho, conta_id, pontos, localizador, cancelada, cancelada_em, cancelada_obs, devolvido, obs, em FROM emissoes WHERE orcamento_id = ? ORDER BY trecho', id),
     todos(db, 'SELECT ep.emissao_id, ep.pessoa_id FROM emissao_passageiros ep JOIN emissoes e ON e.id = ep.emissao_id WHERE e.orcamento_id = ?', id),
     todos(db, `SELECT e.quando, e.quem, COALESCE(u.nome, CASE e.quem WHEN 'bot' THEN 'Bot do Telegram' ELSE e.quem END) AS nome, e.texto
                FROM eventos e LEFT JOIN usuarios u ON u.email = e.quem

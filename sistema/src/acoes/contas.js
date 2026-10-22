@@ -2,23 +2,18 @@
 // Cada entrada é um lote com vencimento e guarda quanto ainda resta; as saídas gastam primeiro o que vence antes.
 import { acao, Recusa, hojeBR } from '../acoes.js';
 import { contasCompletas } from '../contas.js';
+import { gastar, devolver, proximos } from '../pontos.js';
 import { cpfValido } from './pessoas.js';
 
 const ENTRADAS = ['clube', 'compra', 'transferencia', 'cartao', 'bonus', 'estorno', 'inicial'];
 const COM_CUSTO = ['clube', 'compra', 'transferencia'];
 const SAIDAS = ['transferencia', 'expiracao', 'ajuste'];
+export const OBS_MAX = 2000;
 const ehData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 const soDigitos = (s) => String(s || '').replace(/\D/g, '');
 const pts = (n) => n.toLocaleString('pt-BR');
 const somaMeses = (dia, n) => { const d = new Date(dia + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); };
-
-// próximo id de uma tabela, já contando os que este lote vai criar
-async function proximos(db, tabela) {
-  const { id } = await db.prepare(`SELECT COALESCE(MAX(id), 0) AS id FROM ${tabela}`).first();
-  let n = id;
-  return () => ++n;
-}
 
 // confere e monta uma entrada (lote). l: { conta, tipo, data, pontos, custo, vence, origem, bonus_pct, obs }
 function validarEntrada(l) {
@@ -30,7 +25,7 @@ function validarEntrada(l) {
   const vence = l.vence && ehData(l.vence) ? l.vence : somaMeses(l.data, 24);
   const bonus = l.tipo === 'transferencia' && l.bonus_pct != null ? l.bonus_pct : null;
   if (bonus != null && !inteiro(bonus, 0, 1000)) throw new Recusa('Bônus inválido');
-  return { tipo: l.tipo, data: l.data, pontos: l.pontos, custo, vence, bonus, origem: l.tipo === 'transferencia' ? String(l.origem || '').slice(0, 40) || null : null, obs: String(l.obs || '').trim().slice(0, 300) };
+  return { tipo: l.tipo, data: l.data, pontos: l.pontos, custo, vence, bonus, origem: l.tipo === 'transferencia' ? String(l.origem || '').slice(0, 40) || null : null, obs: String(l.obs || '').trim().slice(0, OBS_MAX) };
 }
 const insertEntrada = (db, id, contaId, e, quando, email, parId = null) => db.prepare(`INSERT INTO movimentos
   (id, conta_id, lado, tipo, data, pontos, custo, vence, resta, bonus_pct, origem, par_id, obs, criado_em, criado_por)
@@ -44,24 +39,15 @@ acao('mov.entradas', ['dono'], async ({ db, env, usuario, quando }, { linhas }) 
   const contas = await contasCompletas(env, { ids });
   if (contas.length !== ids.length) throw new Recusa('Conta não encontrada');
   const novoId = await proximos(db, 'movimentos');
-  const comandos = [], eventos = [];
+  const comandos = [], eventos = [], criados = [];
   linhas.forEach((l) => {
     const e = validarEntrada(l), c = contas.find((x) => x.id === l.conta), id = novoId();
+    criados.push(id);
     comandos.push(insertEntrada(db, id, c.id, e, quando, usuario.email));
     eventos.push({ entidade: 'conta', id: c.id, texto: `Entrada: +${pts(e.pontos)} pts (${e.tipo})`, depois: e });
   });
-  return { resultado: { n: linhas.length }, comandos, eventos };
+  return { resultado: { n: linhas.length, ids: criados }, comandos, eventos };
 });
-
-// gasta pontos dos lotes, do que vence antes pro que vence depois (ou de um lote escolhido, na expiração).
-// Devolve os comandos e o custo proporcional dos pontos gastos (vai junto numa transferência).
-function gastar(db, conta, pontos, loteId) {
-  const lotes = loteId ? [...conta.lotes.filter((l) => l.id === loteId), ...conta.lotes.filter((l) => l.id !== loteId)] : conta.lotes;
-  let falta = pontos;
-  const usos = [];
-  for (const l of lotes) { if (falta <= 0) break; const usa = Math.min(l.resta, falta); falta -= usa; usos.push({ id: l.id, usa }); }
-  return { comandos: usos.map((u) => db.prepare('UPDATE movimentos SET resta = resta - ? WHERE id = ?').bind(u.usa, u.id)), usos };
-}
 
 // saída: transferência (vira entrada na conta de destino), expiração ou ajuste. A emissão nasce no atendimento.
 acao('mov.saida', ['dono'], async ({ db, env, usuario, quando }, d) => {
@@ -78,8 +64,8 @@ acao('mov.saida', ['dono'], async ({ db, env, usuario, quando }, d) => {
 
   const novoId = await proximos(db, 'movimentos');
   const saidaId = novoId();
-  const g = gastar(db, c, d.pontos, Number.isInteger(d.lote) ? d.lote : null);
-  const obs = String(d.obs || '').trim().slice(0, 300);
+  const g = gastar(db, c, d.pontos, saidaId, Number.isInteger(d.lote) ? d.lote : null);
+  const obs = String(d.obs || '').trim().slice(0, OBS_MAX);
   const comandos = [...g.comandos];
   const eventos = [];
   if (d.tipo === 'transferencia') {
@@ -205,4 +191,99 @@ acao('config.programas', ['dono'], async ({ db }, { programas = [], niveis = {} 
   }
   if (Object.keys(niveis).length) eventos.push({ entidade: 'programa', id: 'azul', texto: 'Níveis da Azul', depois: niveis });
   return { resultado: { ok: true }, comandos, eventos };
+});
+
+// ---------- corrigir e apagar entrada/saída ----------
+const NOMES_MOV = { clube: 'clube', compra: 'compra', transferencia: 'transferência', cartao: 'cartão', bonus: 'bônus', estorno: 'estorno', inicial: 'saldo inicial', expiracao: 'expiração', ajuste: 'ajuste', emissao: 'emissão' };
+async function movimento(db, id) {
+  const m = Number.isInteger(id) ? await db.prepare('SELECT * FROM movimentos WHERE id = ?').bind(id).first() : null;
+  if (!m) throw new Recusa('Movimento não encontrado (talvez já tenha sido apagado)', 404);
+  return m;
+}
+const intocado = (e) => e.resta === e.pontos;
+const jaUsou = (e) => `Já saíram ${pts(e.pontos - e.resta)} pts desse lote. Apague antes as saídas que usaram ele, ou corrija só a observação.`;
+
+// apaga uma entrada ou saída. A saída devolve os pontos pros lotes de onde saíram; a transferência apaga as duas pontas.
+acao('mov.apagar', ['dono'], async ({ db }, { id }) => {
+  const m = await movimento(db, id);
+  if (m.emissao_id && m.lado === 'saida') throw new Recusa('Essa saída é de uma emissão: desfaça pela tela da emissão do orçamento', 409);
+  const par = m.par_id ? await movimento(db, m.par_id) : null;
+  const saida = m.lado === 'saida' ? m : par && par.lado === 'saida' ? par : null;
+  const entrada = m.lado === 'entrada' ? m : par && par.lado === 'entrada' ? par : null;
+  if (entrada && !intocado(entrada)) throw new Recusa(par ? `Os pontos que chegaram na outra conta já foram usados. ${jaUsou(entrada)}` : jaUsou(entrada), 409);
+  const comandos = [];
+  if (par) comandos.push(db.prepare('UPDATE movimentos SET par_id = NULL WHERE id IN (?, ?)').bind(m.id, par.id));
+  if (saida) comandos.push(...(await devolver(db, saida)), db.prepare('DELETE FROM consumos WHERE saida_id = ?').bind(saida.id));
+  if (entrada) comandos.push(db.prepare('DELETE FROM consumos WHERE lote_id = ?').bind(entrada.id));
+  [saida, entrada].filter(Boolean).forEach((x) => comandos.push(db.prepare('DELETE FROM movimentos WHERE id = ?').bind(x.id)));
+  const sinal = (x) => `${x.lado === 'entrada' ? '+' : '−'}${pts(x.pontos)} pts`;
+  const eventos = [m, par].filter(Boolean).map((x) => ({ entidade: 'conta', id: x.conta_id, texto: `Apagou ${x.lado === 'entrada' ? 'a entrada' : 'a saída'} de ${NOMES_MOV[x.tipo] || x.tipo} (${sinal(x)})`, antes: x }));
+  return { resultado: { conta: m.conta_id, apagados: [m, par].filter(Boolean).map((x) => x.id) }, comandos, eventos };
+});
+
+// corrige um movimento. Observação e data sempre; pontos, custo e vencimento só onde não bagunça o resto
+// (entrada que não veio de transferência; saída de expiração ou ajuste).
+acao('mov.editar', ['dono'], async ({ db, env }, d) => {
+  const m = await movimento(db, d.id);
+  const muda = {}, comandos = [];
+  if (d.obs != null) muda.obs = String(d.obs).trim().slice(0, OBS_MAX);
+  if (d.data != null) { if (!ehData(d.data)) throw new Recusa('Data inválida'); muda.data = d.data; }
+  // emissão sem registro de emissão = veio do documento antigo: corrige como uma saída comum
+  const livre = m.lado === 'entrada' ? !m.par_id : ['expiracao', 'ajuste'].includes(m.tipo) || (m.tipo === 'emissao' && !m.emissao_id);
+  if (d.pontos != null && d.pontos !== m.pontos) {
+    if (!livre) throw new Recusa(m.emissao_id ? 'Os pontos de uma emissão se corrigem desfazendo a emissão' : 'Numa transferência, apague e lance de novo pra mudar os pontos', 409);
+    if (!inteiro(d.pontos, 1, 100_000_000)) throw new Recusa('Pontos inválidos');
+    if (m.lado === 'entrada') {
+      const usado = m.pontos - m.resta;
+      if (d.pontos < usado) throw new Recusa(`Já saíram ${pts(usado)} pts desse lote; ele não pode ficar com menos que isso`, 409);
+      muda.pontos = d.pontos; muda.resta = d.pontos - usado;
+    } else {
+      muda.pontos = d.pontos;
+      if (d.pontos > m.pontos) { const [c] = await contasCompletas(env, { ids: [m.conta_id] }); comandos.push(...gastar(db, c, d.pontos - m.pontos, m.id).comandos); }
+      else comandos.push(...(await devolver(db, m, m.pontos - d.pontos)));
+    }
+  }
+  if (m.lado === 'entrada' && !m.par_id) {
+    if (d.custo != null && COM_CUSTO.includes(m.tipo)) { if (!inteiro(d.custo, 0, 100_000_000)) throw new Recusa('Custo inválido'); muda.custo = d.custo; }
+    if (d.vence != null) { if (!ehData(d.vence)) throw new Recusa('Vencimento inválido'); muda.vence = d.vence; }
+  }
+  const campos = Object.keys(muda).filter((k) => muda[k] !== m[k]);
+  if (!campos.length) return { resultado: { id: m.id } };
+  comandos.unshift(db.prepare(`UPDATE movimentos SET ${campos.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`).bind(...campos.map((k) => muda[k]), m.id));
+  // transferência: a data é a mesma nas duas pontas
+  if (m.par_id && campos.includes('data')) comandos.push(db.prepare('UPDATE movimentos SET data = ? WHERE id = ?').bind(muda.data, m.par_id));
+  const antes = Object.fromEntries(campos.map((k) => [k, m[k]])), depois = Object.fromEntries(campos.map((k) => [k, muda[k]]));
+  const oQue = campos.filter((k) => k !== 'resta').map((k) => ({ obs: 'observação', data: 'data', pontos: 'pontos', custo: 'custo', vence: 'vencimento' }[k])).join(', ');
+  return { resultado: { id: m.id, antes }, comandos, eventos: [{ entidade: 'conta', id: m.conta_id, texto: `Corrigiu ${m.lado === 'entrada' ? 'a entrada' : 'a saída'} de ${NOMES_MOV[m.tipo] || m.tipo}: ${oQue}`, antes, depois }] };
+});
+
+// ---------- vaga extra de beneficiário ----------
+// o programa liberou mais CPFs pra uma conta: soma no limite enquanto valer (até a data, ou até alguém desligar)
+acao('vaga.adicionar', ['dono'], async ({ db, usuario, quando }, { conta, vagas, ate, motivo }) => {
+  const c = Number.isInteger(conta) ? await db.prepare('SELECT id FROM contas WHERE id = ?').bind(conta).first() : null;
+  if (!c) throw new Recusa('Conta não encontrada', 404);
+  if (!inteiro(vagas, 1, 50)) throw new Recusa('Quantidade de vagas inválida');
+  if (ate != null && ate !== '' && (!ehData(ate) || ate < hojeBR())) throw new Recusa('A data final já passou');
+  const novoId = await proximos(db, 'vagas_extras'), id = novoId();
+  motivo = String(motivo || '').trim().slice(0, 200);
+  return {
+    resultado: { id },
+    comandos: [db.prepare('INSERT INTO vagas_extras (id, conta_id, vagas, ate, motivo, criada_em, criada_por) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(id, c.id, vagas, ate || null, motivo, quando, usuario.email)],
+    eventos: [{ entidade: 'conta', id: c.id, texto: `+${vagas} vaga${vagas > 1 ? 's' : ''} extra de beneficiário${ate ? ` até ${ate.split('-').reverse().join('/')}` : ''}${motivo ? ` (${motivo})` : ''}` }],
+  };
+});
+acao('vaga.desligar', ['dono'], async ({ db, quando }, { id }) => {
+  const v = Number.isInteger(id) ? await db.prepare('SELECT * FROM vagas_extras WHERE id = ?').bind(id).first() : null;
+  if (!v) throw new Recusa('Vaga extra não encontrada', 404);
+  if (v.desligada_em) return { resultado: { id } };
+  return {
+    resultado: { id, conta: v.conta_id },
+    comandos: [db.prepare('UPDATE vagas_extras SET desligada_em = ? WHERE id = ?').bind(quando, id)],
+    eventos: [{ entidade: 'conta', id: v.conta_id, texto: `Tirou ${v.vagas} vaga${v.vagas > 1 ? 's' : ''} extra de beneficiário`, antes: v }],
+  };
+});
+acao('vaga.religar', ['dono'], async ({ db }, { id }) => {
+  const v = Number.isInteger(id) ? await db.prepare('SELECT * FROM vagas_extras WHERE id = ?').bind(id).first() : null;
+  if (!v) throw new Recusa('Vaga extra não encontrada', 404);
+  return { resultado: { id }, comandos: [db.prepare('UPDATE vagas_extras SET desligada_em = NULL WHERE id = ?').bind(id)], eventos: [{ entidade: 'conta', id: v.conta_id, texto: 'Voltou a vaga extra de beneficiário' }] };
 });

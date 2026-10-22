@@ -115,6 +115,7 @@
     juntos: (id) => obter('/api/pessoas/juntos?id=' + encodeURIComponent(id)),
     contas: (programa) => obter('/api/contas' + (programa ? '?programa=' + encodeURIComponent(programa) : '')),
     conta: (id) => obter('/api/conta?id=' + encodeURIComponent(id)),
+    movimento: (id) => obter('/api/movimento?id=' + encodeURIComponent(id)),
     orcamento: (id) => obter('/api/orcamento?id=' + encodeURIComponent(id)),
     // { quieto: true } = gravação automática (salvar sozinho): não marca botão nenhum como ocupado
     acao: async (acao, dados = {}, { quieto = false } = {}) => {
