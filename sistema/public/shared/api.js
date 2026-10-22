@@ -49,7 +49,7 @@
       }).catch(() => {});
       return JSON.parse(guardado.texto);
     }
-    const novo = await pedir(caminho);
+    const novo = await comLinha(pedir(caminho));
     guardar(caminho, JSON.stringify(novo));
     return novo;
   }
@@ -70,6 +70,34 @@
         if (url && url !== minha) window.KVApi.acao('eu.foto', { url }).catch(() => {});
       }).catch(() => {});
   }
+  // ---------- todo clique responde ----------
+  // O botão que disparou a gravação fica "ocupado" (girador, travado) até o servidor responder, e uma linha
+  // corre no topo enquanto qualquer gravação ou leitura da tela estiver no caminho. Assim nada parece travado.
+  let ultimoAlvo = null, ultimoEm = 0;
+  const ALVO = 'button, a.btn, [role="button"], .cartao-ref, .pilula, label.sel-pilula';
+  addEventListener('click', (e) => { const a = e.target.closest && e.target.closest(ALVO); if (a) { ultimoAlvo = a; ultimoEm = Date.now(); } }, true);
+  addEventListener('submit', (e) => { if (e.submitter) { ultimoAlvo = e.submitter; ultimoEm = Date.now(); } }, true);
+  function ocupar() {
+    const el = Date.now() - ultimoEm < 600 && ultimoAlvo && ultimoAlvo.isConnected ? ultimoAlvo : null;
+    ultimoAlvo = null;
+    if (!el || el.classList.contains('kv-ocupado')) return () => {};
+    const tinha = el.disabled;
+    el.classList.add('kv-ocupado'); el.setAttribute('aria-busy', 'true');
+    if ('disabled' in el) el.disabled = true;
+    return () => { el.classList.remove('kv-ocupado'); el.removeAttribute('aria-busy'); if ('disabled' in el) el.disabled = tinha; };
+  }
+  let naRede = 0, linhaTimer = null;
+  function rede(delta) {
+    naRede = Math.max(0, naRede + delta);
+    clearTimeout(linhaTimer);
+    let linha = document.querySelector('.kv-rede');
+    if (naRede && !linha) {
+      // só aparece se demorar um pouco (resposta rápida não pisca nada)
+      linhaTimer = setTimeout(() => { if (naRede && !document.querySelector('.kv-rede')) { linha = document.createElement('div'); linha.className = 'kv-rede'; linha.setAttribute('aria-hidden', 'true'); document.body.append(linha); } }, 120);
+    } else if (!naRede && linha) linha.remove();
+  }
+  async function comLinha(promessa) { rede(1); try { return await promessa; } finally { rede(-1); } }
+
   const indo = new Set();
   const chave = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
 
@@ -88,12 +116,16 @@
     contas: (programa) => obter('/api/contas' + (programa ? '?programa=' + encodeURIComponent(programa) : '')),
     conta: (id) => obter('/api/conta?id=' + encodeURIComponent(id)),
     orcamento: (id) => obter('/api/orcamento?id=' + encodeURIComponent(id)),
-    acao: async (acao, dados = {}) => {
-      const r = (await pedir('/api/acao', {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ acao, dados, chave: chave() }),
-      })).resultado;
-      esquecer();
-      return r;
+    // { quieto: true } = gravação automática (salvar sozinho): não marca botão nenhum como ocupado
+    acao: async (acao, dados = {}, { quieto = false } = {}) => {
+      const soltar = quieto ? () => {} : ocupar();
+      try {
+        const r = (await comLinha(pedir('/api/acao', {
+          method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ acao, dados, chave: chave() }),
+        }))).resultado;
+        esquecer();
+        return r;
+      } finally { soltar(); }
     },
     // tela nova: a primeira leitura de cada endereço volta a poder vir do que está guardado
     novaTela: () => { usados.clear(); mexeu = false; recarregando = false; },

@@ -25,7 +25,7 @@ KVTelas['fechamento'] = function () {
     if (salvando) { await salvando; if (!sujo) return; }
     if (!sujo) return;
     sujo = false;
-    salvando = KVApi.acao('fech.salvar', dados())
+    salvando = KVApi.acao('fech.salvar', dados(), { quieto: true })
       .catch(async (e) => { KVShell.aviso(e.message, { erro: true }); await recarregar(); render(); })
       .finally(() => { salvando = null; });
     await salvando;

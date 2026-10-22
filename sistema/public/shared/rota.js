@@ -40,6 +40,7 @@
     if (!cssPendente) return;
     document.querySelectorAll('link[data-tela]').forEach((l) => { l.media = l.dataset.tela === cssPendente ? 'all' : 'not all'; });
     cssPendente = null;
+    document.querySelectorAll('.kv-ocupado').forEach((e) => e.classList.remove('kv-ocupado'));
     scrollTo(0, 0);
   }
 
@@ -58,6 +59,9 @@
     const url = new URL(a.href, location.href);
     if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
     e.preventDefault();
+    // o que foi tocado já mostra que está indo (some quando a tela nova desenha)
+    const tocado = a.closest('tr, .cartao-ref') || a;
+    tocado.classList.add('kv-ocupado'); setTimeout(() => tocado.classList.remove('kv-ocupado'), 8000);
     ir(url.href);
   });
   // voltar/avançar: se mudou a tela, troca; se é a mesma tela, quem cuida é ela (janelas, abas, filtros)

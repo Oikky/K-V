@@ -31,7 +31,7 @@ KVTelas['proposta'] = function () {
     if (!sujo || !editavel()) return;
     sujo = false;
     const envio = o.combos;
-    salvando = KVApi.acao('prop.salvar', { orcamento: o.id, combos: envio.map((c) => ({ id: c.id, nome: c.nome, escolha: c.escolha, milha: c.milha, livre: c.livre, parcelado: c.parcelado, vezes: c.vezes })) })
+    salvando = KVApi.acao('prop.salvar', { orcamento: o.id, combos: envio.map((c) => ({ id: c.id, nome: c.nome, escolha: c.escolha, milha: c.milha, livre: c.livre, parcelado: c.parcelado, vezes: c.vezes })) }, { quieto: true })
       .then((r) => { envio.forEach((c, i) => { c.id = r.ids[i]; }); if (!sujo) estadoSalvo('Tudo salvo'); })
       .catch(async (e) => { KVShell.aviso(e.message, { erro: true }); await recarregar(); render(); })
       .finally(() => { salvando = null; });
