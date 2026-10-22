@@ -132,6 +132,8 @@ td .combo-in { height: 38px; border-radius: 10px; border-color: transparent; fon
 .janela { border: 0; padding: 0; width: min(560px, calc(100vw - 32px)); max-height: min(760px, calc(100dvh - 48px)); border-radius: 24px; background: var(--surface-1); color: var(--text); box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden; }
 .janela:not([open]) { display: none; }
 .janela:focus-visible { outline: none; }
+/* só pra leitor de tela */
+.escondido { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .janela::backdrop { background: rgb(1 8 18 / .62); }
 .janela header { display: flex; align-items: center; gap: 10px; padding: 18px 18px 12px 22px; }
 .janela header .sub { font-size: 13px; color: var(--text-2); font-weight: 600; }

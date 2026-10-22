@@ -32,20 +32,66 @@
   .vaga.vazia { border: 1.5px dashed var(--line); background: none; flex-wrap: wrap; }
   .vaga.vazia .n { font: 800 14px var(--font-brand); color: var(--text-3); width: 40px; text-align: center; flex: none; }
   .vaga.vazia .campo { flex: 1; min-width: 150px; }
+  .check.viaja { margin-top: 12px; max-width: 520px; }
   .sugestoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: -4px 0 14px; }
   .sugestoes .rot { font-size: 13px; color: var(--text-3); font-weight: 700; }
   .sugestoes .pilula .ava { width: 22px; height: 22px; font-size: 9.5px; margin-left: -8px; }
 
-  /* 4 · recebimento */
-  .receb { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px 24px; align-items: start; background: var(--surface-1); border-radius: 26px; padding: 22px; }
-  .receb .rot { font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; display: block; }
-  .receb .caixa { display: flex; align-items: center; height: 52px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); padding: 0 14px; gap: 6px; }
-  .receb .caixa:focus-within { border-color: var(--orange); }
-  .receb .caixa span { font: 800 16px var(--font-brand); color: var(--text-3); }
-  .receb .caixa input { flex: 1; min-width: 0; width: 0; height: 100%; border: 0; background: none; outline: none; font: 800 22px var(--font-brand); font-variant-numeric: tabular-nums; }
-  .receb .rapidos { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .receb .situ { display: grid; gap: 6px; }
-  .receb .situ b { font: 800 26px var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  /* 4 · recebimento: três versões pra comparar (A resumo com barra, B recibo, C cartões) */
+  .versoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: -4px 0 14px; }
+  .versoes > span { font-size: 13px; font-weight: 700; color: var(--text-3); margin-right: 2px; }
+  .versoes .pilula b { font-family: var(--font-brand); }
+  :is(.receb-a, .receb-b, .receb-c) .rot { font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; display: block; }
+  :is(.receb-a, .receb-b, .receb-c) .caixa { display: flex; align-items: center; height: 52px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); padding: 0 14px; gap: 6px; }
+  :is(.receb-a, .receb-b, .receb-c) .caixa:focus-within { border-color: var(--orange); }
+  :is(.receb-a, .receb-b, .receb-c) .caixa span { font: 800 16px var(--font-brand); color: var(--text-3); }
+  :is(.receb-a, .receb-b, .receb-c) .caixa input { flex: 1; min-width: 0; width: 0; height: 100%; border: 0; background: none; outline: none; font: 800 22px var(--font-brand); font-variant-numeric: tabular-nums; }
+  :is(.receb-a, .receb-b, .receb-c) .rapidos { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .parc-sel { margin-left: 0; } .parc-sel select { height: 44px; }
+
+  /* A · resumo com barra: o número que falta em cima, a barra enchendo, e os controles embaixo */
+  .receb-a { background: var(--surface-1); border-radius: 26px; padding: 24px; display: grid; gap: 22px; }
+  .ra-num { display: flex; align-items: baseline; gap: 8px 14px; flex-wrap: wrap; }
+  .ra-num .rot { width: 100%; margin: 0; }
+  .ra-num b { font: 800 clamp(34px, 6vw, 48px)/1 var(--font-brand); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .ra-topo.pago .ra-num b { color: var(--ok); }
+  .ra-barra { height: 10px; border-radius: 99px; background: var(--surface-3); overflow: hidden; margin-top: 16px; }
+  .ra-barra span { display: block; height: 100%; min-width: 0; background: var(--ok); border-radius: inherit; transition: width .45s cubic-bezier(.2, .8, .2, 1); }
+  .ra-legenda { display: flex; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .ra-ctrl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 18px 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .ra-forma { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* B · recibo: as contas como num comprovante (venda − recebido = falta), com a borda de baixo serrilhada */
+  .receb-b { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+  .recibo { background: var(--surface-1); border-radius: 26px 26px 0 0; padding: 18px 24px 30px; display: grid;
+    -webkit-mask: radial-gradient(circle 9px at 50% 100%, transparent 96%, #000) 0 0 / 24px 100% repeat-x; mask: radial-gradient(circle 9px at 50% 100%, transparent 96%, #000) 0 0 / 24px 100% repeat-x; }
+  .rl { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 13px 0; border-bottom: 1.5px dashed var(--line); }
+  .rl > span { font-weight: 600; color: var(--text-2); }
+  .rl small { display: block; font-size: 12.5px; color: var(--text-3); font-weight: 600; margin-top: 2px; }
+  .rl b { font: 800 18px var(--font-brand); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rl .ok-t { color: var(--ok); }
+  .rl.total { border: 0; padding-top: 18px; flex-wrap: wrap; }
+  .rl.total > span { white-space: nowrap; }
+  .rl.total > span { color: var(--text); font-size: 16px; font-weight: 700; }
+  .rl.total b { font-size: clamp(28px, 4vw, 36px); letter-spacing: -0.02em; }
+  .rl.total svg.lucide { width: 30px; height: 30px; stroke-width: 3; color: var(--ok); }
+  .recibo .etiqueta { justify-self: start; }
+  .receb-b-ctrl { background: var(--surface-1); border-radius: 26px; padding: 22px; display: grid; gap: 22px; align-content: start; }
+
+  /* C · cartões (jeito HubSpot): um cartão cheio com a situação, dois cartões com os controles */
+  .receb-c { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  @media (max-width: 1100px) { .receb-c { grid-template-columns: minmax(0, 1fr); } }
+  .rc-situ { background: var(--orange); color: var(--orange-ink); border-radius: 26px; padding: 22px 24px; display: grid; gap: 4px; align-content: start; min-height: 190px; transition: background-color .3s; }
+  .rc-situ.pago { background: var(--ok); color: #04170d; }
+  .rc-rot { font-size: 14px; font-weight: 700; opacity: .78; }
+  .rc-num { font: 800 clamp(34px, 4.2vw, 48px)/1.05 var(--font-brand); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .rc-de { font-size: 14px; font-weight: 600; opacity: .78; }
+  .rc-pe { margin-top: auto; padding-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-weight: 700; font-size: 14px; }
+  .rc-situ .etiqueta { background: rgb(0 0 0 / .14); color: inherit; }
+  .rc-card { background: var(--surface-1); border-radius: 26px; padding: 22px; display: grid; gap: 2px; align-content: start; }
+  .rc-parc { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .rc-parc b { font: 800 19px var(--font-brand); font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { .ra-barra span, .rc-situ { transition: none; } }
   .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
   .barra-acao .resumo .alerta { color: var(--warn); }
   .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }

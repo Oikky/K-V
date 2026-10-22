@@ -1,6 +1,7 @@
-/* Tela: Fechamento (aceita, quem paga, quem voa, recebimento). Endereço: /fechamento.html
-   Fechamento (rodada 9 dos rascunhos), lendo e gravando no banco: a pessoa aceitou. O dono marca qual combinação, quem paga
-     (vira cliente), quem voa (cadastro único pelo CPF) e o recebimento. Tudo se salva sozinho; nada trava: dá pra fechar faltando
+/* Tela: Fechamento (aceita, cliente, passageiros, recebimento). Endereço: /fechamento.html
+   Fechamento (rodada 9 dos rascunhos), lendo e gravando no banco: a pessoa aceitou. O dono marca qual combinação, o cliente
+     (quem está comprando), os passageiros (os nomes que vão na passagem, cadastro único pelo CPF) e o recebimento.
+     O cliente entra como passageiro sozinho; "Também viaja" desmarcado tira ele da lista. Tudo se salva sozinho; nada trava: dá pra fechar faltando
      passageiro e completar depois. Só o dono.
    O estilo desta tela está em telas/fechamento.css. */
 KVTelas['fechamento'] = function () {
@@ -82,44 +83,81 @@ KVTelas['fechamento'] = function () {
   const opcoesPessoas = (excluir = []) => `<option value="">Buscar por nome ou CPF</option>${pessoas.filter((p) => !excluir.includes(p.id)).map((p) => `<option value="${p.id}">${esc(p.nome)} · ${cpfFmt(p.cpf)}</option>`).join('')}`;
   function quemPaga() {
     const c = o.clienteId && pessoa(o.clienteId);
-    const corpo = c ? `<div class="pessoas">${linhaPessoa(c, { tirar: fechado() ? '' : 'data-tira-cliente', papel: juntos.length ? 'cliente' : 'cliente novo' })}</div>`
-      : `<div class="pessoas"><div class="vaga vazia"><span class="n"><i data-lucide="user-round"></i></span><div class="campo"><select data-cliente data-combo="sim" aria-label="Quem paga">${opcoesPessoas()}</select></div>
+    const viaja = c && o.passageirosIds.includes(c.id);
+    const voou = c && o.emissoes.some((e) => e.passageiros.includes(c.id));
+    const corpo = c ? `<div class="pessoas">${linhaPessoa(c, { tirar: fechado() ? '' : 'data-tira-cliente', papel: juntos.length ? 'já é cliente' : 'cliente novo' })}</div>
+        <label class="check viaja"><input type="checkbox" data-viaja ${viaja ? 'checked' : ''} ${voou || (!viaja && o.passageirosIds.length >= N) ? 'disabled' : ''}>
+          <span>${esc(c.nome.split(' ')[0])} também viaja<small>${voou ? 'Já foi emitido com esse nome.' : !viaja && o.passageirosIds.length >= N ? `Os ${N} lugares já estão ocupados.` : viaja ? 'Ocupa um dos lugares de passageiro.' : 'Só está pagando a viagem de outras pessoas.'}</small></span></label>`
+      : `<div class="pessoas"><div class="vaga vazia"><span class="n"><i data-lucide="user-round"></i></span><div class="campo"><select data-cliente data-combo="sim" aria-label="Cliente">${opcoesPessoas()}</select></div>
           <button class="btn" data-nova-pessoa="cliente"><i data-lucide="user-plus"></i>Cadastrar ${esc(o.contato.nome.split(' ')[0])}</button></div></div>`;
-    return cabSecao(2, 'Quem paga', !!c, '<span class="n">vira cliente</span>') + corpo;
+    return cabSecao(2, 'Cliente', !!c, '<span class="n">quem está comprando</span>') + corpo;
   }
   function quemVoa() {
     const ids = o.passageirosIds, lista = ids.map(pessoa).filter(Boolean);
     const voaram = new Set(o.emissoes.flatMap((e) => e.passageiros));
     const sug = ids.length >= N ? [] : [o.clienteId, ...juntos.map((j) => j.id)].filter((x, i, a) => x && a.indexOf(x) === i && !ids.includes(x) && pessoa(x)).slice(0, 5);
     const vazias = N - lista.length;
-    return cabSecao(3, 'Quem voa', lista.length >= N, `<span class="n">${lista.length} de ${N} · ${O.fmtPax(o.passageiros)}</span>`)
-      + (sug.length ? `<div class="sugestoes"><span class="rot">Costumam ir:</span>${sug.map((x) => { const p = pessoa(x); return `<button class="pilula" data-add="${x}"><i data-lucide="plus" style="width:15px;height:15px"></i>${esc(p.nome.split(' ').slice(0, 2).join(' '))}${x === o.clienteId ? ' <span class="cont">quem paga</span>' : ''}</button>`; }).join('')}${sug.length > 1 && sug.length <= N - ids.length ? '<button class="pilula" data-add-todos>Todos</button>' : ''}</div>` : '')
-      + `<div class="pessoas">${lista.map((p) => linhaPessoa(p, { tirar: voaram.has(p.id) ? '' : `data-tira="${p.id}"`, papel: p.id === o.clienteId ? 'quem paga' : '' })).join('')}
+    return cabSecao(3, 'Passageiros', lista.length >= N, `<span class="n">${lista.length} de ${N} · os nomes que vão na passagem</span>`)
+      + (sug.length ? `<div class="sugestoes"><span class="rot">Costumam ir:</span>${sug.map((x) => { const p = pessoa(x); return `<button class="pilula" data-add="${x}"><i data-lucide="plus" style="width:15px;height:15px"></i>${esc(p.nome.split(' ').slice(0, 2).join(' '))}${x === o.clienteId ? ' <span class="cont">cliente</span>' : ''}</button>`; }).join('')}${sug.length > 1 && sug.length <= N - ids.length ? '<button class="pilula" data-add-todos>Todos</button>' : ''}</div>` : '')
+      + `<div class="pessoas">${lista.map((p) => linhaPessoa(p, { tirar: voaram.has(p.id) ? '' : `data-tira="${p.id}"`, papel: p.id === o.clienteId ? 'cliente' : '' })).join('')}
         ${Array.from({ length: Math.max(0, vazias) }, (_, i) => `<div class="vaga vazia"><span class="n">${lista.length + i + 1}</span><div class="campo"><select data-pax aria-label="Passageiro ${lista.length + i + 1}" data-combo="sim">${opcoesPessoas(ids)}</select></div>
           <button class="btn icone" data-nova-pessoa="pax" aria-label="Cadastrar pessoa nova" title="Pessoa nova"><i data-lucide="user-plus"></i></button></div>`).join('')}</div>`;
   }
 
   // ---------- 4 · recebimento ----------
+  // Três versões pra comparar (?v=A, B ou C; o seletor fica em cima do bloco). Todas usam os mesmos controles:
+  // forma (data-forma), parcelas (data-parcelas), quanto já recebeu (data-recebido) e os atalhos (data-rec).
+  const VERSOES = { A: 'Resumo com barra', B: 'Recibo', C: 'Cartões' };
+  const versao = () => (VERSOES[KVShell.param('v')] ? KVShell.param('v') : 'A');
+  const conta = () => { const v = P.valorFinal(o) || 0, r = o.receb.recebido || 0; return { v, r, falta: Math.max(0, v - r), pct: v ? Math.min(100, Math.round((r / v) * 100)) : 0 }; };
+  const parcelaTxt = () => (o.receb.forma === 'parcelado' ? `${o.receb.parcelas}x de ${fmt.brl(Math.round((P.valorFinal(o) || 0) / o.receb.parcelas))}` : '');
+  const formaNome = () => (P.formas.find((f) => f.id === o.receb.forma) || {}).nome || '';
+  const segFormas = () => `<div class="seg">${P.formas.map((f) => `<button data-forma="${f.id}" aria-pressed="${o.receb.forma === f.id}">${f.nome}</button>`).join('')}</div>`;
+  const selParcelas = () => (o.receb.forma === 'parcelado' ? `<label class="sel-pilula parc-sel"><span class="escondido">Parcelas</span><select data-parcelas data-combo="nao">${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option value="${n}" ${n === o.receb.parcelas ? 'selected' : ''}>em ${n}x</option>`).join('')}</select></label>` : '');
+  const campoRecebido = (id = 'rec') => `<div class="caixa"><span>R$</span><input id="${id}" data-recebido inputmode="decimal" placeholder="0" autocomplete="off" value="${numCampo(o.receb.recebido)}"></div>`;
+  const rapidos = () => { const c = P.aceita(o); return `<div class="rapidos"><button class="btn pequeno" data-rec="0">Nada ainda</button>${c ? `<button class="btn pequeno" data-rec="${Math.round(P.valorFinal(o) / 2)}">Metade</button><button class="btn pequeno" data-rec="${P.valorFinal(o)}">Tudo</button>` : ''}</div>`; };
+  const seletorVersao = () => `<div class="versoes" role="group" aria-label="Versões do recebimento"><span>Comparando</span>${Object.entries(VERSOES).map(([k, n]) => `<button class="pilula" data-versao="${k}" aria-pressed="${versao() === k}"><b>${k}</b> ${n}</button>`).join('')}</div>`;
+
   function recebimento() {
-    const c = P.aceita(o), s = P.situacao(o), r = o.receb;
-    return cabSecao(4, 'Recebimento', !!s && s.id === 'pago', '<span class="n">dá pra emitir antes ou depois de receber</span>') + `<div class="receb">
-      <div><span class="rot">Forma</span><div class="seg">${P.formas.map((f) => `<button data-forma="${f.id}" aria-pressed="${r.forma === f.id}">${f.nome}</button>`).join('')}</div>
-        ${r.forma === 'parcelado' ? `<div class="campo" style="margin-top:12px;max-width:180px"><label for="parc">Parcelas</label><select id="parc" data-parcelas data-combo="nao">${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option ${n === r.parcelas ? 'selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}</div>
-      <div><label class="rot" for="rec">Já recebeu</label><div class="caixa"><span>R$</span><input id="rec" data-recebido inputmode="decimal" placeholder="0" autocomplete="off" value="${numCampo(r.recebido)}"></div>
-        <div class="rapidos"><button class="btn pequeno" data-rec="0">Nada ainda</button>${c ? `<button class="btn pequeno" data-rec="${Math.round(P.valorFinal(o) / 2)}">Metade</button><button class="btn pequeno" data-rec="${P.valorFinal(o)}">Tudo</button>` : ''}</div></div>
-      <div class="situ" data-situ>${situHtml()}</div></div>`;
+    const s = P.situacao(o), v = versao();
+    const cab = cabSecao(4, 'Recebimento', !!s && s.id === 'pago', '<span class="n">dá pra emitir antes ou depois de receber</span>') + seletorVersao();
+    if (!P.aceita(o)) return cab + '<div class="vazio">Escolha a combinação aceita pra ver o valor.</div>';
+    if (v === 'B') return cab + `<div class="receb-b">
+        <div class="recibo" data-situ>${situHtml()}</div>
+        <div class="receb-b-ctrl"><div><span class="rot">Como vai pagar</span>${segFormas()}${selParcelas() ? `<div style="margin-top:10px">${selParcelas()}</div>` : ''}</div>
+          <div><label class="rot" for="rec">Já recebeu</label>${campoRecebido()}${rapidos()}</div></div></div>`;
+    if (v === 'C') return cab + `<div class="receb-c">
+        <div class="rc-situ" data-situ>${situHtml()}</div>
+        <div class="rc-card"><span class="rot">Como vai pagar</span>${segFormas()}${selParcelas() ? `<div class="rc-parc">${selParcelas()}<b data-parc-txt>${parcelaTxt()}</b></div>` : `<p class="faint" style="margin:10px 0 0;font-size:13.5px">${o.receb.forma === 'pix' ? 'À vista, no Pix ou dinheiro.' : 'No cartão, de uma vez.'}</p>`}</div>
+        <div class="rc-card"><label class="rot" for="rec">Já recebeu</label>${campoRecebido()}${rapidos()}</div></div>`;
+    return cab + `<div class="receb-a">
+        <div class="ra-topo" data-situ>${situHtml()}</div>
+        <div class="ra-ctrl"><div><span class="rot">Como vai pagar</span><div class="ra-forma">${segFormas()}${selParcelas()}</div></div>
+          <div><label class="rot" for="rec">Já recebeu</label>${campoRecebido()}${rapidos()}</div></div></div>`;
   }
+  // a parte que muda enquanto o dono digita o valor recebido (o campo não é redesenhado, pra não perder o foco)
   function situHtml() {
-    const s = P.situacao(o);
-    if (!s) return '<span class="rot">Situação</span><span class="faint">Escolha a combinação aceita.</span>';
-    return `<span class="rot">Situação</span><span><span class="etiqueta ${s.cls}">${s.nome}</span></span>${s.falta ? `<b>${fmt.brl(s.falta)}</b><span class="faint" style="font-size:13px;font-weight:600">falta receber${o.receb.forma === 'parcelado' ? ` · ${o.receb.parcelas}x de ${fmt.brl(Math.round(P.valorFinal(o) / o.receb.parcelas))}` : ''}</span>` : ''}`;
+    const s = P.situacao(o), v = versao();
+    if (!s) return '<span class="faint">Escolha a combinação aceita.</span>';
+    const k = conta();
+    if (v === 'B') return `<div class="rl"><span>Valor da venda<small>${formaNome()}${parcelaTxt() ? ` · ${parcelaTxt()}` : ''}</small></span><b>${fmt.brl(k.v)}</b></div>
+        <div class="rl"><span>Já recebido</span><b class="${k.r ? 'ok-t' : ''}">${k.r ? '− ' : ''}${fmt.brl(k.r)}</b></div>
+        <div class="rl total"><span>${k.falta ? 'Falta receber' : 'Tudo recebido'}</span><b>${k.falta ? fmt.brl(k.falta) : '<i data-lucide="check"></i>'}</b></div>
+        <span class="etiqueta ${s.cls}">${s.nome}</span>`;
+    if (v === 'C') return `<span class="rc-rot">${k.falta ? 'Falta receber' : 'Recebido'}</span><b class="rc-num">${fmt.brl(k.falta || k.v)}</b>
+        <span class="rc-de">${k.falta ? `de ${fmt.brl(k.v)}${k.r ? ` · já entrou ${fmt.brl(k.r)}` : ''}` : 'Tudo pago'}</span>
+        <span class="rc-pe"><span class="etiqueta">${s.nome}</span>${parcelaTxt() ? `<span>${parcelaTxt()}</span>` : ''}</span>`;
+    return `<div class="ra-num"><span class="rot">${k.falta ? 'Falta receber' : 'Recebido'}</span><b>${fmt.brl(k.falta || k.v)}</b><span class="etiqueta ${s.cls}">${s.nome}</span></div>
+      <div class="ra-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${k.pct}" aria-label="Quanto já foi recebido"><span style="width:${k.pct}%"></span></div>
+      <div class="ra-legenda"><span>${fmt.brl(k.r)} recebido</span><span>${k.pct}% de ${fmt.brl(k.v)}${parcelaTxt() ? ` · ${parcelaTxt()}` : ''}</span></div>`;
   }
+  function atualizarSitu() { const el = app.querySelector('[data-situ]'); if (el) { el.innerHTML = situHtml(); el.classList.toggle('pago', conta().falta === 0); KVShell.icones(); } }
 
   // ---------- barra de baixo ----------
   function barra() {
     if (fechado()) return '';
     const c = P.aceita(o), falta = N - o.passageirosIds.length;
-    const pend = [!c && 'escolher a combinação', !o.clienteId && 'quem paga', falta > 0 && `${falta} passageiro${falta > 1 ? 's' : ''}`].filter(Boolean);
+    const pend = [!c && 'escolher a combinação', !o.clienteId && 'o cliente', falta > 0 && `${falta} passageiro${falta > 1 ? 's' : ''}`].filter(Boolean);
     return `<div class="barra-acao"><span class="resumo"><b>${c ? `${esc(c.nome)} · ${fmt.brl(P.valorFinal(o))}${o.receb.forma === 'parcelado' && c.parcelado ? ' parcelado' : ''}` : 'Nenhuma combinação marcada'}</b>
       <span class="${pend.length ? 'alerta' : ''}">${pend.length ? `Falta: ${pend.join(', ')}. Dá pra completar depois.` : 'Tudo pronto pra emitir.'}</span></span>
       <button class="btn primario" data-fechar ${c ? '' : 'disabled style="opacity:.5"'}><i data-lucide="handshake"></i>Fechar orçamento</button></div>`;
@@ -133,6 +171,7 @@ KVTelas['fechamento'] = function () {
     }
     app.innerHTML = topo() + aceitou() + quemPaga() + quemVoa() + recebimento() + barra();
     document.title = `Fechamento #${o.id} ${O.destino(o)} · K&V`;
+    const situ = app.querySelector('[data-situ]'); if (situ) situ.classList.toggle('pago', !!P.aceita(o) && conta().falta === 0);
     KVShell.icones();
     scrollTo(0, y);
   }
@@ -145,7 +184,7 @@ KVTelas['fechamento'] = function () {
   async function usarPessoa(j, p) {
     if (!pessoa(p.id)) pessoas.push(p);
     pessoas.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-    if (j === 'cliente') { o.clienteId = p.id; addPax(p.id); await carregarJuntos(); }
+    if (j === 'cliente') { o.clienteId = p.id; if (!o.passageirosIds.length) addPax(p.id); await carregarJuntos(); }
     else addPax(p.id);
     marcarSujo(); fechar(); render();
   }
@@ -154,7 +193,7 @@ KVTelas['fechamento'] = function () {
     if (j === 'cliente' || j === 'pax') {
       KVPessoaForm.abrir(dlg, null, {
         pessoas, fechar, aoSalvar: (p) => usarPessoa(j, p), aoUsar: (p) => usarPessoa(j, p),
-        sub: j === 'cliente' ? 'Quem paga a viagem. Fica no cadastro único, achado pelo CPF.' : 'Quem vai voar. Fica no cadastro único, achado pelo CPF.',
+        sub: j === 'cliente' ? 'Quem está comprando a viagem. Fica no cadastro único, achado pelo CPF.' : 'Nome que vai na passagem. Fica no cadastro único, achado pelo CPF.',
         inicial: j === 'cliente' ? { nome: o.contato.nome, whatsapp: o.contato.whatsapp } : {},
       });
     } else if (dlg.open) dlg.close();
@@ -166,13 +205,18 @@ KVTelas['fechamento'] = function () {
     app.addEventListener('click', async (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;
       if (b.dataset.aceita) { o.aceita = +b.dataset.aceita; if (o.receb.forma === 'parcelado') o.receb.parcelas = P.aceita(o).vezes; marcarSujo(); render(); }
-      else if (b.hasAttribute('data-tira-cliente')) { o.clienteId = null; juntos = []; marcarSujo(); render(); }
+      else if (b.hasAttribute('data-tira-cliente')) {
+        const voou = o.emissoes.some((e) => e.passageiros.includes(o.clienteId));
+        if (!voou) o.passageirosIds = o.passageirosIds.filter((x) => x !== o.clienteId);
+        o.clienteId = null; juntos = []; marcarSujo(); render();
+      }
       else if (b.dataset.tira) { o.passageirosIds = o.passageirosIds.filter((x) => x !== +b.dataset.tira); marcarSujo(); render(); }
       else if (b.dataset.add) { addPax(+b.dataset.add); marcarSujo(); render(); }
       else if (b.hasAttribute('data-add-todos')) { app.querySelectorAll('[data-add]').forEach((x) => addPax(+x.dataset.add)); marcarSujo(); render(); }
       else if (b.dataset.novaPessoa) { KVShell.irPara({ janela: b.dataset.novaPessoa }); sinc(); }
       else if (b.dataset.forma) { o.receb.forma = b.dataset.forma; if (b.dataset.forma === 'parcelado' && P.aceita(o)) o.receb.parcelas = P.aceita(o).vezes; marcarSujo(); render(); }
       else if (b.dataset.rec != null) { o.receb.recebido = +b.dataset.rec; marcarSujo(); render(); }
+      else if (b.dataset.versao) { const u = new URL(location.href); u.searchParams.set('v', b.dataset.versao); history.replaceState(history.state, '', u.pathname + u.search); render(); }
       else if (b.hasAttribute('data-reabrir')) {
         try { const r = await KVApi.acao('fech.reabrir', { id: o.id }); await recarregar(); render(); KVShell.aviso(`Fechamento desfeito: voltou pra ${r.etapa === 'enviado' ? 'Enviado' : 'Pesquisado'}. O que estava marcado continua aqui.`); }
         catch (err) { KVShell.aviso(err.message, { erro: true }); }
@@ -186,11 +230,16 @@ KVTelas['fechamento'] = function () {
     });
     app.addEventListener('change', async (e) => {
       if (e.target.matches('[data-cliente]') && e.target.value) { o.clienteId = +e.target.value; if (!o.passageirosIds.length) addPax(o.clienteId); marcarSujo(); await carregarJuntos(); render(); }
+      if (e.target.matches('[data-viaja]')) {
+        if (e.target.checked) { o.passageirosIds = [o.clienteId, ...o.passageirosIds.filter((x) => x !== o.clienteId)].slice(0, N); }
+        else o.passageirosIds = o.passageirosIds.filter((x) => x !== o.clienteId);
+        marcarSujo(); render();
+      }
       if (e.target.matches('[data-pax]') && e.target.value) { addPax(+e.target.value); marcarSujo(); render(); }
-      if (e.target.matches('[data-parcelas]')) { o.receb.parcelas = +e.target.value; marcarSujo(); app.querySelector('[data-situ]').innerHTML = situHtml(); }
+      if (e.target.matches('[data-parcelas]')) { o.receb.parcelas = +e.target.value; marcarSujo(); atualizarSitu(); const t = app.querySelector('[data-parc-txt]'); if (t) t.textContent = parcelaTxt(); }
     });
     app.addEventListener('input', (e) => {
-      if (e.target.matches('[data-recebido]')) { o.receb.recebido = lerNum(e.target.value); marcarSujo(); app.querySelector('[data-situ]').innerHTML = situHtml(); }
+      if (e.target.matches('[data-recebido]')) { o.receb.recebido = lerNum(e.target.value); marcarSujo(); atualizarSitu(); }
     });
     app.addEventListener('focusout', (e) => { if (e.target.matches('[data-recebido]')) render(); });
   }

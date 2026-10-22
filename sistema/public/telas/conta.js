@@ -176,7 +176,7 @@ KVTelas['conta'] = function () {
     if (!e) return '';
     const v = e.voo, r = e.rota;
     const rota = r ? `${esc(r.de)} → ${esc(r.para)}` : '';
-    return `<section class="sec"><h3>Voo que esses pontos pagaram</h3>
+    return `<section class="sec"><h3>${m.lado === 'entrada' ? 'Pontos que voltaram deste voo cancelado' : 'Voo que esses pontos pagaram'}</h3>
       <div class="voo-det"><span class="rota">${rota}</span>${e.cancelada ? '<span class="etiqueta danger">cancelada</span>' : ''}
         ${v ? `<span class="hora">${esc(v.sai)} → ${esc(v.chega)}</span><span class="faint">${[fmt.data(v.data), v.cia, v.voo, v.escalas ? `${v.escalas} escala${v.escalas > 1 ? 's' : ''}` : 'direto', v.duracao].filter(Boolean).map(esc).join(' · ')}</span>` : ''}</div>
       ${dl([['Localizador', `<span class="loc-t">${esc(e.localizador)}</span>`], ['Cliente', esc(e.contato || '')], ['Passageiros', e.passageiros.map((x) => esc(x.nome)).join('<br>')],
