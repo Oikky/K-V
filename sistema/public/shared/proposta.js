@@ -22,14 +22,19 @@
     { nome: 'Com mala', passa: (x) => x.bagagem },
     { nome: 'Em dinheiro', passa: (x) => O.site(x.site).forma === 'dinheiro' },
   ];
+  // roteiros: a combinação escolhe um voo em cada trecho de UM roteiro (null nos trechos dos outros)
+  const rotDoTrecho = (o, ti) => o.trechos[ti].roteiro || 0;
+  const rotDaCombo = (o, c) => rotDoTrecho(o, Math.max(0, c.escolha.findIndex((id) => id != null)));
   const novaCombo = (dados) => ({ id: null, milha: {}, livre: null, parcelado: null, vezes: VEZES_PADRAO, ...dados });
-  // sugestões que o sistema monta sozinho: a mais barata e, quando der diferente, a só de voos diretos (ou com mala)
-  function sugerir(o, quantas = 2) {
+  // sugestões que o sistema monta sozinho: a mais barata e, quando der diferente, a só de voos diretos (ou com mala).
+  // Sem roteiro (r), sugere pra cada roteiro.
+  function sugerir(o, quantas = 2, r) {
+    if (r == null) return O.roteiros(o).flatMap((_, k) => sugerir(o, quantas, k));
     const lista = [];
     FILTROS_SUGESTAO.forEach((f) => {
       if (lista.length >= quantas) return;
-      const escolha = o.trechos.map((t, ti) => { const b = barata(opsDo(o, ti).filter(f.passa)); return b ? b.id : null; });
-      if (escolha.some((e) => !e)) return;
+      const escolha = o.trechos.map((t, ti) => { if (rotDoTrecho(o, ti) !== r) return null; const b = barata(opsDo(o, ti).filter(f.passa)); return b ? b.id : 0; });
+      if (escolha.some((e) => e === 0)) return;
       if (lista.some((c) => c.escolha.join() === escolha.join())) return;
       lista.push(novaCombo({ nome: f.nome, escolha }));
     });
@@ -49,21 +54,26 @@
   const precoCalc = (o, c) => porPrograma(o, c).reduce((s, g) => s + g.reais, 0) + taxas(o, c) + dinheiro(o, c);
   // preço final à vista: o digitado, se houver, ou o calculado
   const venda = (o, c) => (c.livre != null ? c.livre : precoCalc(o, c));
-  // teto: quanto a pessoa pagaria sozinha comprando em dinheiro (a mais barata em dinheiro de cada trecho)
-  function teto(o) {
-    const porTrecho = o.trechos.map((t, ti) => barata(opsDo(o, ti).filter((x) => O.site(x.site).forma === 'dinheiro')));
+  // teto: quanto a pessoa pagaria sozinha comprando em dinheiro (a mais barata em dinheiro de cada trecho do roteiro).
+  // Sem roteiro (r), o menor entre os roteiros.
+  function teto(o, r) {
+    if (r == null) { const vs = O.roteiros(o).map((_, k) => teto(o, k).valor).filter((v) => v != null); return { valor: vs.length ? Math.min(...vs) : null }; }
+    const porTrecho = O.roteiros(o)[r].map((ti) => barata(opsDo(o, ti).filter((x) => O.site(x.site).forma === 'dinheiro')));
     if (porTrecho.some((x) => !x)) return { valor: null };
     return { valor: porTrecho.reduce((s, x) => s + O.custo(x, o), 0) };
   }
+  // os trechos que vão voar: os do roteiro aceito (antes de aceitar, todos)
+  const trechosVoo = (o) => { const a = aceita(o); return o.trechos.map((_, ti) => ti).filter((ti) => !a || a.escolha[ti] != null); };
   const aceita = (o) => (o.combos || []).find((c) => c.id === o.aceita) || null;
 
   // ---------- mensagem pro WhatsApp (sem custo nem lucro) ----------
   const DIA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   const diaSem = (iso) => DIA[new Date(iso + 'T12:00').getDay()];
-  const nomeTrecho = (o, ti) => {
-    const n = o.trechos.length;
-    if (n === 2 && o.trechos[1].para === o.trechos[0].de) return ti === 0 ? 'Ida' : 'Volta';
-    return n === 1 ? 'Ida' : `Trecho ${ti + 1}`;
+  // dentro do roteiro do trecho; comRoteiro põe "Roteiro B · " quando tem mais de um
+  const nomeTrecho = (o, ti, comRoteiro) => {
+    const rs = O.roteiros(o), r = rotDoTrecho(o, ti), idx = rs[r], ts = idx.map((i) => o.trechos[i]), k = idx.indexOf(ti), n = ts.length;
+    const nome = n === 2 && ts[1].para === ts[0].de ? (k === 0 ? 'Ida' : 'Volta') : n === 1 ? 'Ida' : `Trecho ${k + 1}`;
+    return comRoteiro && rs.length > 1 ? `Roteiro ${O.letra(r)} · ${nome}` : nome;
   };
   // "GRU" → "São Paulo GRU"; nome já escrito na opção ("São Paulo GRU") fica como está
   const lugar = (cod) => { const c = O.cidadeCurta(cod); return c === cod ? cod : `${c} ${cod}`; };
@@ -78,7 +88,12 @@
   function mensagem(o, combos = o.combos || []) {
     const quem = o.contato.nome.split(' ')[0];
     const linhas = [`Oi, ${quem}! Seguem as opções pra ${O.destino(o)}:`];
-    combos.forEach((c, i) => {
+    // com roteiros, as combinações de cada roteiro ficam juntas, debaixo do nome dele
+    const varios = O.roteiros(o).length > 1;
+    let rotAtual = null;
+    [...combos].sort((a, b) => rotDaCombo(o, a) - rotDaCombo(o, b)).forEach((c, i) => {
+      const r = rotDaCombo(o, c);
+      if (varios && r !== rotAtual) { rotAtual = r; linhas.push('', `*━━ Roteiro ${O.letra(r)}: ${O.cidades(o, O.roteiros(o)[r]).join(' → ')} ━━*`); }
       linhas.push('', `*Opção ${i + 1} · ${c.nome}*`);
       opsDaCombo(o, c).forEach((x, j) => {
         const t = o.trechos[x.trecho], depois = +((/ \+(\d)$/.exec(x.chega) || [])[1] || 0);
@@ -86,6 +101,7 @@
         linhas.push(`${nomeTrecho(o, x.trecho)} ${dataLonga(x.data)}`,
           `${lugar(x.de || t.de)} ${x.sai} → ${lugar(x.para || t.para)} ${x.chega.replace(/ \+\d$/, '')}${depois ? ` (chega ${somaDias(x.data, depois)})` : ''}`,
           ...escalasMsg(x));
+        if (x.duracao) linhas.push(`Tempo de viagem: ${x.duracao}`);
         if (x.cabine) linhas.push(`Cabine ${x.cabine}`);
         if (x.mala_mao != null) linhas.push(`Mala de mão: ${x.mala_mao ? 'inclusa' : 'não inclusa'}`);
         linhas.push(`Mala despachada: ${x.bagagem ? `${x.bagagem} inclusa${x.bagagem > 1 ? 's' : ''}` : 'não inclusa'}`);
@@ -110,7 +126,7 @@
   }
 
   window.KVProp = {
-    usarProgramas, progNome, progDe, opsDo, op, sugerir, novaCombo, opsDaCombo, valorMilha, porPrograma, taxas, dinheiro, milhasCombo, precoCalc, venda,
+    usarProgramas, progNome, progDe, opsDo, op, sugerir, rotDoTrecho, rotDaCombo, trechosVoo, novaCombo, opsDaCombo, valorMilha, porPrograma, taxas, dinheiro, milhasCombo, precoCalc, venda,
     teto, aceita, mensagem, texto: (o) => o.mensagem || mensagem(o), nomeTrecho, diaSem, formas: FORMAS, valorFinal, situacao, vezesPadrao: VEZES_PADRAO,
   };
 })();

@@ -39,8 +39,19 @@
   };
   // dd/mm; de outro ano, dd/mm/aa
   const dataCurta = (s) => { const [a, m, d] = s.split('-'); return a === String(new Date().getFullYear()) ? `${d}/${m}` : `${d}/${m}/${a.slice(2)}`; };
-  const rota = (o) => { const cods = [o.trechos[0].de]; o.trechos.forEach((t) => { if (cods[cods.length - 1] !== t.de) cods.push('…', t.de); cods.push(t.para); }); return cods.join(' → '); };
-  const destino = (o) => { const ult = o.trechos[o.trechos.length - 1]; const volta = ult.para === o.trechos[0].de; const alvo = volta && o.trechos.length > 1 ? o.trechos[o.trechos.length - 2].para : ult.para; return cidadeCurta(alvo) + (o.trechos.length > 2 ? ` e mais ${o.trechos.length - 2}` : ''); };
+  // roteiros alternativos ("Lisboa, mas Porto também serve"): cada um com seus trechos; o trecho guarda a posição geral (opções e emissões apontam pra ela)
+  const roteiros = (o) => { const g = []; o.trechos.forEach((t, i) => (g[t.roteiro || 0] ||= []).push(i)); return g.filter(Boolean); };
+  const letra = (r) => String.fromCharCode(65 + r);
+  const rotaDe = (ts) => { const cods = [ts[0].de]; ts.forEach((t) => { if (cods[cods.length - 1] !== t.de) cods.push('…', t.de); cods.push(t.para); }); return cods.join(' → '); };
+  const rota = (o) => roteiros(o).map((r) => rotaDe(r.map((i) => o.trechos[i]))).join(' ou ');
+  const destinoDe = (ts) => { const ult = ts[ts.length - 1]; const volta = ult.para === ts[0].de; const alvo = volta && ts.length > 1 ? ts[ts.length - 2].para : ult.para; return cidadeCurta(alvo) + (ts.length > 2 ? ` e mais ${ts.length - 2}` : ''); };
+  const destino = (o) => [...new Set(roteiros(o).map((r) => destinoDe(r.map((i) => o.trechos[i]))))].join(' ou ');
+  // cidades do título: as dos trechos pedidos (idx), ou a origem e os destinos de cada roteiro
+  function cidades(o, idx) {
+    const rs = idx ? [idx] : roteiros(o);
+    if (rs.length === 1) { const ts = rs[0].map((i) => o.trechos[i]); return [ts[0].de, ...ts.map((t) => t.para)].map(cidadeCurta); }
+    return [cidadeCurta(o.trechos[0].de), destino(o)];
+  }
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // site → como paga e de qual programa sai a milha (igual a src/acoes/pesquisa.js)
@@ -101,7 +112,7 @@
     }).join('<i class="liga" aria-hidden="true"></i>')}</nav>`;
   }
 
-  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc,
+  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc, roteiros, letra, cidades,
     sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
     usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, telaDa };
 })();

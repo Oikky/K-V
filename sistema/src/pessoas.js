@@ -32,7 +32,7 @@ export async function clientes(env) {
   const fechadas = "(SELECT id FROM orcamentos WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL)";
   const aceitas = "(SELECT combo_aceita FROM orcamentos WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL)";
   const [trechos, combos, pax, emissoes, opcoes] = await Promise.all([
-    todos(db, `SELECT orcamento_id, de, para, data FROM trechos WHERE orcamento_id IN ${fechadas} ORDER BY orcamento_id, ordem`),
+    todos(db, `SELECT orcamento_id, ordem, de, para, data FROM trechos WHERE orcamento_id IN ${fechadas} ORDER BY orcamento_id, ordem`),
     todos(db, `SELECT id, orcamento_id, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE id IN ${aceitas}`),
     todos(db, `SELECT orcamento_id, pessoa_id FROM orcamento_passageiros WHERE orcamento_id IN ${fechadas} ORDER BY orcamento_id, ordem`),
     todos(db, `SELECT e.orcamento_id, e.trecho, e.localizador, e.cancelada, e.devolvido, c.programa_id FROM emissoes e LEFT JOIN contas c ON c.id = e.conta_id
@@ -46,7 +46,8 @@ export async function clientes(env) {
     return {
       id: o.id, clienteId: o.cliente_id, etapa: o.etapa, criadoEm: o.criado_em, fechadoEm: o.fechado_em || o.criado_em,
       passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
-      trechos: trechos.filter((t) => t.orcamento_id === o.id).map(({ de, para, data }) => ({ de, para, data })),
+      // só os trechos do roteiro aceito; ordem = posição do trecho (as emissões apontam pra ela)
+      trechos: trechos.filter((t) => t.orcamento_id === o.id && (!c || JSON.parse(c.escolha)[t.ordem] != null)).map(({ ordem, de, para, data }) => ({ ordem, de, para, data })),
       passageirosIds: pax.filter((p) => p.orcamento_id === o.id).map((p) => p.pessoa_id),
       combo: c ? { ...c, escolha: JSON.parse(c.escolha), milha: JSON.parse(c.milha || '{}') } : null,
       opcoes: c ? opcoes.filter((x) => JSON.parse(c.escolha).includes(x.id)) : [],

@@ -45,7 +45,7 @@ h3 { font-size: 15px; font-weight: 700; }
 
 /* ---------- casca: menu lateral + área ---------- */
 .shell { display: grid; grid-template-columns: 76px 1fr; min-height: 100dvh; }
-.rail { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0; border-right: 1px solid var(--line); background: var(--bg); }
+.rail { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0; border-right: 1px solid var(--line); background: var(--bg); z-index: 30; }
 .rail .marca { font: 800 15px var(--font-brand); letter-spacing: -0.02em; margin-bottom: 18px; }
 .rail .marca b { color: var(--orange); }
 .rail a { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; color: var(--text-3); text-decoration: none; position: relative; }
@@ -354,3 +354,9 @@ body.vendo-como .area { padding-top: 64px; }
   .vendo-faixa { top: 10px; left: 16px; right: 16px; justify-content: flex-start; }
   .vendo-faixa .sair { margin-left: auto; }
 }
+
+/* roteiros alternativos (Lisboa ou Porto): um ao lado do outro, empilham no celular */
+.roteiros { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; align-items: start; }
+.roteiro-col { display: grid; gap: 12px; min-width: 0; }
+.rot-cab { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 17px; font-weight: 700; }
+.rot-letra { width: 28px; height: 28px; flex: none; border-radius: 9px; display: grid; place-items: center; background: var(--orange); color: var(--orange-ink); font-size: 14px; }

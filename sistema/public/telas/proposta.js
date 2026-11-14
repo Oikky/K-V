@@ -48,7 +48,7 @@ KVTelas['proposta'] = function () {
 
   // ---------- topo ----------
   function topo() {
-    const cidades = [o.trechos[0].de, ...o.trechos.map((t) => t.para)].map(O.cidadeCurta);
+    const cidades = O.cidades(o);
     const menos = o.combos.length ? Math.min(...o.combos.map((c) => P.milhasCombo(o, c))) : 0;
     const t = teto();
     return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'proposta')}
@@ -111,7 +111,7 @@ KVTelas['proposta'] = function () {
     return `${c.vezes}x de ${fmt.brl(Math.round(c.parcelado / c.vezes))} · ${dif >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do à vista (${dif >= 0 ? '+' : '−'}${String(Math.abs(pct)).replace('.', ',')}%)`;
   }
   function resultado(c) {
-    const t = teto().valor, calc = P.precoCalc(o, c), dif = c.livre != null ? c.livre - calc : 0;
+    const t = P.teto(o, P.rotDaCombo(o, c)).valor, calc = P.precoCalc(o, c), dif = c.livre != null ? c.livre - calc : 0;
     const avisos = [t && venda(c) > t && '<span class="etiqueta warn">acima do preço em dinheiro</span>', Math.abs(dif) >= 100 && `<span class="etiqueta">${dif > 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do calculado</span>`].filter(Boolean).join('');
     return `${avisos}<span class="pp">${fmt.brl(Math.round(venda(c) / Math.max(1, O.pagantes(o))))} por pessoa</span>`;
   }
@@ -126,12 +126,18 @@ KVTelas['proposta'] = function () {
         return `<${tag} class="tr" ${editavel() ? `data-trocar="${c._k}" data-t="${x.trecho}" aria-label="Trocar ${P.nomeTrecho(o, x.trecho)}"` : ''}><span><small>${P.nomeTrecho(o, x.trecho)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></small><b>${hora(x)}</b><small>${detalhe(x)} · ${valorOp(x)}</small></span>${editavel() ? '<span class="troca"><i data-lucide="arrow-left-right"></i></span>' : ''}</${tag}>`; }).join('')}
       <div class="pe"><div class="milhas-res">${resumoMilhas(c)}</div><div class="preco-bloco" data-preco="${c._k}">${precoHtml(c)}</div>${parceladoHtml(c)}</div></article>`;
   }
+  // com roteiros, uma coluna por roteiro, cada uma com as combinações dele (até 3 por roteiro)
   function combos() {
-    const pode = editavel() && o.combos.length < 3 && o.trechos.every((_, ti) => P.opsDo(o, ti).length);
-    return `<div class="secao"><h2>O que vai pro cliente</h2><span class="n">${o.combos.length} ${o.combos.length > 1 ? 'combinações' : 'combinação'}</span>${editavel() ? '<span class="faint" data-salvo style="margin-left:auto;font-size:13px">Tudo salvo</span>' : ''}</div>
-      ${o.combos.length ? `<div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${o.combos.map(cartaoCombo).join('')}
-      ${pode ? '<button class="nova-combo" data-nova><span class="mais"><i data-lucide="plus"></i></span>Outra combinação<span class="faint" style="font-weight:600;font-size:13px">até 3</span></button>' : ''}</div>`
-      : `<div class="vazio">Falta opção de voo em algum trecho. <a href="orcamento.html?id=${o.id}" style="color:var(--orange)">Voltar pra pesquisa</a></div>`}`;
+    const rs = O.roteiros(o), cab = `<div class="secao"><h2>O que vai pro cliente</h2><span class="n">${o.combos.length} ${o.combos.length > 1 ? 'combinações' : 'combinação'}</span>${editavel() ? '<span class="faint" data-salvo style="margin-left:auto;font-size:13px">Tudo salvo</span>' : ''}</div>`;
+    const grade = (r) => {
+      const meus = o.combos.map((c, i) => [c, i]).filter(([c]) => P.rotDaCombo(o, c) === r);
+      const pode = editavel() && meus.length < 3 && rs[r].every((ti) => P.opsDo(o, ti).length);
+      if (!meus.length && !pode) return `<div class="vazio">Falta opção de voo em algum trecho${rs.length > 1 ? ' deste roteiro' : ''}. <a href="orcamento.html?id=${o.id}" style="color:var(--orange)">Voltar pra pesquisa</a></div>`;
+      return `<div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${meus.map(([c, i]) => cartaoCombo(c, i)).join('')}
+        ${pode ? `<button class="nova-combo" data-nova="${r}"><span class="mais"><i data-lucide="plus"></i></span>Outra combinação<span class="faint" style="font-weight:600;font-size:13px">até 3</span></button>` : ''}</div>`;
+    };
+    if (rs.length === 1) return cab + grade(0);
+    return cab + `<div class="roteiros">${rs.map((idx, r) => `<section class="roteiro-col"><h3 class="rot-cab"><span class="rot-letra">${O.letra(r)}</span>${O.cidades(o, idx).map(esc).join(' → ')}</h3>${grade(r)}</section>`).join('')}</div>`;
   }
 
   // ---------- mensagem ----------
@@ -262,11 +268,17 @@ KVTelas['proposta'] = function () {
       else if (b.dataset.livre) { livreAberto = b.dataset.livre; render(); app.querySelector(`[data-venda="${b.dataset.livre}"]`).focus(); }
       else if (b.dataset.calc) { const c = comboK(b.dataset.calc); c.livre = null; livreAberto = null; marcarSujo(); render(); }
       else if (b.dataset.renomear) { renomeando = b.dataset.renomear; menuAberto = null; render(); }
-      else if (b.dataset.dup) { const base = comboK(b.dataset.dup); o.combos.push(chavear(P.novaCombo({ nome: `${base.nome} (cópia)`.slice(0, 28), escolha: [...base.escolha], milha: { ...base.milha }, livre: base.livre, parcelado: base.parcelado, vezes: base.vezes }))); menuAberto = null; marcarSujo(); render(); }
+      else if (b.dataset.dup) { const base = comboK(b.dataset.dup); o.combos.splice(o.combos.indexOf(base) + 1, 0, chavear(P.novaCombo({ nome: `${base.nome} (cópia)`.slice(0, 28), escolha: [...base.escolha], milha: { ...base.milha }, livre: base.livre, parcelado: base.parcelado, vezes: base.vezes }))); menuAberto = null; marcarSujo(); render(); }
       else if (b.dataset.pedeDel) { confirmarApagar = b.dataset.pedeDel; render(); }
       else if (b.hasAttribute('data-cancela')) { confirmarApagar = null; render(); }
       else if (b.dataset.del) { o.combos = o.combos.filter((c) => c._k !== b.dataset.del); menuAberto = confirmarApagar = null; marcarSujo(); render(); }
-      else if (b.hasAttribute('data-nova')) { const c = chavear(P.novaCombo({ nome: `Opção ${o.combos.length + 1}`, escolha: [...(P.sugerir(o, 1)[0] || o.combos[0]).escolha] })); o.combos.push(c); renomeando = c._k; marcarSujo(); render(); }
+      else if (b.dataset.nova != null) {
+        // a nova entra depois da última do mesmo roteiro (a mensagem numera nessa ordem)
+        const r = +b.dataset.nova || 0, base = P.sugerir(o, 1, r)[0] || o.combos.find((x) => P.rotDaCombo(o, x) === r); if (!base) return;
+        const c = chavear(P.novaCombo({ nome: `Opção ${o.combos.length + 1}`, escolha: [...base.escolha] }));
+        const depois = o.combos.reduce((k, x, i) => (P.rotDaCombo(o, x) <= r ? i + 1 : k), 0);
+        o.combos.splice(depois, 0, c); renomeando = c._k; marcarSujo(); render();
+      }
       else if (b.dataset.trocar) { filtroTroca = 'todas'; KVShell.irPara({ janela: 'trocar', c: b.dataset.trocar, t: b.dataset.t }); sinc(); }
       else if (b.hasAttribute('data-copiar')) { const txt = P.texto(o); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}); copiado = true; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); }
       else if (b.hasAttribute('data-msg-editar')) { editandoMsg = true; redesenharMsg(); const t = app.querySelector('[data-msg-edit]'); t.focus(); t.setSelectionRange(0, 0); }

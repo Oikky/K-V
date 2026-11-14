@@ -18,6 +18,7 @@ KVTelas['orcamentos'] = function () {
   const pessoas = (o) => o.passageiros.adultos + o.passageiros.criancas + o.passageiros.bebes;
   const fone = (d) => !d ? 'sem WhatsApp' : d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d;
   const nomeDe = (email) => nomes[email] || email || '';
+  const nomeCurto = (email) => (nomes[email] ? nomes[email].split(' ')[0] : 'outra pessoa');
 
   const AVANCO = { emitido: 6, fechado: 5, enviado: 4, pesquisado: 3, pesquisa: 2, novo: 1, cancelado: 0, perdido: 0 };
   const ordemFase = (o) => (AVANCO[o.etapa] === 0 ? 99 : AVANCO[o.etapa]);
@@ -33,9 +34,12 @@ KVTelas['orcamentos'] = function () {
     const it = (acao, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" data-acao="${acao}"><i data-lucide="${icone}"></i>${texto}</button>`;
     return `<div class="menu-orc" role="menu">${it('abrir', 'arrow-up-right', 'Abrir')}${dono ? it('duplicar', 'copy', 'Duplicar') + (o.contato.whatsapp ? it('whatsapp', 'message-circle', 'WhatsApp') : '') + it('apagar', 'trash-2', 'Apagar', 'perigo') : ''}</div>`;
   }
+  // com roteiros alternativos, vale o jeito de cada roteiro: "BSB → LIS ou BSB → OPO", "ida e volta · 2 roteiros"
+  const porRoteiro = (o) => O.roteiros(o).map((idx) => ({ ...o, trechos: idx.map((i) => o.trechos[i]) }));
   const idaEVolta = (o) => o.trechos.length === 2 && o.trechos[1].para === o.trechos[0].de && o.trechos[1].de === o.trechos[0].para;
-  const siglas = (o) => idaEVolta(o) ? `${o.trechos[0].de} → ${o.trechos[0].para}` : O.rota(o);
-  const tipoViagem = (o) => idaEVolta(o) ? 'ida e volta' : o.trechos.length === 1 ? 'só ida' : `${o.trechos.length} trechos`;
+  const siglas = (o) => porRoteiro(o).map((r) => idaEVolta(r) ? `${r.trechos[0].de} → ${r.trechos[0].para}` : O.rota(r)).join(' ou ');
+  const tipoUm = (o) => idaEVolta(o) ? 'ida e volta' : o.trechos.length === 1 ? 'só ida' : `${o.trechos.length} trechos`;
+  const tipoViagem = (o) => { const rs = porRoteiro(o); return rs.length > 1 ? `${[...new Set(rs.map(tipoUm))].join(' / ')} · ${rs.length} roteiros` : tipoUm(o); };
   const pes = (o) => `${pessoas(o)} ${pessoas(o) > 1 ? 'pessoas' : 'pessoa'}`;
   const falta = (o) => o.faltando.length ? `<span class="etiqueta warn" title="${esc(o.faltando.join(' · '))}"><i data-lucide="message-circle-question"></i>${o.faltando.length === 1 ? 'falta 1 resposta' : `faltam ${o.faltando.length} respostas`}</span>` : '';
 
@@ -102,13 +106,16 @@ KVTelas['orcamentos'] = function () {
     const novos = l.filter((o) => o.etapa === 'novo' && (!o.responsavel || o.responsavel === eu.email) && casa(o))
       .sort((a, b) => (b.responsavel === eu.email) - (a.responsavel === eu.email) || antigo(a, b));
     const comOutros = l.filter((o) => o.responsavel && o.responsavel !== eu.email).length;
+    const daEquipe = l.filter((o) => o.etapa === 'pesquisa' && o.responsavel && o.responsavel !== eu.email && casa(o)).sort(antigo);
     const conf = (o) => `<span class="etiqueta"><i data-lucide="list-checks"></i>${o.conferencia.feitos}/${o.conferencia.total} conferidos</span>`;
     app.innerHTML = `<div class="cab-fila"><h1>Orçamentos</h1>
         <div class="kpis"><span class="kpi destaque"><b>${meus.length}</b><span>com você</span></span><span class="kpi"><b>${novos.length}</b><span>na fila</span></span><span class="kpi"><b>${comOutros}</b><span>com a equipe</span></span></div></div>
       <div class="secao"><h2>Com você</h2><span class="n">${meus.length}</span>${buscaHtml()}</div>
       ${meus.length ? `<div class="grade-ref">${meus.map((o, i) => cartao(o, { cheio: i === 0, rodape: (x) => `${conf(x)}${x.pedido ? `<span class="etiqueta">${esc(x.pedido.split(' · ')[0])}</span>` : ''}` })).join('')}</div>` : '<div class="vazio">Nenhum com você. Pegue um da fila.</div>'}
       <div class="secao"><h2>Fila de novos</h2><span class="n">${novos.length}</span></div>
-      ${novos.length ? `<div class="grade-ref">${novos.map((o) => cartao(o, { rodape: (x) => `${x.responsavel === eu.email ? '<span class="etiqueta warn">o dono passou pra você</span>' : `<span class="pq">${O.idade(x.criadoEm)}</span>`}<button class="btn primario" data-pegar="${x.id}" style="margin-left:auto;height:36px"><i data-lucide="hand"></i>Pegar</button>` })).join('')}</div>` : '<div class="vazio">Fila vazia.</div>'}`;
+      ${novos.length ? `<div class="grade-ref">${novos.map((o) => cartao(o, { rodape: (x) => `${x.responsavel === eu.email ? '<span class="etiqueta warn">o dono passou pra você</span>' : `<span class="pq">${O.idade(x.criadoEm)}</span>`}<button class="btn primario" data-pegar="${x.id}" style="margin-left:auto;height:36px"><i data-lucide="hand"></i>Pegar</button>` })).join('')}</div>` : '<div class="vazio">Fila vazia.</div>'}
+      ${daEquipe.length ? `<div class="secao"><h2>Com a equipe</h2><span class="n">${daEquipe.length}</span></div>
+      <div class="grade-ref">${daEquipe.map((o) => cartao(o, { rodape: (x) => `<span class="pq">com ${esc(nomeCurto(x.responsavel))}</span><button class="btn" data-assumir="${x.id}" style="margin-left:auto;height:36px"><i data-lucide="hand"></i>Assumir</button>` })).join('')}</div>` : ''}`;
   }
 
   // ---------- gravar no banco ----------
@@ -141,6 +148,11 @@ KVTelas['orcamentos'] = function () {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.f && b.dataset.f !== (KVShell.param('f') || 'todos')) { KVShell.irPara({ f: b.dataset.f === 'todos' ? null : b.dataset.f }); render(); }
       if (b.dataset.pegar) { const id = Number(b.dataset.pegar); if (await fazer(id, 'orc.pegar', { id }, { sair: true })) KVRota.ir(`orcamento.html?id=${id}`); }
+      if (b.dataset.assumir) {
+        const id = Number(b.dataset.assumir), x = get(id), quem = nomeCurto(x.responsavel);
+        if (!await KVShell.confirmar({ titulo: `Assumir o #${id}?`, texto: `Esse orçamento está com ${esc(quem)}. Se você assumir, ele passa pra você e sai da lista de ${esc(quem)}. As opções que já foram lançadas continuam.`, sim: 'Assumir', icone: 'hand' })) return;
+        if (await fazer(id, 'orc.pegar', { id, assumir: true }, { sair: true })) KVRota.ir(`orcamento.html?id=${id}`);
+      }
     }, true);
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto) { const id = menuAberto; menuAberto = confirmarApagar = null; render(); const b = app.querySelector(`[data-menu="${id}"]`); if (b) b.focus(); } });
     app.addEventListener('change', (e) => {

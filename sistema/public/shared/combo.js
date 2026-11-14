@@ -45,7 +45,13 @@
         .filter(({ o }) => !partes.length || partes.every((p) => sem(o.textContent).includes(p)));
       lista.innerHTML = itens.length
         ? itens.map(({ o }, k) => `<li role="option" id="${id}-${k}" data-k="${k}" aria-selected="${o.selected}" ${o.disabled ? 'aria-disabled="true"' : ''}>${marcar(o.textContent.trim(), partes)}</li>`).join('')
-        : '<li class="vazio">Nada encontrado</li>';
+        : (sel.dataset.livre != null && termo.trim() ? '' : '<li class="vazio">Nada encontrado</li>');
+      // data-livre: o que foi digitado e não está na lista vira uma opção nova
+      const novo = termo.trim().replace(/\s+/g, ' ');
+      if (sel.dataset.livre != null && novo && !itens.some(({ o }) => sem(o.textContent.trim()) === sem(novo) || sem(o.value) === sem(novo))) {
+        itens.push({ novo });
+        lista.insertAdjacentHTML('beforeend', `<li role="option" id="${id}-${itens.length - 1}" data-k="${itens.length - 1}" aria-selected="false">Usar “${esc(novo)}”</li>`);
+      }
       ativo = itens.length ? 0 : -1; destacar();
     }
     function marcar(texto, partes) {
@@ -63,8 +69,9 @@
       if (li) { li.scrollIntoView({ block: 'nearest' }); inp.setAttribute('aria-activedescendant', li.id); }
     }
     function escolher(k) {
-      const it = itens[k]; if (!it || it.o.disabled) return;
-      sel.selectedIndex = it.i;
+      const it = itens[k]; if (!it || it.o?.disabled) return;
+      if (it.novo) { const v = sel.dataset.livre === 'sigla' && /^[a-z]{3}$/i.test(it.novo) ? it.novo.toUpperCase() : it.novo; sel.add(new Option(v, v)); sel.value = v; }
+      else sel.selectedIndex = it.i;
       sel.dispatchEvent(new Event('input', { bubbles: true }));
       sel.dispatchEvent(new Event('change', { bubbles: true }));
       mostrarValor(); fechar();

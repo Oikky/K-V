@@ -47,7 +47,7 @@ KVTelas['fechamento'] = function () {
 
   // ---------- topo ----------
   function topo() {
-    const cidades = [o.trechos[0].de, ...o.trechos.map((t) => t.para)].map(O.cidadeCurta);
+    const cidades = O.cidades(o, P.aceita(o) ? P.trechosVoo(o) : null);
     return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'fechamento')}
       <div class="topo-orc"><span class="quem">${esc(o.contato.nome)}${o.contato.whatsapp ? ` · ${fmt.fone(o.contato.whatsapp)}` : ''} · #${o.id}</span>
         <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1></div>
@@ -64,7 +64,7 @@ KVTelas['fechamento'] = function () {
       const sel = o.aceita === c.id;
       return `<button class="cartao-ref escolha ${sel ? 'cheio' : ''}" data-aceita="${c.id}" aria-pressed="${sel}" ${fechado() ? 'disabled' : ''}>
         <span class="grande"><span class="nro">${i + 1}</span>${esc(c.nome)}<span class="marca">${sel ? '<i data-lucide="check"></i>' : ''}</span></span>
-        ${P.opsDaCombo(o, c).map((x) => `<span class="tr"><span><small>${P.nomeTrecho(o, x.trecho)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></small><b>${hora(x)}</b></span></span>`).join('')}
+        ${P.opsDaCombo(o, c).map((x) => `<span class="tr"><span><small>${P.nomeTrecho(o, x.trecho, true)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></small><b>${hora(x)}</b></span></span>`).join('')}
         <span class="preco"><b>${fmt.brl(P.venda(o, c))}</b><span>${c.parcelado ? `ou ${fmt.brl(c.parcelado)} em ${c.vezes}x` : 'à vista'}</span></span></button>`;
     }).join('')}</div>`;
   }
@@ -74,7 +74,7 @@ KVTelas['fechamento'] = function () {
     const avisos = [];
     if (O.internacional(o)) {
       if (!p.passaporte_numero || !p.passaporte_validade) avisos.push('sem passaporte no cadastro');
-      else { const folga = Math.round((new Date(p.passaporte_validade + 'T12:00') - new Date(o.trechos[0].data + 'T12:00')) / 864e5); if (folga < 180) avisos.push(folga < 0 ? 'passaporte vence antes do voo' : 'passaporte vence menos de 6 meses depois'); }
+      else { const folga = Math.round((new Date(p.passaporte_validade + 'T12:00') - new Date(o.trechos[P.trechosVoo(o)[0]].data + 'T12:00')) / 864e5); if (folga < 180) avisos.push(folga < 0 ? 'passaporte vence antes do voo' : 'passaporte vence menos de 6 meses depois'); }
     }
     return `<div class="vaga"><span class="ava">${esc(iniciais(p.nome))}</span><span class="txt"><b>${esc(p.nome)}</b>
       <span class="${avisos.length ? 'alerta' : ''}">${avisos.length ? avisos.join(' · ') : [papel, cpfFmt(p.cpf)].filter(Boolean).join(' · ')}</span></span>

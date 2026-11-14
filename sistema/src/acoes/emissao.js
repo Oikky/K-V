@@ -27,7 +27,10 @@ acao('emi.registrar', ['dono'], async (ctx, d) => {
   if (!t) throw new Recusa('Trecho inválido');
   const combo = await db.prepare('SELECT escolha FROM combos WHERE id = ?').bind(o.combo_aceita).first();
   if (!combo) throw new Recusa('Falta a combinação aceita');
-  const op = await db.prepare('SELECT * FROM opcoes WHERE id = ?').bind(JSON.parse(combo.escolha)[d.trecho]).first();
+  // só os trechos do roteiro aceito (os outros roteiros têm null na escolha)
+  const escolha = JSON.parse(combo.escolha);
+  if (escolha[d.trecho] == null) throw new Recusa('Esse trecho não é do roteiro que o cliente aceitou');
+  const op = await db.prepare('SELECT * FROM opcoes WHERE id = ?').bind(escolha[d.trecho]).first();
   const loc = limparLoc(d.localizador);
   if (loc.length < 5 || loc.length > 8) throw new Recusa('Localizador inválido');
   const ja = await db.prepare('SELECT localizador FROM emissoes WHERE orcamento_id = ? AND trecho = ?').bind(o.id, d.trecho).first();
@@ -64,7 +67,7 @@ acao('emi.registrar', ['dono'], async (ctx, d) => {
     ...pax.map((p) => db.prepare('INSERT INTO emissao_passageiros (emissao_id, pessoa_id) VALUES (?, ?)').bind(emissaoId, p)),
   );
   const { n } = await db.prepare('SELECT COUNT(*) AS n FROM emissoes WHERE orcamento_id = ?').bind(o.id).first();
-  const tudo = n + 1 === trechos.length;
+  const tudo = n + 1 === escolha.filter((x) => x != null).length;
   if (tudo) comandos.push(db.prepare("UPDATE orcamentos SET etapa = 'emitido' WHERE id = ?").bind(o.id));
   const eventos = [{ entidade: 'orcamento', id: o.id, texto: `Emitiu ${t.de} → ${t.para} (${loc})${conta ? ` pela conta de ${conta.titular}` : ''}` }];
   if (conta) eventos.push({ entidade: 'conta', id: conta.id, texto: `Emissão #${o.id} ${t.de} → ${t.para}: −${pts(pontos)} pts` });

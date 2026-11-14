@@ -12,31 +12,53 @@ KVTelas['novo-orcamento'] = function () {
   const editar = Number(KVShell.param('editar')) || null;
   let app = null, est = null, pessoas = [], orcs = [], enviando = false;
   const st = {
-    nome: '', whatsapp: '', pessoaId: null, tipo: 'ida-volta',
-    trechos: [{ de: 'GRU', para: '', data: '', janela: true }, { de: '', para: 'GRU', data: '', janela: true, espelho: true }],
+    nome: '', whatsapp: '', pessoaId: null,
+    // roteiros alternativos (A, B...): cada um com o tipo de viagem e os trechos dele
+    rots: [{ tipo: 'ida-volta', trechos: [{ de: 'GRU', para: '', data: '', janela: true }, { de: '', para: 'GRU', data: '', janela: true, espelho: true }] }],
     pax: { adultos: 1, criancas: 0, bebes: 0 }, especiais: [], obs: '',
     padrao: CONFERENCIA_PADRAO.map((t) => ({ texto: t, on: true })), extras: [], responsavel: '', faltando: '',
   };
   // edição: o formulário começa com o que está gravado
+  const tipoDe = (ts) => ts.length === 1 ? 'ida' : ts.length === 2 && ts[1].de === ts[0].para && ts[1].para === ts[0].de ? 'ida-volta' : 'varios';
   function carregar(o) {
-    const [t0, t1] = o.trechos;
-    const tipo = o.trechos.length === 1 ? 'ida' : o.trechos.length === 2 && t1.de === t0.para && t1.para === t0.de ? 'ida-volta' : 'varios';
-    Object.assign(st, { nome: o.contato.nome, whatsapp: (o.contato.whatsapp || '').length > 11 ? o.contato.whatsapp : mascaraFone(o.contato.whatsapp || ''), pessoaId: o.pessoaId || null, tipo,
-      trechos: o.trechos.map(({ de, para, data, janela, outrasDatas }) => ({ de, para, data, janela, outrasDatas: [...outrasDatas] })), pax: { ...o.passageiros },
+    const rots = O.roteiros(o).map((idx) => { const trechos = idx.map((i) => { const { de, para, data, janela, outrasDatas } = o.trechos[i]; return { de, para, data, janela, outrasDatas: [...outrasDatas] }; }); return { tipo: tipoDe(trechos), trechos }; });
+    Object.assign(st, { nome: o.contato.nome, whatsapp: (o.contato.whatsapp || '').length > 11 ? o.contato.whatsapp : mascaraFone(o.contato.whatsapp || ''), pessoaId: o.pessoaId || null, rots, pax: { ...o.passageiros },
       especiais: o.pedido ? o.pedido.split(' · ') : [], obs: o.observacao || '', faltando: (o.faltando || []).join('\n') });
   }
   let criado = null, erros = [];
   const mascaraFone = (v) => { const d = v.replace(/\D/g, '').slice(0, 11); if (d.length <= 2) return d.length ? `(${d}` : ''; if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`; return `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}`; };
   const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const soDig = (s) => String(s || '').replace(/\D/g, '');
-  const opAero = (sel) => `<option value="">Escolha</option>` + O.aeroportos.map((a) => `<option value="${a.cod}" ${a.cod === sel ? 'selected' : ''}>${a.cod} · ${esc(a.cidade)}</option>`).join('');
+  // lugares digitados à mão (fora da lista de aeroportos) ficam guardados neste navegador pra próxima vez
+  const LUGARES = 'kv-lugares';
+  const extras = () => { try { return JSON.parse(localStorage.getItem(LUGARES)) || []; } catch { return []; } };
+  const guardarLugar = (v) => { if (!v || O.aeroportos.some((a) => a.cod === v) || extras().includes(v)) return; try { localStorage.setItem(LUGARES, JSON.stringify([...extras(), v])); } catch {} };
+  const opAero = (sel) => `<option value="">Escolha</option>` + O.aeroportos.map((a) => `<option value="${a.cod}" ${a.cod === sel ? 'selected' : ''}>${a.cod} · ${esc(a.cidade)}</option>`).join('')
+    + [...new Set([...extras(), ...(sel && !O.aeroportos.some((a) => a.cod === sel) ? [sel] : [])])].map((v) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(v)}</option>`).join('');
   const pesquisadores = () => est.usuarios.filter((u) => (u.papel === 'pesquisador' || u.pesquisa) && u.ativo !== 0);
 
   // ida e volta: a volta espelha a ida (até ser mexida)
   function espelhar() {
-    if (st.tipo !== 'ida-volta') return;
-    const [ida, volta] = st.trechos;
-    if (volta.espelho) { volta.de = ida.para; volta.para = ida.de; }
+    st.rots.forEach((r) => {
+      if (r.tipo !== 'ida-volta') return;
+      const [ida, volta] = r.trechos;
+      if (volta.espelho) { volta.de = ida.para; volta.para = ida.de; }
+    });
+  }
+  const trechoDo = (el) => st.rots[+el.dataset.r].trechos[+el.dataset.tr];
+  // um roteiro: tipo de viagem e os trechos (ri = 0 pro A, 1 pro B...)
+  function roteiroHtml(r, ri) {
+    const id = (k, i) => `${k}${ri}_${i}`, err = (k, i) => (erros.includes(id(k, i)) ? 'erro-campo' : '');
+    return `<div class="seg" role="group" aria-label="Tipo de viagem${st.rots.length > 1 ? ` do roteiro ${O.letra(ri)}` : ''}">${[['ida', 'Só ida'], ['ida-volta', 'Ida e volta'], ['varios', 'Vários trechos']].map(([k, t]) => `<button data-tipo="${k}" data-r="${ri}" aria-pressed="${r.tipo === k}">${t}</button>`).join('')}</div>
+      <div>${r.trechos.map((t, i) => `<div class="trecho"><span class="n">${i + 1}</span>
+        <div class="campo de ${err('de', i)}"><label for="${id('de', i)}">De</label><select id="${id('de', i)}" data-r="${ri}" data-tr="${i}" data-k="de" data-livre="sigla">${opAero(t.de)}</select></div>
+        <div class="campo para ${err('para', i)}"><label for="${id('para', i)}">Para</label><select id="${id('para', i)}" data-r="${ri}" data-tr="${i}" data-k="para" data-livre="sigla">${opAero(t.para)}</select></div>
+        <div class="campo data ${err('data', i)}"><label for="${id('dt', i)}">${i === 0 ? 'Dia' : r.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="${id('dt', i)}" type="date" data-r="${ri}" data-tr="${i}" data-k="data" value="${t.data}" ${editar ? '' : `min="${hoje}"`}></div>
+        ${r.tipo === 'varios' && r.trechos.length > 2 ? `<button class="btn icone fantasma rem" data-rem="${ri}|${i}" aria-label="Tirar trecho ${i + 1}"><i data-lucide="x"></i></button>` : '<span></span>'}
+        <label class="jan"><input type="checkbox" data-r="${ri}" data-tr="${i}" data-k="janela" ${t.janela ? 'checked' : ''}>Pesquisar a janela de 14 dias (semana do dia + a seguinte)</label>
+        <div class="outros-dias"><span class="faint">Outros dias pra olhar:</span>${(t.outrasDatas || []).map((x, k) => `<button class="pilula" data-tira-dia="${ri}|${i}|${k}" aria-label="Tirar ${O.dataCurta(x)}">${O.dataCurta(x)} <i data-lucide="x"></i></button>`).join('')}
+          <input type="date" data-outro-dia="${ri}|${i}" aria-label="Pôr outro dia no trecho ${i + 1}"></div></div>`).join('')}</div>
+      ${r.tipo === 'varios' ? `<button class="btn" data-add-trecho="${ri}" style="justify-self:start"><i data-lucide="plus"></i>Outro trecho</button>` : ''}`;
   }
 
   // ---------- quem pediu: acha cliente e pedidos antigos ----------
@@ -63,16 +85,9 @@ KVTelas['novo-orcamento'] = function () {
           <div class="achados" data-achados>${achados()}</div></section>
 
         <section class="card"><h2><span class="n">2</span>Viagem</h2>
-          <div class="seg" role="group" aria-label="Tipo de viagem">${[['ida', 'Só ida'], ['ida-volta', 'Ida e volta'], ['varios', 'Vários trechos']].map(([k, t]) => `<button data-tipo="${k}" aria-pressed="${st.tipo === k}">${t}</button>`).join('')}</div>
-          <div>${st.trechos.map((t, i) => `<div class="trecho"><span class="n">${i + 1}</span>
-            <div class="campo de ${erros.includes('de' + i) ? 'erro-campo' : ''}"><label for="de${i}">De</label><select id="de${i}" data-tr="${i}" data-k="de">${opAero(t.de)}</select></div>
-            <div class="campo para ${erros.includes('para' + i) ? 'erro-campo' : ''}"><label for="para${i}">Para</label><select id="para${i}" data-tr="${i}" data-k="para">${opAero(t.para)}</select></div>
-            <div class="campo data ${erros.includes('data' + i) ? 'erro-campo' : ''}"><label for="dt${i}">${i === 0 ? 'Dia' : st.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="dt${i}" type="date" data-tr="${i}" data-k="data" value="${t.data}" ${editar ? '' : `min="${hoje}"`}></div>
-            ${st.tipo === 'varios' && st.trechos.length > 2 ? `<button class="btn icone fantasma rem" data-rem="${i}" aria-label="Tirar trecho ${i + 1}"><i data-lucide="x"></i></button>` : '<span></span>'}
-            <label class="jan"><input type="checkbox" data-tr="${i}" data-k="janela" ${t.janela ? 'checked' : ''}>Pesquisar a janela de 14 dias (semana do dia + a seguinte)</label>
-            <div class="outros-dias"><span class="faint">Outros dias pra olhar:</span>${(t.outrasDatas || []).map((x, k) => `<button class="pilula" data-tira-dia="${i}|${k}" aria-label="Tirar ${O.dataCurta(x)}">${O.dataCurta(x)} <i data-lucide="x"></i></button>`).join('')}
-              <input type="date" data-outro-dia="${i}" aria-label="Pôr outro dia no trecho ${i + 1}"></div></div>`).join('')}</div>
-          ${st.tipo === 'varios' ? '<button class="btn" data-add-trecho style="justify-self:start"><i data-lucide="plus"></i>Outro trecho</button>' : ''}</section>
+          ${st.rots.length > 1 ? `<div class="roteiros">${st.rots.map((r, ri) => `<section class="roteiro-col"><div class="rot-topo"><h3 class="rot-cab"><span class="rot-letra">${O.letra(ri)}</span>Roteiro ${O.letra(ri)}</h3>
+            <button class="btn icone fantasma" data-tira-rot="${ri}" aria-label="Tirar o roteiro ${O.letra(ri)}"><i data-lucide="x"></i></button></div>${roteiroHtml(r, ri)}</section>`).join('')}</div>` : roteiroHtml(st.rots[0], 0)}
+          ${st.rots.length < 5 ? `<button class="btn" data-add-rot style="justify-self:start"><i data-lucide="split"></i>Outro roteiro</button><span class="faint" style="font-size:13px;margin-top:-6px">${st.rots.length > 1 ? 'Todos os roteiros são pesquisados; na proposta cada um tem as combinações dele.' : 'Pra quando o cliente aceita outro destino ou outra origem, ex.: Lisboa, mas Porto também serve.'}</span>` : ''}</section>
 
         <section class="card"><h2><span class="n">3</span>Passageiros</h2>
           <div class="steppers">${[['adultos', 'Adultos', '12 anos ou mais', 1], ['criancas', 'Crianças', '2 a 11 anos', 0], ['bebes', 'Bebês', 'até 2 anos', 0]].map(([k, t, s, min]) => `<div class="step"><span class="r">${t}<small>${s}</small></span>
@@ -98,16 +113,16 @@ ${editar ? '' : `
     KVShell.icones();
   }
   function resumo() {
-    const t = st.trechos.filter((x) => x.de && x.para);
+    const rotas = st.rots.map((r) => r.trechos.filter((x) => x.de && x.para)).filter((t) => t.length);
     const pax = O.fmtPax(st.pax);
     if (erros.length) return `<span style="color:var(--danger)">Falta preencher ${erros.includes('nome') ? 'quem pediu' : 'os trechos'}.</span>`;
-    return t.length ? `<b>${t.map((x, i) => (i ? '' : x.de) + ' → ' + x.para).join(' ')}</b> · ${pax}` : `${pax} · escolha os trechos`;
+    return rotas.length ? `<b>${rotas.map((t) => t.map((x, i) => (i ? '' : x.de) + ' → ' + x.para).join(' ')).map(esc).join(' ou ')}</b> · ${pax}` : `${pax} · escolha os trechos`;
   }
 
   function validar() {
     erros = [];
     if (st.nome.trim().length < 2) erros.push('nome');
-    st.trechos.forEach((t, i) => { if (!t.de) erros.push('de' + i); if (!t.para) erros.push('para' + i); if (!t.data) erros.push('data' + i); });
+    st.rots.forEach((r, ri) => r.trechos.forEach((t, i) => { if (!t.de) erros.push(`de${ri}_${i}`); if (!t.para) erros.push(`para${ri}_${i}`); if (!t.data) erros.push(`data${ri}_${i}`); }));
     return !erros.length;
   }
   function renderCriado() {
@@ -127,16 +142,16 @@ ${editar ? '' : `
       if (t.id === 'zap') { t.value = mascaraFone(t.value); st.whatsapp = t.value; st.pessoaId = null; app.querySelector('[data-achados]').innerHTML = achados(); KVShell.icones(); }
       if (t.id === 'obs') st.obs = t.value;
       if (t.id === 'faltando') st.faltando = t.value;
-      if (t.dataset.tr != null && t.dataset.k === 'data') { st.trechos[+t.dataset.tr].data = t.value; if (erros.length) validar(); app.querySelector('[data-res]').innerHTML = resumo(); }
+      if (t.dataset.tr != null && t.dataset.k === 'data') { trechoDo(t).data = t.value; if (erros.length) validar(); app.querySelector('[data-res]').innerHTML = resumo(); }
     });
     app.addEventListener('change', (e) => {
       const t = e.target;
       if (t.dataset.tr != null) {
-        const tr = st.trechos[+t.dataset.tr];
+        const tr = trechoDo(t);
         if (t.dataset.k === 'janela') tr.janela = t.checked;
-        else if (t.dataset.k === 'de' || t.dataset.k === 'para') { tr[t.dataset.k] = t.value; if (+t.dataset.tr === 1) tr.espelho = false; if (erros.length) validar(); render(); }
+        else if (t.dataset.k === 'de' || t.dataset.k === 'para') { tr[t.dataset.k] = t.value; guardarLugar(t.value); if (+t.dataset.tr === 1) tr.espelho = false; if (erros.length) validar(); render(); }
       }
-      if (t.dataset.outroDia != null && t.value) { const tr = st.trechos[+t.dataset.outroDia]; tr.outrasDatas = [...new Set([...(tr.outrasDatas || []), t.value])].sort(); render(); }
+      if (t.dataset.outroDia != null && t.value) { const [ri, i] = t.dataset.outroDia.split('|').map(Number), tr = st.rots[ri].trechos[i]; tr.outrasDatas = [...new Set([...(tr.outrasDatas || []), t.value])].sort(); render(); }
       if (t.dataset.padrao != null) { st.padrao[+t.dataset.padrao].on = t.checked; render(); }
       if (t.dataset.extra != null && !t.checked) { st.extras.splice(+t.dataset.extra, 1); render(); }
     });
@@ -145,16 +160,24 @@ ${editar ? '' : `
       if (b.dataset.usar) { const p = pessoas.find((x) => x.id === +b.dataset.usar); Object.assign(st, { pessoaId: p.id, nome: p.nome, whatsapp: p.whatsapp ? mascaraFone(p.whatsapp) : st.whatsapp }); render(); }
       else if (b.hasAttribute('data-desligar')) { st.pessoaId = null; render(); }
       else if (b.dataset.tipo) {
-        st.tipo = b.dataset.tipo; const t0 = st.trechos[0];
-        if (st.tipo === 'ida') st.trechos = [t0];
-        if (st.tipo === 'ida-volta') st.trechos = [t0, { de: t0.para, para: t0.de, data: (st.trechos[1] || {}).data || '', janela: true, espelho: true }];
-        if (st.tipo === 'varios' && st.trechos.length < 2) st.trechos.push({ de: t0.para, para: '', data: '', janela: true });
-        st.trechos.forEach((t) => { if (st.tipo !== 'ida-volta') delete t.espelho; });
+        const r = st.rots[+b.dataset.r]; r.tipo = b.dataset.tipo; const t0 = r.trechos[0];
+        if (r.tipo === 'ida') r.trechos = [t0];
+        if (r.tipo === 'ida-volta') r.trechos = [t0, { de: t0.para, para: t0.de, data: (r.trechos[1] || {}).data || '', janela: true, espelho: true }];
+        if (r.tipo === 'varios' && r.trechos.length < 2) r.trechos.push({ de: t0.para, para: '', data: '', janela: true });
+        r.trechos.forEach((t) => { if (r.tipo !== 'ida-volta') delete t.espelho; });
         render();
       }
-      else if (b.hasAttribute('data-add-trecho')) { const ult = st.trechos[st.trechos.length - 1]; st.trechos.push({ de: ult.para, para: '', data: '', janela: true }); render(); }
-      else if (b.dataset.rem != null) { st.trechos.splice(+b.dataset.rem, 1); render(); }
-      else if (b.dataset.tiraDia) { const [i, k] = b.dataset.tiraDia.split('|').map(Number); st.trechos[i].outrasDatas.splice(k, 1); render(); }
+      else if (b.dataset.addTrecho != null) { const ts = st.rots[+b.dataset.addTrecho].trechos, ult = ts[ts.length - 1]; ts.push({ de: ult.para, para: '', data: '', janela: true }); render(); }
+      else if (b.dataset.rem != null) { const [ri, i] = b.dataset.rem.split('|').map(Number); st.rots[ri].trechos.splice(i, 1); render(); }
+      else if (b.dataset.tiraDia) { const [ri, i, k] = b.dataset.tiraDia.split('|').map(Number); st.rots[ri].trechos[i].outrasDatas.splice(k, 1); render(); }
+      // outro roteiro começa igual ao A, só sem o destino da ida (a volta acompanha)
+      else if (b.hasAttribute('data-add-rot')) {
+        const a = st.rots[0], trechos = a.trechos.map((t) => ({ ...t, outrasDatas: [...(t.outrasDatas || [])] }));
+        trechos[0].para = ''; if (a.tipo === 'ida-volta') trechos[1].espelho = true;
+        st.rots.push({ tipo: a.tipo, trechos }); erros = []; render();
+        const sel = app.querySelector(`#para${st.rots.length - 1}_0-busca`); if (sel) sel.focus();
+      }
+      else if (b.dataset.tiraRot != null) { st.rots.splice(+b.dataset.tiraRot, 1); erros = []; render(); }
       else if (b.dataset.pax) { st.pax[b.dataset.pax] += +b.dataset.d; render(); }
       else if (b.dataset.esp) { const i = st.especiais.indexOf(b.dataset.esp); i < 0 ? st.especiais.push(b.dataset.esp) : st.especiais.splice(i, 1); render(); }
       else if (b.hasAttribute('data-add-item')) { const v = app.querySelector('#item').value.trim(); if (v) { st.extras.push(v); render(); app.querySelector('#item').focus(); } }
@@ -165,7 +188,7 @@ ${editar ? '' : `
         enviando = true; b.disabled = true;
         const dados = {
           contato: { nome: st.nome.trim(), whatsapp: soDig(st.whatsapp) }, pessoaId: st.pessoaId, responsavel: st.responsavel || null,
-          trechos: st.trechos.map(({ de, para, data, janela, outrasDatas }) => ({ de, para, data, janela, outrasDatas: outrasDatas || [] })), passageiros: { ...st.pax },
+          trechos: st.rots.flatMap((r, ri) => r.trechos.map(({ de, para, data, janela, outrasDatas }) => ({ de, para, data, janela, outrasDatas: outrasDatas || [], roteiro: ri }))), passageiros: { ...st.pax },
           especiais: st.especiais, observacao: st.obs.trim(),
           conferencia: [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras],
         };

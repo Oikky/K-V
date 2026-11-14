@@ -30,7 +30,7 @@
     const vm = prog ? O.valorMilhaPadrao(prog) : 0;
     const valor = (milhas) => brl(Math.round(milhas * vm / 1e4) + (op.taxa || 0));
     const cia = [op.cia && op.cia !== op.site ? op.cia : '', op.voo].filter(Boolean).join(' · ');
-    const linhas = ['', `${KVProp.nomeTrecho(o, op.trecho)}:`];
+    const linhas = ['', `${KVProp.nomeTrecho(o, op.trecho, true)}:`];
     if (cia) linhas.push(`(${cia})`);
     if (op.destaque) linhas.push(`- ${op.destaque}`);
     const depois = diasDepois(op.chega);
@@ -49,21 +49,28 @@
   }
 
   // Skyscanner: a mais barata de cada trecho, somada; sem opção lançada, o que foi anotado à mão no documento antigo
+  // com roteiros, a soma é de cada roteiro (não dá pra somar Lisboa com Porto)
   function skyscanner(o) {
-    const din = o.trechos.map((_, ti) => o.opcoes.filter((x) => x.trecho === ti && O.site(x.site).forma === 'dinheiro').sort((a, b) => a.preco - b.preco)[0]).filter(Boolean);
+    const rs = O.roteiros(o);
+    if (rs.length === 1) return skyRoteiro(o, rs[0], 'Skyscanner', o.skyscanner);
+    return rs.flatMap((idx, k) => skyRoteiro(o, idx, `Skyscanner roteiro ${O.letra(k)}`, null));
+  }
+  function skyRoteiro(o, idx, rot, anotado) {
+    const din = idx.map((ti) => o.opcoes.filter((x) => x.trecho === ti && O.site(x.site).forma === 'dinheiro').sort((a, b) => a.preco - b.preco)[0]).filter(Boolean);
     // várias anotações (uma por trecho, "BOS a GRU:") começam na linha de baixo
-    if (!din.length) return o.skyscanner ? [`Skyscanner:${/^[^\n]*:\n/.test(o.skyscanner) ? '\n' : ' '}${o.skyscanner}`] : [];
+    if (!din.length) return anotado ? [`${rot}:${/^[^\n]*:\n/.test(anotado) ? '\n' : ' '}${anotado}`] : [];
     const cias = [...new Set(din.map((x) => x.cia).filter((c) => c && c !== 'Skyscanner'))];
-    return [`Skyscanner: ${brl(din.reduce((s, x) => s + x.preco, 0))}`,
-      ...din.map((x) => `${KVProp.nomeTrecho(o, x.trecho)} ${O.dataCurta(x.data)}`),
+    return [`${rot}: ${brl(din.reduce((s, x) => s + x.preco, 0))}`,
+      ...din.map((x) => `${KVProp.nomeTrecho(o, x.trecho, true)} ${O.dataCurta(x.data)}`),
       ...(cias.length ? [`Operado por ${cias.join('/')}`] : []),
-      ...din.filter((x) => x.duracao).map((x) => `${KVProp.nomeTrecho(o, x.trecho)} ${x.duracao}`)];
+      ...din.filter((x) => x.duracao).map((x) => `${KVProp.nomeTrecho(o, x.trecho, true)} ${x.duracao}`)];
   }
 
   function resumo(o, { comValor = true } = {}) {
-    const cidades = o.trechos.length === 2 && o.trechos[1].para === o.trechos[0].de
-      ? [o.trechos[0].de, o.trechos[0].para] : [o.trechos[0].de, ...o.trechos.map((t) => t.para)];
-    const linhas = [`*${o.contato.nome.trim()}*`, cidades.map(lugar).join(' → ')];
+    // uma linha de rota por roteiro (Lisboa ou Porto)
+    const rotas = O.roteiros(o).map((idx) => { const ts = idx.map((i) => o.trechos[i]);
+      return (ts.length === 2 && ts[1].para === ts[0].de ? [ts[0].de, ts[0].para] : [ts[0].de, ...ts.map((t) => t.para)]).map(lugar).join(' → '); });
+    const linhas = [`*${o.contato.nome.trim()}*`, ...(rotas.length > 1 ? rotas.map((r, k) => `Roteiro ${O.letra(k)}: ${r}`) : rotas)];
     // sites na ordem em que apareceram na pesquisa; dentro do site, por trecho, dia e horário
     const pontos = o.opcoes.filter((x) => O.site(x.site).forma === 'pontos').sort((a, b) => a.id - b.id);
     const sites = [...new Set(pontos.map((x) => x.site))];

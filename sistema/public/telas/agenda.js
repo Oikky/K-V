@@ -27,8 +27,8 @@ KVTelas['agenda'] = function () {
     // voos: revisão 7 dias antes, check-in 2 dias antes e o dia (mesma suposição do painel)
     PS.viagens().filter((v) => v.etapa !== 'Cancelado').forEach((v) => {
       const cli = PS.pessoa(v.clienteId), quem = `${cli ? cli.nome : '—'}${v.passageiros.length > 1 ? ` + ${v.passageiros.length - 1}` : ''}`;
-      v.trechos.forEach((t, i) => {
-        const em = v.raw.emissoes.find((e) => e.trecho === i && !e.cancelada), rota = `${t.de} → ${t.para}`;
+      v.trechos.forEach((t) => {
+        const em = v.raw.emissoes.find((e) => e.trecho === t.ordem && !e.cancelada), rota = `${t.de} → ${t.para}`;
         const href = `${em ? 'fechamento' : 'emissao'}.html?id=${v.id}`;
         l.push({ dia: t.data, tipo: 'voo', titulo: `Voo ${rota}`, sub: `${quem}${em ? ` · ${em.localizador}` : ' · falta emitir'}`, href, forte: true, icone: 'plane-takeoff' });
         l.push({ dia: soma(t.data, -2), tipo: 'voo', titulo: `Check-in abre · ${rota}`, sub: `voo ${O.dataCurta(t.data)} · ${quem}`, href, icone: 'ticket' });

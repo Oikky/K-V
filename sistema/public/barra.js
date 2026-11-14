@@ -175,7 +175,7 @@
   const recarregar = () => `<button class="btn icone fantasma" type="button" data-recarregar aria-label="Atualizar">${icone('refresh-cw')}</button>`;
   const recadoHtml = () => (recado ? `<p class="b-recado ${recado.erro ? 'erro' : recado.ok ? 'ok' : ''}" role="status">${esc(recado.texto)}</p>` : '');
   const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
-  const trechos = () => (orc.trechos.length > 1 ? `<div class="b-trechos" role="tablist">${orc.trechos.map((x, i) => `<button type="button" role="tab" aria-selected="${i === trecho}" data-trecho="${i}">${x.de} → ${x.para}<small>Trecho ${i + 1}</small></button>`).join('')}</div>` : '');
+  const trechos = () => (orc.trechos.length > 1 ? `<div class="b-trechos" role="tablist">${orc.trechos.map((x, i) => `<button type="button" role="tab" aria-selected="${i === trecho}" data-trecho="${i}">${x.de} → ${x.para}<small>${O.roteiros(orc).length > 1 ? `Roteiro ${O.letra(x.roteiro || 0)}` : `Trecho ${i + 1}`}</small></button>`).join('')}</div>` : '');
   const campos = () => KVOpcao.html(orc.trechos[trecho], form)
     + (naExtensao && aba.url && /^https:/.test(aba.url) && form.link !== aba.url ? `<button type="button" class="b-usar" data-usar-aba>Usar o endereço da aba aberta como link</button>` : '');
   const opResumo = (x) => `${esc(x.site)} ${O.dataCurta(x.data)} · ${esc(x.sai)} → ${esc(x.chega)}`;

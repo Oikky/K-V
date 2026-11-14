@@ -15,6 +15,7 @@ KVTelas['orcamento'] = function () {
   const pessoas = () => O.total(o);
   const podeLancar = () => dono || (o.responsavel === eu.email && o.etapa === 'pesquisa');
   // quem pode pegar orçamento; quem já está com ele aparece mesmo que não pesquise (ex.: o dono pegou)
+  const nomeDe = (email) => { const u = est.usuarios.find((x) => x.email === email); return u ? u.nome.split(' ')[0] : 'outra pessoa'; };
   const pesquisadores = () => est.usuarios.filter((u) => ((u.papel === 'pesquisador' || u.pesquisa) && u.ativo !== 0) || u.email === o.responsavel);
   function foraDoPedido(op) {
     const p = o.pedido || '', l = [];
@@ -37,7 +38,7 @@ KVTelas['orcamento'] = function () {
 
   // ---------- topo: a rota grande e poucas coisas ----------
   function topo() {
-    const cidades = [o.trechos[0].de, ...o.trechos.map((t) => t.para)].map(O.cidadeCurta);
+    const cidades = O.cidades(o);
     const feitos = o.conferencia.filter((c) => c.feito).length;
     let acoes = '';
     if (dono) acoes = `<label class="sel-pilula solta"><span class="escondido">Pesquisador</span><select id="passar">${[['', 'Na fila'], ...pesquisadores().map((u) => [u.email, `${u.nome.split(' ')[0]} pesquisa`])].map(([v, t]) => `<option value="${esc(v)}" ${(o.responsavel || '') === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
@@ -47,6 +48,7 @@ KVTelas['orcamento'] = function () {
         ${['pesquisado', 'enviado'].includes(o.etapa) ? `<a class="btn primario" href="proposta.html?id=${o.id}"><i data-lucide="send"></i>${o.etapa === 'pesquisado' ? 'Montar proposta' : 'Proposta'}</a>` : ''}`;
     else if (o.etapa === 'novo') acoes = '<button class="btn primario" data-pegar><i data-lucide="hand"></i>Pegar</button>';
     else if (o.etapa === 'pesquisa' && o.responsavel === eu.email) acoes = '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>';
+    else if (o.etapa === 'pesquisa' && o.responsavel) acoes = `<span class="etiqueta">com ${esc(nomeDe(o.responsavel))}</span><button class="btn primario" data-assumir><i data-lucide="hand"></i>Assumir</button>`;
     else acoes = `<span class="etiqueta">${O.etapa(o.etapa).nome}</span>`;
     // todos editam o pedido e falam com o cliente (2026-11-14)
     acoes = `<a class="btn" href="novo-orcamento.html?editar=${o.id}"><i data-lucide="pencil"></i>Editar pedido</a>` + acoes
@@ -69,7 +71,7 @@ KVTelas['orcamento'] = function () {
     const dias = [...new Set(opsDo(ti).map((x) => x.data))].sort();
     const cab = `<div class="secao"><h2>Opções de voo</h2><span class="n">${opsDo(ti).length} neste trecho</span></div>`;
     const varios = o.trechos.length > 1;
-    return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>Trecho ${i + 1}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
+    return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>${O.roteiros(o).length > 1 ? KVProp.nomeTrecho(o, i, true) : `Trecho ${i + 1}`}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
       + (dias.length > 1 || (o.trechos.length > 1 && o.opcoes.length) ? filtroDias(ti, dias) : '');
   }
   // ---------- filtro de dias: a fita de dias, com o mês em cada dia e o ano contornando os dias dele ----------
@@ -356,6 +358,11 @@ KVTelas['orcamento'] = function () {
       else if (b.hasAttribute('data-conf')) { KVShell.irPara({ janela: 'conf' }); sincJanela(); }
       else if (b.hasAttribute('data-pesquisado')) { KVShell.irPara({ janela: 'pesquisado' }); sincJanela(); }
       else if (b.hasAttribute('data-pegar')) { b.disabled = true; await fazer('orc.pegar', { id: o.id }); render(); }
+      else if (b.hasAttribute('data-assumir')) {
+        const quem = esc(nomeDe(o.responsavel));
+        if (!await KVShell.confirmar({ titulo: `Assumir o #${o.id}?`, texto: `Esse orçamento está com ${quem}. Se você assumir, ele passa pra você e sai da lista de ${quem}. As opções que já foram lançadas continuam.`, sim: 'Assumir', icone: 'hand' })) return;
+        b.disabled = true; await fazer('orc.pegar', { id: o.id, assumir: true }); render();
+      }
     });
     app.addEventListener('change', async (e) => {
       if (e.target.id === 'passar') { await fazer('orc.passar', { id: o.id, email: e.target.value || null }); render(); }

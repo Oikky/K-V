@@ -29,7 +29,7 @@ KVTelas['emissao'] = function () {
     const precisa = x.milhas * O.pagantes(o), pax = o.passageirosLista;
     return contas.filter((c) => c.programa_id === prog && c.ativa).map((c) => {
       // outros voos deste orçamento já marcados pra mesma conta e ainda não emitidos também contam
-      const reservado = o.trechos.reduce((s, _, k) => s + (k !== ti && !emissao(k) && escolha(k).contaId === c.id ? opDo(k).milhas * O.pagantes(o) : 0), 0);
+      const reservado = P.trechosVoo(o).reduce((s, k) => s + (k !== ti && !emissao(k) && escolha(k).contaId === c.id ? opDo(k).milhas * O.pagantes(o) : 0), 0);
       const b = c.beneficiarios, ja = new Set(b ? b.lista.map((y) => y.pessoa_id) : []);
       const novos = pax.filter((p) => !ja.has(p.id) && p.id !== c.titular_id);
       const sobra = c.saldo - reservado - precisa;
@@ -39,13 +39,13 @@ KVTelas['emissao'] = function () {
   }
   // sugestão: a primeira da lista ordenada (tem saldo, não estoura vaga, menos CPFs novos, pontos vencendo primeiro)
   function sugerirContas() {
-    o.trechos.forEach((t, ti) => { if (emPontos(ti) && !emissao(ti) && !escolha(ti).contaId) { const s = contasPara(ti)[0]; if (s) { escolha(ti).contaId = s.conta.id; escolha(ti).sugerida = true; } } });
+    P.trechosVoo(o).forEach((ti) => { if (emPontos(ti) && !emissao(ti) && !escolha(ti).contaId) { const s = contasPara(ti)[0]; if (s) { escolha(ti).contaId = s.conta.id; escolha(ti).sugerida = true; } } });
   }
 
   // ---------- topo ----------
   function topo() {
-    const cidades = [o.trechos[0].de, ...o.trechos.map((t) => t.para)].map(O.cidadeCurta);
-    const feitos = o.emissoes.length;
+    const cidades = O.cidades(o, P.trechosVoo(o));
+    const feitos = o.emissoes.length, nVoos = P.trechosVoo(o).length;
     const s = P.situacao(o);
     const pax = o.passageirosLista;
     const falta = O.total(o) - pax.length;
@@ -53,7 +53,7 @@ KVTelas['emissao'] = function () {
       ${KVShell.param('fechou') && o.etapa === 'fechado' ? `<div class="aviso ok aviso-acoes" style="margin-bottom:14px"><span>Orçamento fechado. Agora é emitir cada voo.</span>${o.emissoes.length ? '' : '<span class="acoes"><button class="btn pequeno" data-reabrir><i data-lucide="undo-2"></i>Desfazer fechamento</button></span>'}</div>` : ''}
       <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.id} · ${esc(P.aceita(o).nome)}</span>
         <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1>
-        <div class="kpis"><span class="kpi ${feitos < o.trechos.length ? 'destaque' : ''}"><b>${feitos}/${o.trechos.length}</b><span>voos emitidos</span></span>
+        <div class="kpis"><span class="kpi ${feitos < nVoos ? 'destaque' : ''}"><b>${feitos}/${nVoos}</b><span>voos emitidos</span></span>
           <span class="kpi"><b>${fmt.brl(P.valorFinal(o) || 0).replace(',00', '')}</b><span>venda${o.receb.forma === 'parcelado' && P.aceita(o).parcelado ? ' parcelada' : ''}</span></span>
           ${s ? `<span class="kpi"><b>${s.falta ? fmt.brl(s.falta).replace(',00', '') : '<i data-lucide="check" style="width:30px;height:30px;stroke-width:3;color:var(--ok)"></i>'}</b><span>${s.falta ? 'a receber' : 'recebido'}</span></span>` : ''}</div>
         <div class="pax">${pax.map((p) => `<span class="etiqueta"><span class="ava">${esc(iniciais(p.nome))}</span>${esc(p.nome.split(' ').slice(0, 2).join(' '))}</span>`).join('')}
@@ -125,7 +125,7 @@ KVTelas['emissao'] = function () {
       app.innerHTML = `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'emissao')}<div class="vazio">Feche o orçamento antes de emitir. <a href="fechamento.html?id=${o.id}" style="color:var(--orange)">Ir pro fechamento</a></div>`;
       KVShell.icones(); return;
     }
-    app.innerHTML = topo() + `<div class="secao"><h2>Voos</h2><span class="n">um registro por voo</span></div><div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))">${o.trechos.map((_, i) => cartaoVoo(i)).join('')}</div>` + fim();
+    app.innerHTML = topo() + `<div class="secao"><h2>Voos</h2><span class="n">um registro por voo</span></div><div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))">${P.trechosVoo(o).map((i) => cartaoVoo(i)).join('')}</div>` + fim();
     document.title = `Emissão #${o.id} ${O.destino(o)} · K&V`;
     KVShell.icones();
     scrollTo(0, y);

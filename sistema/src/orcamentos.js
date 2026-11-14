@@ -17,10 +17,10 @@ export async function listarOrcamentos(env, usuario) {
            (SELECT MAX(e.quando) FROM eventos e WHERE e.entidade = 'orcamento' AND e.entidade_id = CAST(o.id AS TEXT)
               AND e.texto = 'Marcou como pesquisado') AS pesquisado_em
     FROM orcamentos o ${filtro} ORDER BY o.id`),
-  todos(db, `SELECT t.orcamento_id, t.de, t.para, t.data, t.janela, t.outras_datas FROM trechos t
+  todos(db, `SELECT t.orcamento_id, t.de, t.para, t.data, t.janela, t.outras_datas, t.roteiro FROM trechos t
     JOIN orcamentos o ON o.id = t.orcamento_id ${filtro} ORDER BY t.orcamento_id, t.ordem`)]);
   const porOrc = {};
-  for (const t of trechos) (porOrc[t.orcamento_id] ||= []).push({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]') });
+  for (const t of trechos) (porOrc[t.orcamento_id] ||= []).push({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]'), roteiro: t.roteiro });
 
   return linhas.map((o) => ({
     id: o.id,
@@ -42,14 +42,14 @@ export async function listarOrcamentos(env, usuario) {
 }
 
 // Um orçamento inteiro (tela de pesquisa, proposta, fechamento e emissão).
-// Quem pesquisa só abre o que está na fila ou com ele, e nunca recebe combinações nem recebimento.
+// Quem pesquisa abre o que está na fila, em pesquisa (dele ou de outra pessoa, pra poder assumir) ou com ele; nunca recebe combinações nem recebimento.
 export async function abrirOrcamento(env, usuario, id) {
   const db = env.DB, dono = ehDono(usuario);
   const o = Number.isInteger(id) ? await db.prepare('SELECT * FROM orcamentos WHERE id = ?').bind(id).first() : null;
   if (!o) return null;
-  if (!dono && !(o.etapa === 'novo' && (!o.responsavel || o.responsavel === usuario.email)) && o.responsavel !== usuario.email) return null;
+  if (!dono && !['novo', 'pesquisa'].includes(o.etapa) && o.responsavel !== usuario.email) return null;
   const [trechos, conferencia, opcoes] = await Promise.all([
-    todos(db, 'SELECT de, para, data, janela, outras_datas FROM trechos WHERE orcamento_id = ? ORDER BY ordem', id),
+    todos(db, 'SELECT de, para, data, janela, outras_datas, roteiro FROM trechos WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, 'SELECT ordem, texto, feito FROM conferencia WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, `SELECT id, trecho, site, data, sai, chega, cia, voo, escalas, bagagem, milhas, taxa, preco, link, obs, criada_por,
                       de, para, duracao, escalas_onde, milhas_mala, mala_mao, destaque, cabine
@@ -62,7 +62,7 @@ export async function abrirOrcamento(env, usuario, id) {
     passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
     pedido: o.pedido, observacao: o.observacao, skyscanner: o.skyscanner || '', faltando: JSON.parse(o.faltando || '[]'),
     origem: o.origem, textoOriginal: o.texto_original, audio: !!o.audio, criadoEm: o.criado_em,
-    trechos: trechos.map((t) => ({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]') })),
+    trechos: trechos.map((t) => ({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]'), roteiro: t.roteiro })),
     conferencia: conferencia.map((c) => ({ ...c, feito: !!c.feito })),
     opcoes: opcoes.map((p) => ({ ...p, escalasOnde: p.escalas_onde ? JSON.parse(p.escalas_onde) : null, escalas_onde: undefined })),
   };

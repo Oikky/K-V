@@ -16,8 +16,8 @@ KVTelas['painel'] = function () {
 
   // cada trecho dos próximos 30 dias das viagens fechadas ou emitidas
   function proximosVoos() {
-    return PS.viagens().filter((v) => v.etapa !== 'Cancelado').flatMap((v) => v.trechos.map((t, i) => {
-      const em = v.raw.emissoes.find((e) => e.trecho === i && !e.cancelada);
+    return PS.viagens().filter((v) => v.etapa !== 'Cancelado').flatMap((v) => v.trechos.map((t) => {
+      const em = v.raw.emissoes.find((e) => e.trecho === t.ordem && !e.cancelada);
       return { v, t, dias: PS.diasAte(t.data), localizador: em ? em.localizador : null };
     })).filter((x) => x.dias >= 0 && x.dias <= DIAS).sort((a, b) => a.t.data.localeCompare(b.t.data));
   }

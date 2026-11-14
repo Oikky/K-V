@@ -157,5 +157,22 @@
     sumir();
   }
 
-  window.KVShell = { montar, verComo, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
+  // pergunta antes de algo que mexe no trabalho de outra pessoa: KVShell.confirmar({ titulo, texto, sim }) → true/false
+  function confirmar({ titulo, texto = '', sim = 'Sim', icone = 'check' }) {
+    return new Promise((ok) => {
+      const d = document.createElement('dialog'); d.className = 'janela'; d.style.width = 'min(440px, calc(100vw - 32px))';
+      d.innerHTML = `<header><div style="flex:1"><h2>${titulo}</h2></div></header>
+        ${texto ? `<div class="corpo"><p style="margin:0 0 12px;line-height:1.55;color:var(--text-2)">${texto}</p></div>` : ''}
+        <footer><button class="btn" type="button" data-nao>Cancelar</button><button class="btn primario" type="button" data-sim><i data-lucide="${icone}"></i>${sim}</button></footer>`;
+      let r = false;
+      d.querySelector('[data-nao]').onclick = () => d.close();
+      d.querySelector('[data-sim]').onclick = () => { r = true; d.close(); };
+      d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+      d.onclose = () => { d.remove(); ok(r); };
+      document.body.append(d); d.showModal(); if (window.lucide) lucide.createIcons();
+      d.querySelector('[data-sim]').focus();
+    });
+  }
+
+  window.KVShell = { montar, confirmar, verComo, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
 })();
