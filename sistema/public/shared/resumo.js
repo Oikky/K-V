@@ -37,6 +37,7 @@
     linhas.push(`- ${dataLonga(op.data)}`, `- ${op.sai} - ${lugar(op.de || t.de)}`,
       `- ${op.chega.replace(/ \+\d$/, '')} - ${lugar(op.para || t.para)}${depois ? ` (chegando no dia ${somaDias(op.data, depois)})` : ''}`,
       `- ${escalas(op)}`);
+    if (op.cabine) linhas.push(`- Cabine: ${op.cabine}`);
     if (op.duracao) linhas.push(`- Tempo de Viagem: ${op.duracao}`);
     if (op.mala_mao != null) linhas.push(`- Mala de mão: ${op.mala_mao ? 'Inclusa' : 'Não Inclusa'}`);
     if (op.bagagem) linhas.push(`- Mala Despachada: ${op.bagagem}`);

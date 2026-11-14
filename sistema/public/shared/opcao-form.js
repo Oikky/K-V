@@ -6,6 +6,7 @@
 (function () {
   const O = KVOrc, esc = O.esc;
   const DESTAQUES = ['‼️Opção mais barata‼️', '‼️Opção a noite‼️', '‼️Outra opção de volta‼️', '‼️Volta indisponível em milhas‼️', '‼️Voo indisponível‼️', '‼️Taxa total ida e volta‼️'];
+  const CABINES = ['Econômica', 'Premium Economy', 'Executiva', 'Primeira classe'];
   const CIAS = ['Latam', 'GOL', 'Azul', 'TAP', 'KLM', 'Air France', 'Iberia', 'American', 'Delta', 'United', 'Copa', 'Avianca'];
   const eDinheiro = (s) => O.site(s).forma === 'dinheiro';
   const campo = (id, rotulo, html, cls = '') => `<div class="campo ${cls}"><label for="${id}">${rotulo}</label>${html}</div>`;
@@ -21,7 +22,8 @@
         ${campo('f-data', 'Dia', entrada('data', 'type="date"', dia))}</div>
       <div class="duas">${campo('f-cia', 'Companhia aérea', entrada('cia', 'placeholder="Latam, GOL, Azul…" list="l-cias" autocomplete="off"', r.cia))}${campo('f-voo', 'Voo', entrada('voo', 'placeholder="LA 8084"', r.voo))}</div>
       <datalist id="l-cias">${CIAS.map((c) => `<option value="${c}">`).join('')}</datalist>
-      <div class="duas">${campo('f-de', 'Sai de', entrada('de', `placeholder="${t.de}" maxlength="3" autocapitalize="characters"`, r.de || t.de))}${campo('f-para', 'Chega em', entrada('para', `placeholder="${t.para}" maxlength="3" autocapitalize="characters"`, r.para || t.para))}</div>
+      <div class="duas">${campo('f-de', 'Sai de', entrada('de', `placeholder="${esc(lugarEscala(t.de))}"`, r.de || lugarEscala(t.de)))}${campo('f-para', 'Chega em', entrada('para', `placeholder="${esc(lugarEscala(t.para))}"`, r.para || lugarEscala(t.para)))}</div>
+      ${campo('f-cabine', 'Cabine', `<select id="f-cabine" data-f="cabine">${CABINES.map((c) => `<option ${c === (r.cabine || CABINES[0]) ? 'selected' : ''}>${c}</option>`).join('')}</select>`)}
       <div class="duas">${campo('f-sai', 'Horário de saída', entrada('sai', 'inputmode="numeric" placeholder="07:40"', r.sai))}${campo('f-chega', 'Horário de chegada', entrada('chega', 'inputmode="numeric" placeholder="19:10"', r.chega))}</div>
       <div class="duas">${campo('f-depois', 'Chega no dia', `<select id="f-depois" data-f="depois">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${n === depois ? 'selected' : ''}>${n ? `${depoisDe(n)} (+${n})` : 'Mesmo dia'}</option>`).join('')}</select>`)}
         ${campo('f-duracao', 'Tempo de viagem', entrada('duracao', 'placeholder="7h10m"', r.duracao))}</div>
@@ -35,7 +37,7 @@
         ${campo('f-bagagem', 'Mala despachada', `<select id="f-bagagem" data-f="bagagem">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${+(r.bagagem || 0) === n ? 'selected' : ''}>${n ? `${n} inclusa${n > 1 ? 's' : ''}` : 'Não inclusa'}</option>`).join('')}</select>`)}</div>
       <h3 class="form-grupo">Valores, por pessoa</h3>
       ${din ? campo('f-preco', 'Preço em dinheiro', entrada('preco', 'inputmode="decimal" placeholder="R$"', r.preco))
-        : `<div class="duas">${campo('f-milhas', 'Milhas', entrada('milhas', 'inputmode="numeric" placeholder="45 = 45.000"', r.milhas))}${campo('f-taxa', 'Taxa', entrada('taxa', 'inputmode="decimal" placeholder="R$"', r.taxa))}</div>
+        : `<div class="duas">${campo('f-milhas', 'Milhas', entrada('milhas', 'inputmode="numeric" placeholder="45.000"', r.milhas))}${campo('f-taxa', 'Taxa', entrada('taxa', 'inputmode="decimal" placeholder="R$"', r.taxa))}</div>
         ${campo('f-mmala', 'Milhas com mala despachada', entrada('milhasMala', 'inputmode="numeric" placeholder="Se o site cobra a mala à parte"', r.milhasMala))}`}
       <h3 class="form-grupo">Anotações</h3>
       ${campo('f-destaque', 'Destaque', entrada('destaque', 'list="l-destaques" placeholder="‼️Opção mais barata‼️" autocomplete="off"', r.destaque))}
@@ -64,14 +66,13 @@
     // "06:10+" no horário ainda vale como dia seguinte
     const depois = Math.max(+v.depois || 0, chegaH && chegaH.endsWith('+1') ? 1 : 0);
     const chega = chegaH && `${chegaH.replace(' +1', '')}${depois ? ` +${depois}` : ''}`;
-    let milhasMala = lerNum(v.milhasMala); if (milhasMala && milhasMala < 1000) milhasMala *= 1000;
-    const de = String(v.de || '').trim().toUpperCase(), para = String(v.para || '').trim().toUpperCase();
-    let milhas = lerNum(v.milhas); if (milhas && milhas < 1000) milhas *= 1000;
+    const milhasMala = lerNum(v.milhasMala), milhas = lerNum(v.milhas);
+    // nome livre ("São Paulo GRU"); sigla sozinha vira "Cidade SIGLA"
+    const de = lugarEscala(v.de).slice(0, 60), para = lugarEscala(v.para).slice(0, 60);
     // taxa pode ser zero (emissão sem taxa); só não pode ficar vazia
     const taxa = String(v.taxa || '').trim() === '0' ? 0 : O.lerReais(v.taxa), preco = O.lerReais(v.preco);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v.data || '')) erros.push('data');
     if (!sai) erros.push('sai'); if (!chega) erros.push('chega');
-    if (de && !/^[A-Z]{3}$/.test(de)) erros.push('de'); if (para && !/^[A-Z]{3}$/.test(para)) erros.push('para');
     if (din && !preco) erros.push('preco'); if (!din && !milhas) erros.push('milhas'); if (!din && taxa == null) erros.push('taxa');
     if (erros.length) return { erros };
     const voo = String(v.voo || '').trim().toUpperCase();
@@ -80,7 +81,8 @@
       escalas: escalasOnde.length, escalasOnde, bagagem: +v.bagagem || 0,
       milhas: din ? null : Math.round(milhas), taxa: din ? null : taxa, preco: din ? preco : null, link: String(v.link || '').trim(),
       // aeroporto igual ao do trecho não precisa ficar guardado na opção
-      de: de && de !== t.de ? de : null, para: para && para !== t.para ? para : null,
+      de: de && de !== lugarEscala(t.de) ? de : null, para: para && para !== lugarEscala(t.para) ? para : null,
+      cabine: v.cabine && v.cabine !== CABINES[0] ? v.cabine : null,
       duracao: tempo(v.duracao) || null, milhasMala: din || !milhasMala ? null : Math.round(milhasMala),
       malaMao: v.malaMao === '' ? null : v.malaMao === '1', destaque: String(v.destaque || '').trim() || null, obs: String(v.obs || '').trim() } };
   }
@@ -90,8 +92,22 @@
   const deOpcao = (op) => ({ site: op.site, data: op.data, cia: op.cia === op.site ? '' : op.cia, voo: op.voo, de: op.de || '', para: op.para || '', sai: op.sai,
     chega: op.chega.replace(/ \+\d$/, ''), depois: (/ \+(\d)$/.exec(op.chega) || [])[1] || 0, duracao: op.duracao || '',
     escalasOnde: op.escalasOnde || Array.from({ length: op.escalas }, () => ['', '']), bagagem: op.bagagem, malaMao: op.mala_mao == null ? '' : String(op.mala_mao),
-    milhas: op.milhas ? op.milhas / 1000 : '', taxa: reais(op.taxa), preco: reais(op.preco), milhasMala: op.milhas_mala ? op.milhas_mala / 1000 : '',
+    cabine: op.cabine || '', milhas: op.milhas ? O.fmt.pts(op.milhas) : '', taxa: reais(op.taxa), preco: reais(op.preco), milhasMala: op.milhas_mala ? O.fmt.pts(op.milhas_mala) : '',
     destaque: op.destaque || '', obs: op.obs || '', link: op.link });
+
+  // milhas: só número, com o ponto do milhar aparecendo enquanto escreve
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!el.matches || !el.matches('[data-f="milhas"], [data-f="milhasMala"]')) return;
+    const d = el.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 8);
+    const f = d ? (+d).toLocaleString('pt-BR') : '';
+    if (f === el.value) return;
+    // mantém o cursor depois do mesmo número de dígitos
+    const digAntes = el.value.slice(0, el.selectionStart).replace(/\D/g, '').length;
+    el.value = f;
+    let pos = 0; for (let n = 0; pos < f.length && n < digAntes; pos++) if (/\d/.test(f[pos])) n++;
+    el.setSelectionRange(pos, pos);
+  });
 
   window.KVOpcao = { html, ler, montar, deOpcao, DESTAQUES, eDinheiro };
 })();

@@ -139,7 +139,7 @@ KVTelas['orcamento'] = function () {
       <span class="site" data-s="${esc(op.site)}">${esc(op.site)}${cheio ? ' · menor custo' : ''}</span>
       <span class="hora">${op.sai} → ${op.chega.replace(/ \+\d$/, '')}${/\+\d$/.test(op.chega) ? `<small>${op.chega.slice(-2)}</small>` : ''}</span>
       <span class="pq">${[`${O.diaCurto(op.data)} ${O.dataCurta(op.data)}`, op.voo, op.voo && op.cia !== op.voo.split(' ')[0] && op.cia].filter(Boolean).map(esc).join(' · ')}</span>
-      <div class="rodape tags-op"><span class="etiqueta">${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'}</span>${op.bagagem ? `<span class="etiqueta"><i data-lucide="luggage"></i>${op.bagagem > 1 ? `${op.bagagem} malas` : 'mala'}</span>` : ''}${op.destaque ? `<span class="etiqueta">${esc(op.destaque)}</span>` : ''}${fora.map((f) => `<span class="etiqueta warn">${f}</span>`).join('')}</div>
+      <div class="rodape tags-op"><span class="etiqueta">${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'}</span>${op.bagagem ? `<span class="etiqueta"><i data-lucide="luggage"></i>${op.bagagem > 1 ? `${op.bagagem} malas` : 'mala'}</span>` : ''}${op.cabine ? `<span class="etiqueta">${esc(op.cabine)}</span>` : ''}${op.destaque ? `<span class="etiqueta">${esc(op.destaque)}</span>` : ''}${fora.map((f) => `<span class="etiqueta warn">${f}</span>`).join('')}</div>
       <div class="pe-op"><div class="valor">${eDinheiro(op.site) ? `<b>${fmt.brl(op.preco)}</b><span>em dinheiro, por pessoa</span>` : `<b>${fmt.pts(op.milhas)} <small>pts</small></b><span>+ ${fmt.brl(op.taxa)} de taxa, por pessoa</span>`}${dono ? `<span class="custo">custo total ${fmt.brl(O.custo(op, o))}</span>` : ''}</div>
         </div></article>`;
   }

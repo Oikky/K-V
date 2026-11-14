@@ -19,13 +19,13 @@ const ehHora = (s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 const ehData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 const texto = (v, max) => { const t = String(v ?? '').trim().slice(0, max); return t || null; };
-const ehAeroporto = (s) => /^[A-Z]{3}$/.test(s);
 
 // o resto da página de voo do documento antigo: só grava o que veio (a barra da extensão não manda nada disso)
 function detalhes(d) {
   const x = {};
-  if ('de' in d) { x.de = texto(d.de, 3); if (x.de && !ehAeroporto(x.de)) throw new Recusa('Aeroporto de saída inválido'); }
-  if ('para' in d) { x.para = texto(d.para, 3); if (x.para && !ehAeroporto(x.para)) throw new Recusa('Aeroporto de chegada inválido'); }
+  if ('de' in d) x.de = texto(d.de, 60);
+  if ('para' in d) x.para = texto(d.para, 60);
+  if ('cabine' in d) x.cabine = texto(d.cabine, 30);
   if ('duracao' in d) x.duracao = texto(d.duracao, 20);
   if ('escalasOnde' in d) {
     const l = Array.isArray(d.escalasOnde) ? d.escalasOnde.map((e) => [texto(e && e[0], 60), texto(e && e[1], 20) || '']).filter((e) => e[0]) : [];

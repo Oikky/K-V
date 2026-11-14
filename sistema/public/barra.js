@@ -71,7 +71,7 @@
   // Fechar a barra, trocar de orçamento, a internet cair na hora de salvar: ao voltar, está tudo lá. Só some depois de salvo.
   const chaveRasc = () => orc && `kv-barra-rasc:${orc.id}:${trecho}`;
   // o que conta pra saber se o formulário mudou (normalizado: aeroporto igual ao do trecho, "mesmo dia" etc. não contam)
-  const CAMPOS_SIG = ['site', 'data', 'cia', 'voo', 'de', 'para', 'sai', 'chega', 'depois', 'duracao', 'bagagem', 'malaMao', 'milhas', 'taxa', 'preco', 'milhasMala', 'destaque', 'obs', 'link'];
+  const CAMPOS_SIG = ['site', 'data', 'cia', 'voo', 'de', 'para', 'sai', 'chega', 'depois', 'duracao', 'bagagem', 'malaMao', 'cabine', 'milhas', 'taxa', 'preco', 'milhasMala', 'destaque', 'obs', 'link'];
   function assinatura(f) {
     const t = orc.trechos[trecho];
     return JSON.stringify([CAMPOS_SIG.map((k) => {
