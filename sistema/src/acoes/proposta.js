@@ -65,6 +65,13 @@ acao('prop.enviar', ['dono'], async ({ db, quando }, { id }) => {
   };
 });
 
+// texto da mensagem mudado à mão (null volta pro automático)
+acao('prop.mensagem', ['dono'], async ({ db }, { id, texto }) => {
+  const o = await orcamento(db, id);
+  const t = texto == null ? null : String(texto).slice(0, 8000).trim() || null;
+  return { resultado: { id }, comandos: [db.prepare('UPDATE orcamentos SET mensagem = ? WHERE id = ?').bind(t, o.id)] };
+});
+
 acao('orc.perder', ['dono'], async ({ db }, { id, motivo }) => {
   const o = await orcamento(db, id);
   motivo = String(motivo || '').trim().slice(0, 200);

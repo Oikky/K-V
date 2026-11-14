@@ -65,15 +65,32 @@
     if (n === 2 && o.trechos[1].para === o.trechos[0].de) return ti === 0 ? 'Ida' : 'Volta';
     return n === 1 ? 'Ida' : `Trecho ${ti + 1}`;
   };
+  // "GRU" → "São Paulo GRU"; nome já escrito na opção ("São Paulo GRU") fica como está
+  const lugar = (cod) => { const c = O.cidadeCurta(cod); return c === cod ? cod : `${c} ${cod}`; };
+  const dataLonga = (iso) => iso.split('-').reverse().join('/');
+  const somaDias = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return dataLonga(O.isoDia(d)); };
+  function escalasMsg(x) {
+    if (!x.escalas) return ['Voo direto'];
+    const nome = `${x.escalas} escala${x.escalas > 1 ? 's' : ''}`, onde = x.escalasOnde;
+    if (!onde || onde.length !== x.escalas) return [nome];
+    return [`${nome}:`, ...onde.map(([l, t]) => ` - ${lugar(l)}${t ? ` (${t})` : ''}`)];
+  }
   function mensagem(o, combos = o.combos || []) {
     const quem = o.contato.nome.split(' ')[0];
-    const linhas = [`Oi, ${quem}! Seguem as opções pra ${O.destino(o)} (${O.fmtPax(o.passageiros)}):`];
+    const linhas = [`Oi, ${quem}! Seguem as opções pra ${O.destino(o)}:`];
     combos.forEach((c, i) => {
       linhas.push('', `*Opção ${i + 1} · ${c.nome}*`);
-      opsDaCombo(o, c).forEach((x) => {
-        const t = o.trechos[x.trecho];
-        linhas.push(`${nomeTrecho(o, x.trecho)} ${diaSem(x.data)} ${O.dataCurta(x.data)} · ${t.de} ${x.sai} → ${t.para} ${x.chega} · ${x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto'}${x.bagagem ? ' · com mala' : ''}`);
+      opsDaCombo(o, c).forEach((x, j) => {
+        const t = o.trechos[x.trecho], depois = +((/ \+(\d)$/.exec(x.chega) || [])[1] || 0);
+        if (j) linhas.push('');
+        linhas.push(`${nomeTrecho(o, x.trecho)} ${dataLonga(x.data)}`,
+          `${lugar(x.de || t.de)} ${x.sai} → ${lugar(x.para || t.para)} ${x.chega.replace(/ \+\d$/, '')}${depois ? ` (chega ${somaDias(x.data, depois)})` : ''}`,
+          ...escalasMsg(x));
+        if (x.cabine) linhas.push(`Cabine ${x.cabine}`);
+        if (x.mala_mao != null) linhas.push(`Mala de mão: ${x.mala_mao ? 'inclusa' : 'não inclusa'}`);
+        linhas.push(`Mala despachada: ${x.bagagem ? `${x.bagagem} inclusa${x.bagagem > 1 ? 's' : ''}` : 'não inclusa'}`);
       });
+      linhas.push('');
       linhas.push(`*${fmt.brl(venda(o, c))}* no Pix ou dinheiro${c.parcelado ? ` ou ${fmt.brl(c.parcelado)} em até ${c.vezes}x de ${fmt.brl(Math.round(c.parcelado / c.vezes))}` : ''}`);
     });
     linhas.push('', 'Os preços podem mudar até a emissão. Qual fica melhor pra você?');
@@ -94,6 +111,6 @@
 
   window.KVProp = {
     usarProgramas, progNome, progDe, opsDo, op, sugerir, novaCombo, opsDaCombo, valorMilha, porPrograma, taxas, dinheiro, milhasCombo, precoCalc, venda,
-    teto, aceita, mensagem, nomeTrecho, diaSem, formas: FORMAS, valorFinal, situacao, vezesPadrao: VEZES_PADRAO,
+    teto, aceita, mensagem, texto: (o) => o.mensagem || mensagem(o), nomeTrecho, diaSem, formas: FORMAS, valorFinal, situacao, vezesPadrao: VEZES_PADRAO,
   };
 })();

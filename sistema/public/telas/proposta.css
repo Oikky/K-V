@@ -81,6 +81,8 @@
 
   .msg-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
   .msg { background: var(--surface-1); border-radius: 26px; padding: 20px 22px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; }
+  .msg-edit { display: block; width: 100%; border: 1.5px solid var(--line); font: inherit; color: var(--text); resize: vertical; field-sizing: content; }
+  .msg-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; max-width: 68ch; }
   .msg b { font-weight: 800; } .msg em { color: var(--text-3); }
   .lado { display: grid; gap: 12px; }
   .lado .estado { line-height: 1.5; }

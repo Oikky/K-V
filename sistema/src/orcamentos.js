@@ -82,7 +82,7 @@ export async function abrirOrcamento(env, usuario, id) {
   return {
     ...base,
     clienteId: o.cliente_id, cliente,
-    enviadaEm: o.enviada_em, aceita: o.combo_aceita,
+    enviadaEm: o.enviada_em, aceita: o.combo_aceita, mensagem: o.mensagem || null,
     receb: { forma: o.receb_forma, parcelas: o.receb_parcelas, recebido: o.receb_recebido, previsto: o.receb_previsto },
     combos: combos.map((c) => ({ ...c, escolha: JSON.parse(c.escolha), milha: JSON.parse(c.milha || '{}') })),
     passageirosLista: pax,

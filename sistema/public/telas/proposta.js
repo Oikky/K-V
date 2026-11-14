@@ -7,7 +7,7 @@ KVTelas['proposta'] = function () {
   const O = KVOrc, P = KVProp, { esc, fmt } = KVOrc;
   const id = Number(KVShell.param('id'));
   let o = null, app = null;
-  let livreAberto = null, menuAberto = null, confirmarApagar = null, renomeando = null, copiado = false, filtroTroca = 'todas';
+  let livreAberto = null, editandoMsg = false, menuAberto = null, confirmarApagar = null, renomeando = null, copiado = false, filtroTroca = 'todas';
   const editavel = () => ['pesquisado', 'enviado'].includes(o.etapa);
   const lerNum = (t) => { const n = +String(t || '').replace(/[^\d,]/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? n : null; };
   const numCampo = (c) => c == null ? '' : (c / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
@@ -138,7 +138,7 @@ KVTelas['proposta'] = function () {
   const formatar = (txt) => esc(txt).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/_([^_\n]+)_/g, '<em>$1</em>');
   function lado() {
     const copiar = `<button class="btn" data-copiar><i data-lucide="${copiado ? 'check' : 'copy'}"></i>${copiado ? 'Copiada' : 'Copiar mensagem'}</button>`;
-    const zap = o.contato.whatsapp ? `<a class="btn" href="https://wa.me/${o.contato.whatsapp.length <= 11 ? '55' : ''}${o.contato.whatsapp}?text=${encodeURIComponent(P.mensagem(o))}" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>Abrir no WhatsApp</a>` : '';
+    const zap = o.contato.whatsapp ? `<a class="btn" href="https://wa.me/${o.contato.whatsapp.length <= 11 ? '55' : ''}${o.contato.whatsapp}?text=${encodeURIComponent(P.texto(o))}" target="_blank" rel="noopener"><i data-lucide="message-circle"></i>Abrir no WhatsApp</a>` : '';
     if (o.etapa === 'pesquisado') return `${copiar}${zap}
       <button class="btn primario" data-enviar ${o.combos.length ? '' : 'disabled'}><i data-lucide="send"></i>Marcar como enviada</button>`;
     if (o.etapa === 'enviado') return `<div class="estado">Enviada ${O.idade(o.enviadaEm)}. Esperando a resposta de ${esc(o.contato.nome.split(' ')[0])}.<br><span class="faint">Se ela pedir outra coisa, dá pra mudar aqui e copiar de novo.</span></div>${copiar}
@@ -148,8 +148,18 @@ KVTelas['proposta'] = function () {
     const a = P.aceita(o);
     return `<div class="estado">${a ? `Fechado com a opção "${esc(a.nome)}".` : O.etapa(o.etapa).nome}</div><a class="btn primario" href="emissao.html?id=${o.id}"><i data-lucide="ticket"></i>${o.etapa === 'fechado' ? 'Emitir' : 'Ver emissão'}</a>`;
   }
+  // o dono pode mudar o texto à mão; depois disso as combinações não mexem mais nele, até voltar pro automático
+  const msgCaixa = () => editandoMsg
+    ? `<textarea class="msg msg-edit" data-msg-edit aria-label="Texto da mensagem" rows="${P.texto(o).split('\n').length + 2}">${esc(P.texto(o))}</textarea>`
+    : `<div class="msg" data-msg>${formatar(P.texto(o))}</div>`;
+  const msgBotoes = () => `<div class="msg-acoes">${editandoMsg ? '<button class="btn" data-msg-pronto><i data-lucide="check"></i>Pronto</button>' : '<button class="btn fantasma" data-msg-editar><i data-lucide="pencil"></i>Editar o texto</button>'}
+    ${o.mensagem ? '<span class="faint">Editada à mão: mudar as combinações não muda o texto.</span><button class="btn fantasma" data-msg-auto><i data-lucide="rotate-ccw"></i>Voltar pro texto automático</button>' : ''}</div>`;
   const mensagemHtml = () => `<div class="secao"><h2>Mensagem</h2><span class="n">vai só o preço, sem milhas</span></div>
-    <div class="msg-wrap"><div class="msg" data-msg>${formatar(P.mensagem(o))}</div><div class="lado" data-lado>${lado()}</div></div>`;
+    <div class="msg-wrap"><div><div data-msg-caixa>${msgCaixa()}</div><div data-msg-botoes>${msgBotoes()}</div></div><div class="lado" data-lado>${lado()}</div></div>`;
+  const redesenharMsg = () => { app.querySelector('[data-msg-caixa]').innerHTML = msgCaixa(); app.querySelector('[data-msg-botoes]').innerHTML = msgBotoes(); copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); };
+  // grava o texto um instante depois de parar de digitar
+  let timerMsg = null;
+  const salvarMsg = () => { clearTimeout(timerMsg); timerMsg = null; return KVApi.acao('prop.mensagem', { id: o.id, texto: o.mensagem || null }).catch((e) => KVShell.aviso(e.message, { erro: true })); };
 
   function render() {
     if (['novo', 'pesquisa'].includes(o.etapa)) {
@@ -169,7 +179,7 @@ KVTelas['proposta'] = function () {
     const cv = app.querySelector(`[data-calcv="${c._k}"]`); if (cv) cv.textContent = fmt.brl(P.precoCalc(o, c));
     app.querySelector(`[data-res="${c._k}"]`).innerHTML = resultado(c);
     const pi = app.querySelector(`[data-pinfo="${c._k}"]`); if (pi) pi.textContent = parcInfo(c);
-    app.querySelector('[data-msg]').innerHTML = formatar(P.mensagem(o));
+    const m = app.querySelector('[data-msg]'); if (m) m.innerHTML = formatar(P.texto(o));
     copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones();
     marcarSujo();
   }
@@ -258,7 +268,10 @@ KVTelas['proposta'] = function () {
       else if (b.dataset.del) { o.combos = o.combos.filter((c) => c._k !== b.dataset.del); menuAberto = confirmarApagar = null; marcarSujo(); render(); }
       else if (b.hasAttribute('data-nova')) { const c = chavear(P.novaCombo({ nome: `Opção ${o.combos.length + 1}`, escolha: [...(P.sugerir(o, 1)[0] || o.combos[0]).escolha] })); o.combos.push(c); renomeando = c._k; marcarSujo(); render(); }
       else if (b.dataset.trocar) { filtroTroca = 'todas'; KVShell.irPara({ janela: 'trocar', c: b.dataset.trocar, t: b.dataset.t }); sinc(); }
-      else if (b.hasAttribute('data-copiar')) { const txt = P.mensagem(o); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}); copiado = true; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); }
+      else if (b.hasAttribute('data-copiar')) { const txt = P.texto(o); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}); copiado = true; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); }
+      else if (b.hasAttribute('data-msg-editar')) { editandoMsg = true; redesenharMsg(); const t = app.querySelector('[data-msg-edit]'); t.focus(); t.setSelectionRange(0, 0); }
+      else if (b.hasAttribute('data-msg-pronto')) { editandoMsg = false; if (timerMsg) await salvarMsg(); redesenharMsg(); }
+      else if (b.hasAttribute('data-msg-auto')) { o.mensagem = null; editandoMsg = false; redesenharMsg(); await salvarMsg(); }
       else if (b.hasAttribute('data-enviar')) { b.disabled = true; if (await fazer('prop.enviar', { id: o.id })) KVShell.aviso('Marcada como enviada'); render(); }
       else if (b.hasAttribute('data-perdeu')) { KVShell.irPara({ janela: 'perdeu' }); sinc(); }
       else if (b.hasAttribute('data-reabrir')) { b.disabled = true; await fazer('orc.reabrir', { id: o.id }); render(); }
@@ -267,6 +280,12 @@ KVTelas['proposta'] = function () {
       if (e.target.dataset.vezes) { const c = comboK(e.target.dataset.vezes); c.vezes = +e.target.value; atualizarPreco(c); }
     });
     app.addEventListener('input', (e) => {
+      if (e.target.hasAttribute('data-msg-edit')) {
+        // igual ao automático = não está editada
+        o.mensagem = e.target.value === P.mensagem(o) ? null : e.target.value;
+        clearTimeout(timerMsg); timerMsg = setTimeout(salvarMsg, 800);
+        copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); return;
+      }
       if (e.target.dataset.parc) { const c = comboK(e.target.dataset.parc); c.parcelado = O.lerReais(e.target.value); atualizarPreco(c); return; }
       const k = e.target.dataset.venda; if (!k) return;
       const c = comboK(k); c.livre = O.lerReais(e.target.value); atualizarPreco(c);
