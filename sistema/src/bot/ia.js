@@ -26,6 +26,7 @@ const Pedido = z.object({
     para: z.string().describe('Código IATA do aeroporto de chegada, 3 letras maiúsculas'),
     data: z.string().describe('Data pedida, AAAA-MM-DD'),
     data_flexivel: z.boolean().describe('false só se a pessoa disse que a data é fixa'),
+    outras_datas: z.array(z.string()).describe('Outros dias (AAAA-MM-DD) que a pessoa pediu pra olhar neste MESMO trecho; vazio se nenhum'),
   })),
   adultos: z.number().int(),
   criancas: z.number().int(),
@@ -33,6 +34,7 @@ const Pedido = z.object({
   pedidos_especiais: z.array(z.string()),
   observacao: z.string(),
   faltando: z.array(z.string()),
+  como_entendi: z.string().describe('Frase curta pro dono conferir a leitura: só ida, ida e volta ou vários trechos, e quais dias olhar. Ex.: "Só ida GRU → MOC, olhando 30 e 31/12."'),
 });
 
 const INSTRUCOES = `Você anota pedidos de passagem aérea pra K&V, uma agência que emite passagens em milhas ou em dinheiro.
@@ -44,7 +46,16 @@ Em editar: numero_orcamento é o número do orçamento que muda (pelo número ci
 e TODOS os campos vêm com o orçamento já mudado: copie do orçamento atual o que não mudou. Se não der pra saber qual orçamento, numero_orcamento = null.
 
 Regras:
-- Trechos: cada deslocamento vira um trecho. Ida e volta são 2 trechos (o segundo invertido). Roteiro com várias cidades vira vários trechos, na ordem.
+- Trechos: cada deslocamento vira um trecho. Roteiro com várias cidades vira vários trechos, na ordem.
+- Ida e volta (2 trechos, o segundo invertido) SÓ quando a pessoa falar em volta: "volta", "retorno", "ida e volta", "voltando dia...", "de lá pra cá".
+  Sem isso, é só ida (1 trecho), mesmo com duas datas.
+- Várias datas pra mesma rota sem falar em volta ("dia 30 e 31", "dia 30 ou 31", "entre 10 e 15") são dias pra olhar o MESMO trecho:
+  um trecho só, data = o primeiro dia, outras_datas = os outros (num intervalo, todos os dias dele).
+  Ex.: "São Paulo a Montes Claros, dia 30 e 31 de dezembro" = 1 trecho GRU → MOC, data 30/12, outras_datas [31/12]. NÃO é ida e volta.
+- "da Fulana", "pra Fulana", "é a Fulana" no pedido indica o nome do cliente (nome_contato).
+- Um nome solto no começo da mensagem ("Pedro, BH pra Recife...") também é o nome do cliente.
+- Data nunca fica no passado: dia/mês que já passou este ano é do ano que vem.
+- "uma mala despachada", "com mala" = pedido especial "Com bagagem despachada".
 - Aeroportos em código IATA. Cidade com mais de um aeroporto: São Paulo = GRU, Rio de Janeiro = GIG, Belo Horizonte = CNF, a menos que a pessoa diga outro.
 - Se não disser de onde sai, use GRU e ponha "cidade de saída" em faltando.
 - Datas em AAAA-MM-DD. Resolva datas relativas a partir de hoje; data sem ano é a próxima ocorrência. data_flexivel é true, a não ser que a pessoa diga que a data é fixa.

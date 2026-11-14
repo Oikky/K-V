@@ -120,7 +120,10 @@ const pedidoDa = (p) => ({
   contato: { nome: String(p.nome_contato || '').trim(), whatsapp: p.whatsapp || '' },
   trechos: p.trechos.map((t) => ({ de: t.de.toUpperCase(), para: t.para.toUpperCase(), data: t.data, janela: t.data_flexivel })),
   passageiros: { adultos: Math.max(p.adultos, 0), criancas: Math.max(p.criancas, 0), bebes: Math.max(p.bebes, 0) },
-  especiais: p.pedidos_especiais, observacao: p.observacao, faltando: p.faltando,
+  especiais: p.pedidos_especiais, faltando: p.faltando, comoEntendi: p.como_entendi,
+  // o trecho guarda um dia só: os outros dias pedidos vão pra observação, pro pesquisador ver
+  observacao: [p.observacao, ...p.trechos.filter((t) => t.outras_datas?.length)
+    .map((t) => `Olhar também ${t.outras_datas.map(dataBr).join(', ')} (${t.de.toUpperCase()} → ${t.para.toUpperCase()})`)].filter(Boolean).join('. '),
 });
 
 async function pedirConfirmacao(env, chat, dados) {
@@ -220,10 +223,14 @@ function resumo(o) {
     bebes && `${bebes} bebê${bebes > 1 ? 's' : ''}`].filter(Boolean).join(', ');
   const zap = String(o.contato.whatsapp || '').replace(/\D/g, '');
   const linhas = [`${o.id ? `<b>Mudar o orçamento nº ${o.id} pra ficar assim:</b>\n` : ''}<b>${h(o.contato.nome)}</b>${zap ? ` · ${h(o.contato.whatsapp)}` : ''}`];
+  const t0 = o.trechos[0], t1 = o.trechos[1];
+  const tipo = o.trechos.length === 1 ? 'Só ida' : o.trechos.length === 2 && t1.de === t0.para && t1.para === t0.de ? 'Ida e volta' : `${o.trechos.length} trechos`;
+  linhas.push(`<b>${tipo}</b>`);
   o.trechos.forEach((t) => linhas.push(h(`${t.de} → ${t.para}  ${dataBr(t.data)}${t.janela ? '' : ' (data fixa)'}`)));
   linhas.push(pessoas || 'passageiros a confirmar');
   if (o.especiais?.length) linhas.push(h(`Pedido: ${o.especiais.join(' · ')}`));
   if (o.observacao) linhas.push(h(`Obs.: ${o.observacao}`));
   if (o.faltando?.length) linhas.push('', h(`Falta perguntar: ${o.faltando.join('; ')}`));
+  if (o.comoEntendi) linhas.push('', `<i>Entendi assim: ${h(o.comoEntendi)}</i>`);
   return linhas.join('\n');
 }
