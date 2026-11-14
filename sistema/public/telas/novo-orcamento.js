@@ -1,20 +1,30 @@
-/* Tela: Novo orçamento. Endereço: /novo-orcamento.html
+/* Tela: Novo orçamento. Endereço: /novo-orcamento.html (e /novo-orcamento.html?editar=12 pra mudar o pedido de um orçamento)
    Novo orçamento (rodada 8 dos rascunhos), gravando no banco: o dono anota o pedido que chegou pelo WhatsApp.
      Quem pediu (acha o cadastro e pedidos antigos pelo WhatsApp), trechos com janela de 14 dias, passageiros,
-     pedido especial (vira item da lista de conferência) e quem pesquisa. Só o dono.
+     pedido especial (vira item da lista de conferência) e quem pesquisa. Criar: só o dono. Editar: todos
+     (o mesmo formulário, sem conferência e quem pesquisa, com o "falta perguntar").
    O estilo desta tela está em telas/novo-orcamento.css. */
 KVTelas['novo-orcamento'] = function () {
   const O = KVOrc, { esc, fmt } = KVOrc;
   const ESPECIAIS = ['Só voo direto', 'Até 1 escala', 'Com bagagem despachada', 'Só pontos', 'Saída de manhã'];
   const CONFERENCIA_PADRAO = ['Janela de 14 dias pesquisada', 'Bagagem conferida', 'Link de cada preço', 'Pontos e dinheiro pesquisados'];
   const hoje = O.isoDia(new Date());
+  const editar = Number(KVShell.param('editar')) || null;
   let app = null, est = null, pessoas = [], orcs = [], enviando = false;
   const st = {
     nome: '', whatsapp: '', pessoaId: null, tipo: 'ida-volta',
     trechos: [{ de: 'GRU', para: '', data: '', janela: true }, { de: '', para: 'GRU', data: '', janela: true, espelho: true }],
     pax: { adultos: 1, criancas: 0, bebes: 0 }, especiais: [], obs: '',
-    padrao: CONFERENCIA_PADRAO.map((t) => ({ texto: t, on: true })), extras: [], responsavel: '',
+    padrao: CONFERENCIA_PADRAO.map((t) => ({ texto: t, on: true })), extras: [], responsavel: '', faltando: '',
   };
+  // edição: o formulário começa com o que está gravado
+  function carregar(o) {
+    const [t0, t1] = o.trechos;
+    const tipo = o.trechos.length === 1 ? 'ida' : o.trechos.length === 2 && t1.de === t0.para && t1.para === t0.de ? 'ida-volta' : 'varios';
+    Object.assign(st, { nome: o.contato.nome, whatsapp: (o.contato.whatsapp || '').length > 11 ? o.contato.whatsapp : mascaraFone(o.contato.whatsapp || ''), pessoaId: o.pessoaId || null, tipo,
+      trechos: o.trechos.map(({ de, para, data, janela }) => ({ de, para, data, janela })), pax: { ...o.passageiros },
+      especiais: o.pedido ? o.pedido.split(' · ') : [], obs: o.observacao || '', faltando: (o.faltando || []).join('\n') });
+  }
   let criado = null, erros = [];
   const mascaraFone = (v) => { const d = v.replace(/\D/g, '').slice(0, 11); if (d.length <= 2) return d.length ? `(${d}` : ''; if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`; return `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}`; };
   const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -45,7 +55,7 @@ KVTelas['novo-orcamento'] = function () {
     const conf = [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras];
     const pq = pesquisadores();
     app.innerHTML = `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>
-      <div class="topo"><div><h1 style="font-size:34px;font-weight:600;letter-spacing:-0.02em">Novo orçamento</h1><div class="muted">O pedido que chegou no WhatsApp</div></div></div>
+      <div class="topo"><div><h1 style="font-size:34px;font-weight:600;letter-spacing:-0.02em">${editar ? `Editar o pedido #${editar}` : 'Novo orçamento'}</h1><div class="muted">${editar ? 'Quem pediu, trechos, passageiros e o pedido' : 'O pedido que chegou no WhatsApp'}</div></div></div>
       <div class="form">
         <section class="card"><h2><span class="n">1</span>Quem pediu</h2>
           <div class="duas"><div class="campo ${erros.includes('nome') ? 'erro-campo' : ''}"><label for="nome">Nome</label><input id="nome" autocomplete="off" value="${esc(st.nome)}" placeholder="Como aparece no WhatsApp"></div>
@@ -57,7 +67,7 @@ KVTelas['novo-orcamento'] = function () {
           <div>${st.trechos.map((t, i) => `<div class="trecho"><span class="n">${i + 1}</span>
             <div class="campo de ${erros.includes('de' + i) ? 'erro-campo' : ''}"><label for="de${i}">De</label><select id="de${i}" data-tr="${i}" data-k="de">${opAero(t.de)}</select></div>
             <div class="campo para ${erros.includes('para' + i) ? 'erro-campo' : ''}"><label for="para${i}">Para</label><select id="para${i}" data-tr="${i}" data-k="para">${opAero(t.para)}</select></div>
-            <div class="campo data ${erros.includes('data' + i) ? 'erro-campo' : ''}"><label for="dt${i}">${i === 0 ? 'Dia' : st.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="dt${i}" type="date" data-tr="${i}" data-k="data" value="${t.data}" min="${hoje}"></div>
+            <div class="campo data ${erros.includes('data' + i) ? 'erro-campo' : ''}"><label for="dt${i}">${i === 0 ? 'Dia' : st.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="dt${i}" type="date" data-tr="${i}" data-k="data" value="${t.data}" ${editar ? '' : `min="${hoje}"`}></div>
             ${st.tipo === 'varios' && st.trechos.length > 2 ? `<button class="btn icone fantasma rem" data-rem="${i}" aria-label="Tirar trecho ${i + 1}"><i data-lucide="x"></i></button>` : '<span></span>'}
             <label class="jan"><input type="checkbox" data-tr="${i}" data-k="janela" ${t.janela ? 'checked' : ''}>Pesquisar a janela de 14 dias (semana do dia + a seguinte)</label></div>`).join('')}</div>
           ${st.tipo === 'varios' ? '<button class="btn" data-add-trecho style="justify-self:start"><i data-lucide="plus"></i>Outro trecho</button>' : ''}</section>
@@ -67,10 +77,11 @@ KVTelas['novo-orcamento'] = function () {
             <span class="ctl"><button class="btn icone" data-pax="${k}" data-d="-1" ${st.pax[k] <= min ? 'disabled style="opacity:.4"' : ''} aria-label="Menos ${t.toLowerCase()}"><i data-lucide="minus"></i></button><b>${st.pax[k]}</b><button class="btn icone" data-pax="${k}" data-d="1" ${st.pax[k] >= 30 ? 'disabled' : ''} aria-label="Mais ${t.toLowerCase()}"><i data-lucide="plus"></i></button></span></div>`).join('')}</div></section>
 
         <section class="card"><h2><span class="n">4</span>Pedido especial</h2>
-          <div class="chips-ped">${ESPECIAIS.map((e) => `<button class="pilula" data-esp="${e}" aria-pressed="${st.especiais.includes(e)}">${e}</button>`).join('')}</div>
+          <div class="chips-ped">${[...new Set([...ESPECIAIS, ...st.especiais])].map((e) => `<button class="pilula" data-esp="${e}" aria-pressed="${st.especiais.includes(e)}">${e}</button>`).join('')}</div>
           <div class="campo"><label for="obs">Outro detalhe do pedido <span class="opc">opcional</span></label><textarea id="obs" rows="2" placeholder="Ex.: volta pode ser por Porto; vai com cadeira de rodas">${esc(st.obs)}</textarea></div>
+          ${editar ? `<div class="campo"><label for="faltando">Falta perguntar ao cliente <span class="opc">um por linha</span></label><textarea id="faltando" rows="2" placeholder="Ex.: data da volta">${esc(st.faltando)}</textarea></div>` : ''}
           <span class="faint" style="font-size:13px">O que você marcar aqui entra na lista de conferência do pesquisador e aparece como aviso nas opções que não batem.</span></section>
-
+${editar ? '' : `
         <details class="card conf-det" ${st.confAberta ? 'open' : ''}><summary><h2 style="display:inline-flex"><span class="n">5</span>Lista de conferência</h2> <span class="muted" style="font-size:14px">${conf.length} itens · ajustar</span></summary>
           <div class="conf">${st.padrao.map((c, i) => `<label><input type="checkbox" data-padrao="${i}" ${c.on ? 'checked' : ''}><span>${c.texto}</span><span class="tag">padrão</span></label>`).join('')}
             ${st.especiais.map((e) => `<label><input type="checkbox" checked disabled><span>${e}</span><span class="tag">do pedido</span></label>`).join('')}
@@ -79,9 +90,9 @@ KVTelas['novo-orcamento'] = function () {
 
         <section class="card"><h2><span class="n">6</span>Quem pesquisa</h2>
           <div class="seg" role="group" aria-label="Quem pesquisa">${[['', 'Deixar na fila'], ...pq.map((u) => [u.email, u.nome.split(' ')[0]])].map(([v, t]) => `<button data-resp="${esc(v)}" aria-pressed="${st.responsavel === v}">${esc(t)}</button>`).join('')}</div>
-          <span class="faint" style="font-size:13px">${st.responsavel ? `Vai direto pra ${esc((pq.find((u) => u.email === st.responsavel) || {}).nome || '').split(' ')[0]}; o resto da equipe vê que já tem responsável.` : 'Fica na fila de novos; quem pegar primeiro pesquisa.'}</span></section>
+          <span class="faint" style="font-size:13px">${st.responsavel ? `Vai direto pra ${esc((pq.find((u) => u.email === st.responsavel) || {}).nome || '').split(' ')[0]}; o resto da equipe vê que já tem responsável.` : 'Fica na fila de novos; quem pegar primeiro pesquisa.'}</span></section>`}
       </div>
-      <div class="barra-criar"><span class="res" data-res>${resumo()}</span><button class="btn primario" data-criar><i data-lucide="plus"></i>Criar orçamento</button></div>`;
+      <div class="barra-criar"><span class="res" data-res>${resumo()}</span><button class="btn primario" data-criar>${editar ? '<i data-lucide="check"></i>Salvar mudanças' : '<i data-lucide="plus"></i>Criar orçamento'}</button></div>`;
     KVShell.icones();
   }
   function resumo() {
@@ -113,6 +124,7 @@ KVTelas['novo-orcamento'] = function () {
       if (t.id === 'nome') { st.nome = t.value; st.pessoaId = null; app.querySelector('[data-achados]').innerHTML = achados(); KVShell.icones(); }
       if (t.id === 'zap') { t.value = mascaraFone(t.value); st.whatsapp = t.value; st.pessoaId = null; app.querySelector('[data-achados]').innerHTML = achados(); KVShell.icones(); }
       if (t.id === 'obs') st.obs = t.value;
+      if (t.id === 'faltando') st.faltando = t.value;
       if (t.dataset.tr != null && t.dataset.k === 'data') { st.trechos[+t.dataset.tr].data = t.value; if (erros.length) validar(); app.querySelector('[data-res]').innerHTML = resumo(); }
     });
     app.addEventListener('change', (e) => {
@@ -153,7 +165,11 @@ KVTelas['novo-orcamento'] = function () {
           especiais: st.especiais, observacao: st.obs.trim(),
           conferencia: [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras],
         };
-        try { const r = await KVApi.acao('orc.criar', dados); criado = { ...dados, id: r.id }; scrollTo(0, 0); render(); }
+        if (editar) dados.faltando = st.faltando.split('\n').map((x) => x.trim()).filter(Boolean);
+        try {
+          if (editar) { await KVApi.acao('orc.editar', { ...dados, id: editar }); KVShell.aviso('Pedido salvo'); KVRota.trocar(`orcamento.html?id=${editar}`); return; }
+          const r = await KVApi.acao('orc.criar', dados); criado = { ...dados, id: r.id }; scrollTo(0, 0); render();
+        }
         catch (err) { KVShell.aviso(err.message, { erro: true }); b.disabled = false; }
         finally { enviando = false; }
       }
@@ -166,10 +182,12 @@ KVTelas['novo-orcamento'] = function () {
     document.body.insertAdjacentHTML('afterbegin', '<p class="carregando area">Carregando…</p>');
     try {
       est = await KVApi.estado();
-      if (!(est.eu.papel === 'dono' || est.eu.papel === 'admin')) { KVRota.trocar('orcamentos.html'); return; }
-      [pessoas, orcs] = await Promise.all([KVApi.pessoas().catch(() => []), KVApi.orcamentos().catch(() => [])]);
+      const dono = est.eu.papel === 'dono' || est.eu.papel === 'admin';
+      if (!dono && !editar) { KVRota.trocar('orcamentos.html'); return; }
+      [pessoas, orcs] = await Promise.all([dono ? KVApi.pessoas().catch(() => []) : [], KVApi.orcamentos().catch(() => [])]);
+      if (editar) { const o = await KVApi.orcamento(editar); if (!o) throw new Error('Orçamento não encontrado'); carregar(o); }
       document.querySelector('.carregando').remove();
-      app = KVShell.montar('orcamentos', { dono: true });
+      app = KVShell.montar('orcamentos', { dono });
       ligarEventos();
       render();
     } catch (e) {

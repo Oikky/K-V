@@ -1,5 +1,5 @@
-// Lista da fila de orçamentos. O dono vê todos; quem pesquisa vê só o que está na fila ou em pesquisa,
-// sem o WhatsApp do contato (o corte é feito aqui, antes de sair do servidor).
+// Lista da fila de orçamentos. O dono vê todos; quem pesquisa vê só o que está na fila ou em pesquisa
+// (o corte é feito aqui, antes de sair do servidor). O WhatsApp todos veem (2026-11-14: todos editam o pedido).
 import { ehDono } from './acoes.js';
 
 const todos = async (db, sql, ...args) => (await db.prepare(sql).bind(...args).all()).results;
@@ -24,7 +24,7 @@ export async function listarOrcamentos(env, usuario) {
 
   return linhas.map((o) => ({
     id: o.id,
-    contato: { nome: o.contato_nome, ...(dono ? { whatsapp: o.contato_whatsapp } : {}) },
+    contato: { nome: o.contato_nome, whatsapp: o.contato_whatsapp },
     etapa: o.etapa,
     responsavel: o.responsavel,
     passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
@@ -42,7 +42,7 @@ export async function listarOrcamentos(env, usuario) {
 }
 
 // Um orçamento inteiro (tela de pesquisa, proposta, fechamento e emissão).
-// Quem pesquisa só abre o que está na fila ou com ele, e nunca recebe WhatsApp, combinações nem recebimento.
+// Quem pesquisa só abre o que está na fila ou com ele, e nunca recebe combinações nem recebimento.
 export async function abrirOrcamento(env, usuario, id) {
   const db = env.DB, dono = ehDono(usuario);
   const o = Number.isInteger(id) ? await db.prepare('SELECT * FROM orcamentos WHERE id = ?').bind(id).first() : null;
@@ -57,7 +57,7 @@ export async function abrirOrcamento(env, usuario, id) {
   ]);
   const base = {
     id: o.id, etapa: o.etapa, responsavel: o.responsavel, antesDePerder: o.antes_de_perder, motivo: o.motivo,
-    contato: { nome: o.contato_nome, ...(dono ? { whatsapp: o.contato_whatsapp } : {}) },
+    contato: { nome: o.contato_nome, whatsapp: o.contato_whatsapp },
     pessoaId: dono ? o.pessoa_id : null,
     passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
     pedido: o.pedido, observacao: o.observacao, skyscanner: o.skyscanner || '', faltando: JSON.parse(o.faltando || '[]'),

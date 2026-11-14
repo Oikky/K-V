@@ -2,6 +2,7 @@
 // em troca, toda chamada precisa trazer a senha secreta (TELEGRAM_SECRET) que o Telegram manda no cabeçalho.
 // Fluxo: o dono manda o pedido em texto ou áudio → o áudio vira texto (Whisper) → a Claude monta o orçamento →
 // o bot mostra o resumo com Confirmar/Cancelar → só no Confirmar o orçamento entra na fila como Novo.
+// Mudança num orçamento já anotado ("muda a data da Maria pra dia 15") segue o mesmo caminho e vira orc.editar.
 import { executar, Recusa, agora } from '../acoes.js';
 import '../acoes/orcamentos.js';
 import { transcrever, interpretar } from './ia.js';
@@ -45,7 +46,8 @@ const chatsLiberados = (env) => new Set(String(env.KV_CHATS || '').split(',').ma
 const AJUDA = 'Oi! Sou o bot da K&amp;V. Me mande o pedido do cliente, escrito ou em áudio, do jeito que você falaria. '
   + 'Ex.: "A Maria Souza, (11) 91234-5678, quer ir pra Lisboa dia 12/11 com o marido, volta dia 26, só voo direto."\n\n'
   + 'O nome do cliente é obrigatório: sem ele eu pergunto antes. O WhatsApp é opcional.\n\n'
-  + 'Eu mostro o resumo e o pedido só entra na fila quando você tocar em <b>Confirmar</b>.\n/desfazer apaga o último que entrou.';
+  + 'Eu mostro o resumo e o pedido só entra na fila quando você tocar em <b>Confirmar</b>.\n'
+  + 'Pra mudar um pedido, é só falar: "no 12 são 3 adultos", "muda a volta da Maria pra dia 20".\n/desfazer apaga o último que entrou.';
 
 async function tratar(env, upd) {
   if (upd.callback_query) return botao(env, upd.callback_query);
@@ -92,10 +94,13 @@ async function tratar(env, upd) {
   }
 
   await tg(env, 'sendChatAction', { chat_id: chat, action: 'typing' });
-  const p = await interpretar(env, texto);
+  // respondendo a uma mensagem (ex.: o "Anotado: orçamento nº 12"): ela ajuda a saber de qual orçamento se fala
+  const citada = String(msg.reply_to_message?.text || '').trim();
+  const p = await interpretar(env, citada ? `(respondendo a: "${citada}")\n${texto}` : texto, await abertos(env));
   if (p.erro) return responder(env, chat, p.erro);
-  if (!p.e_pedido_de_viagem || !p.trechos.length) {
-    return responder(env, chat, 'Não entendi isso como um pedido de viagem. Me diga pra onde, quando e quantas pessoas.');
+  if (p.acao === 'editar') return pedirEdicao(env, chat, p, texto);
+  if (p.acao !== 'criar' || !p.trechos.length) {
+    return responder(env, chat, 'Não entendi isso como um pedido de viagem nem como uma mudança. Me diga pra onde, quando e quantas pessoas, ou o que muda em qual orçamento.');
   }
 
   // o nome é obrigatório (o WhatsApp não, decidido em 2026-10-17): sem ele o pedido espera o complemento
@@ -107,19 +112,48 @@ async function tratar(env, upd) {
   }
 
   // tudo certo: mostra o resumo e espera o Confirmar
-  const dados = {
-    contato: { nome: p.nome_contato.trim(), whatsapp: p.whatsapp || '' },
-    trechos: p.trechos.map((t) => ({ de: t.de.toUpperCase(), para: t.para.toUpperCase(), data: t.data, janela: t.data_flexivel })),
-    passageiros: { adultos: Math.max(p.adultos, 0), criancas: Math.max(p.criancas, 0), bebes: Math.max(p.bebes, 0) },
-    especiais: p.pedidos_especiais, observacao: p.observacao, faltando: p.faltando,
-    origem: 'telegram', textoOriginal: texto, audio: veioDeAudio, chat: String(chat),
-  };
+  return pedirConfirmacao(env, chat, { ...pedidoDa(p), origem: 'telegram', textoOriginal: texto, audio: veioDeAudio, chat: String(chat) });
+}
+
+// o que a IA devolveu → o formato das ações orc.criar e orc.editar
+const pedidoDa = (p) => ({
+  contato: { nome: String(p.nome_contato || '').trim(), whatsapp: p.whatsapp || '' },
+  trechos: p.trechos.map((t) => ({ de: t.de.toUpperCase(), para: t.para.toUpperCase(), data: t.data, janela: t.data_flexivel })),
+  passageiros: { adultos: Math.max(p.adultos, 0), criancas: Math.max(p.criancas, 0), bebes: Math.max(p.bebes, 0) },
+  especiais: p.pedidos_especiais, observacao: p.observacao, faltando: p.faltando,
+});
+
+async function pedirConfirmacao(env, chat, dados) {
   const chave = `c:${crypto.randomUUID().slice(0, 12)}`;
   await env.DB.prepare("INSERT INTO bot_pendentes (chat_id, dados, situacao, expira) VALUES (?, ?, 'confirmar', ?)")
     .bind(chave, JSON.stringify(dados), new Date(Date.now() + 7 * 864e5).toISOString()).run();
   await responder(env, chat, resumo(dados), {
     reply_markup: { inline_keyboard: [[{ text: 'Confirmar', callback_data: `ok|${chave}` }, { text: 'Cancelar', callback_data: `nao|${chave}` }]] },
   });
+}
+
+// mudança num orçamento já anotado: mostra como ele vai ficar e espera o Confirmar
+async function pedirEdicao(env, chat, p, texto) {
+  const o = Number.isInteger(p.numero_orcamento)
+    ? await env.DB.prepare("SELECT id FROM orcamentos WHERE id = ? AND etapa NOT IN ('emitido', 'perdido', 'cancelado')").bind(p.numero_orcamento).first() : null;
+  if (!o) return responder(env, chat, 'Entendi que é uma mudança, mas não sei em qual orçamento. Me diga o número (ex.: "no 12, ...") ou o nome do cliente.');
+  if (!p.trechos.length || !String(p.nome_contato || '').trim()) return responder(env, chat, 'Não entendi a mudança. Pode falar de outro jeito?');
+  return pedirConfirmacao(env, chat, { ...pedidoDa(p), id: o.id, texto: `Mudou pelo bot: "${texto.slice(0, 300)}"` });
+}
+
+// os orçamentos que ainda podem mudar (os 40 mais novos), no formato que a IA devolve
+async function abertos(env) {
+  const os = (await env.DB.prepare(`SELECT id, contato_nome, contato_whatsapp, adultos, criancas, bebes, pedido, observacao, faltando, etapa
+    FROM orcamentos WHERE etapa NOT IN ('emitido', 'perdido', 'cancelado') ORDER BY id DESC LIMIT 40`).all()).results;
+  if (!os.length) return [];
+  const ts = (await env.DB.prepare(`SELECT orcamento_id, de, para, data, janela FROM trechos WHERE orcamento_id IN (${os.map(() => '?').join(',')}) ORDER BY ordem`)
+    .bind(...os.map((o) => o.id)).all()).results;
+  return os.map((o) => ({
+    numero: o.id, etapa: o.etapa, nome_contato: o.contato_nome, whatsapp: o.contato_whatsapp || null,
+    trechos: ts.filter((t) => t.orcamento_id === o.id).map((t) => ({ de: t.de, para: t.para, data: t.data, data_flexivel: !!t.janela })),
+    adultos: o.adultos, criancas: o.criancas, bebes: o.bebes, pedidos_especiais: o.pedido ? o.pedido.split(' · ') : [],
+    observacao: o.observacao || '', faltando: JSON.parse(o.faltando || '[]'),
+  }));
 }
 
 // toque em Confirmar ou Cancelar
@@ -142,9 +176,13 @@ async function botao(env, cb) {
     return editar(`${resumo(dados)}\n\n<b>Cancelado.</b> Não entrou na fila.`);
   }
   try {
-    // a chave é a do pedido: dois toques no Confirmar criam um orçamento só
-    const { id } = await executar(env, BOT, { acao: 'orc.criar', dados, chave: `bot-${chave}` });
+    // a chave é a do pedido: dois toques no Confirmar criam (ou mudam) um orçamento só
+    const { id } = await executar(env, BOT, { acao: dados.id ? 'orc.editar' : 'orc.criar', dados, chave: `bot-${chave}` });
     await env.DB.prepare('DELETE FROM bot_pendentes WHERE chat_id = ?').bind(chave).run();
+    if (dados.id) {
+      await tg(env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Orçamento nº ${id} mudado` });
+      return editar(`${resumo(dados)}\n\n<b>Pronto: orçamento nº ${id} mudado.</b>`);
+    }
     await tg(env, 'answerCallbackQuery', { callback_query_id: cb.id, text: `Anotado: orçamento nº ${id}` });
     const link = env.SISTEMA_URL ? `\n<a href="${h(env.SISTEMA_URL)}">Abrir o sistema</a>` : '';
     return editar(`${resumo(dados)}\n\n<b>Anotado: orçamento nº ${id}</b>, na fila como Novo.${link}\nErrou? Mande /desfazer.`);
@@ -181,7 +219,7 @@ function resumo(o) {
   const pessoas = [adultos && `${adultos} adulto${adultos > 1 ? 's' : ''}`, criancas && `${criancas} criança${criancas > 1 ? 's' : ''}`,
     bebes && `${bebes} bebê${bebes > 1 ? 's' : ''}`].filter(Boolean).join(', ');
   const zap = String(o.contato.whatsapp || '').replace(/\D/g, '');
-  const linhas = [`<b>${h(o.contato.nome)}</b>${zap ? ` · ${h(o.contato.whatsapp)}` : ''}`];
+  const linhas = [`${o.id ? `<b>Mudar o orçamento nº ${o.id} pra ficar assim:</b>\n` : ''}<b>${h(o.contato.nome)}</b>${zap ? ` · ${h(o.contato.whatsapp)}` : ''}`];
   o.trechos.forEach((t) => linhas.push(h(`${t.de} → ${t.para}  ${dataBr(t.data)}${t.janela ? '' : ' (data fixa)'}`)));
   linhas.push(pessoas || 'passageiros a confirmar');
   if (o.especiais?.length) linhas.push(h(`Pedido: ${o.especiais.join(' · ')}`));

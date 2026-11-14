@@ -1,5 +1,5 @@
-// Ações dos orçamentos: criar (bot e, depois, a tela de novo orçamento), pegar, mudar a etapa, duplicar e apagar.
-import { acao, Recusa } from '../acoes.js';
+// Ações dos orçamentos: criar e editar (tela e bot), pegar, mudar a etapa, duplicar e apagar.
+import { acao, Recusa, ehDono } from '../acoes.js';
 
 export const CONFERENCIA_PADRAO = ['Janela de 14 dias pesquisada', 'Bagagem conferida', 'Link de cada preço', 'Pontos e dinheiro pesquisados'];
 
@@ -12,7 +12,8 @@ const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 //          especiais: [], observacao, faltando: [], origem, textoOriginal, audio, chat }
 acao('orc.criar', ['dono'], (ctx, d) => criar(ctx, d));
 
-async function criar({ db, usuario, quando }, d) {
+// o pedido validado (o mesmo pra criar e pra editar)
+function lerPedido(d) {
   const nome = String(d.contato?.nome || '').trim();
   const whatsapp = soDigitos(d.contato?.whatsapp);
   if (!nome) throw new Recusa('Falta o nome de quem pediu');
@@ -24,7 +25,11 @@ async function criar({ db, usuario, quando }, d) {
   if (!inteiro(adultos, 0, 30) || !inteiro(criancas, 0, 30) || !inteiro(bebes, 0, 30) || adultos + criancas + bebes === 0) throw new Recusa('Número de passageiros inválido');
   const especiais = (d.especiais || []).map((e) => String(e).trim()).filter(Boolean);
   const faltando = (d.faltando || []).map((e) => String(e).trim()).filter(Boolean);
+  return { nome, whatsapp, trechos, adultos, criancas, bebes, especiais, faltando, observacao: String(d.observacao || '').trim() };
+}
 
+async function criar({ db, usuario, quando }, d) {
+  const { nome, whatsapp, trechos, adultos, criancas, bebes, especiais, faltando } = lerPedido(d);
   // ligação com o cadastro: a pessoa escolhida na tela, ou o mesmo WhatsApp de alguém já cadastrado
   const pessoa = Number.isInteger(d.pessoaId) ? await db.prepare('SELECT id FROM pessoas WHERE id = ?').bind(d.pessoaId).first()
     : whatsapp ? await db.prepare('SELECT id FROM pessoas WHERE whatsapp = ?').bind(whatsapp).first() : null;
@@ -84,6 +89,46 @@ async function orcamento(db, id) {
   if (!o) throw new Recusa('Orçamento não encontrado', 404);
   return o;
 }
+
+// muda o pedido: quem pediu, WhatsApp, trechos, passageiros, pedido especial, observação e o que falta perguntar.
+// Todos editam (decisão de 2026-11-14); quem pesquisa, só o que ele consegue abrir (na fila ou com ele).
+acao('orc.editar', ['dono', 'pesquisa'], async ({ db, usuario }, d) => {
+  const o = await orcamento(db, d.id);
+  if (!ehDono(usuario) && o.responsavel !== usuario.email && !(o.etapa === 'novo' && !o.responsavel)) throw new Recusa('Esse orçamento não está com você', 403);
+  const n = lerPedido(d);
+  const id = o.id;
+  const antigos = (await db.prepare('SELECT de, para, data, janela FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
+  // opções, combinações e emissões apontam pro trecho pela posição: mudar a quantidade não pode deixar nada sem trecho
+  if (n.trechos.length !== antigos.length) {
+    const [combo, emi, op] = await Promise.all([
+      db.prepare('SELECT 1 FROM combos WHERE orcamento_id = ? LIMIT 1').bind(id).first(),
+      db.prepare('SELECT 1 FROM emissoes WHERE orcamento_id = ? LIMIT 1').bind(id).first(),
+      db.prepare('SELECT MAX(trecho) AS t FROM opcoes WHERE orcamento_id = ?').bind(id).first(),
+    ]);
+    if (emi) throw new Recusa('Tem voo emitido: não dá pra mudar a quantidade de trechos', 409);
+    if (combo) throw new Recusa('A proposta já tem combinações: apague elas antes de mudar a quantidade de trechos', 409);
+    if (op && op.t != null && op.t >= n.trechos.length) throw new Recusa(`O trecho ${op.t + 1} tem opções lançadas: apague elas antes de tirar o trecho`, 409);
+  }
+  // pedido especial novo entra na conferência; o que saiu do pedido sai dela, se ainda não foi feito
+  const velhos = o.pedido ? o.pedido.split(' · ') : [];
+  const entram = n.especiais.filter((e) => !velhos.includes(e)), saem = velhos.filter((e) => !n.especiais.includes(e));
+  const { m } = await db.prepare('SELECT COALESCE(MAX(ordem), -1) AS m FROM conferencia WHERE orcamento_id = ?').bind(id).first();
+  const antes = { contato: o.contato_nome, whatsapp: o.contato_whatsapp, trechos: antigos, adultos: o.adultos, criancas: o.criancas, bebes: o.bebes,
+    pedido: o.pedido, observacao: o.observacao, faltando: o.faltando };
+  return {
+    resultado: { id },
+    comandos: [
+      db.prepare('UPDATE orcamentos SET contato_nome = ?, contato_whatsapp = ?, adultos = ?, criancas = ?, bebes = ?, pedido = ?, observacao = ?, faltando = ? WHERE id = ?')
+        .bind(n.nome, n.whatsapp, n.adultos, n.criancas, n.bebes, n.especiais.join(' · '), n.observacao, JSON.stringify(n.faltando), id),
+      db.prepare('DELETE FROM trechos WHERE orcamento_id = ?').bind(id),
+      ...n.trechos.map((t, i) => db.prepare('INSERT INTO trechos (orcamento_id, ordem, de, para, data, janela) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(id, i, t.de, t.para, t.data, t.janela ? 1 : 0)),
+      ...saem.map((t) => db.prepare('DELETE FROM conferencia WHERE orcamento_id = ? AND texto = ? AND feito = 0').bind(id, t)),
+      ...entram.map((t, i) => db.prepare('INSERT INTO conferencia (orcamento_id, ordem, texto) VALUES (?, ?, ?)').bind(id, m + 1 + i, t)),
+    ],
+    eventos: [{ entidade: 'orcamento', id, texto: d.texto || 'Editou o pedido', antes, depois: n }],
+  };
+});
 
 // quem pesquisa pega um orçamento novo da fila (ou um que o dono passou pra ele)
 acao('orc.pegar', ['dono', 'pesquisa'], async ({ db, usuario }, { id }) => {

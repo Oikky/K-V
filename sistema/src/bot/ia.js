@@ -17,7 +17,8 @@ export async function transcrever(env, audio) {
 }
 
 const Pedido = z.object({
-  e_pedido_de_viagem: z.boolean(),
+  acao: z.enum(['criar', 'editar', 'outro']).describe('criar = pedido novo; editar = mudança num orçamento já anotado; outro = nenhum dos dois'),
+  numero_orcamento: z.number().int().nullable().describe('Só em editar: o número do orçamento que muda'),
   nome_contato: z.string().nullable(),
   whatsapp: z.string().nullable(),
   trechos: z.array(z.object({
@@ -37,6 +38,11 @@ const Pedido = z.object({
 const INSTRUCOES = `Você anota pedidos de passagem aérea pra K&V, uma agência que emite passagens em milhas ou em dinheiro.
 O dono da agência te manda, em português e do jeito que fala, o que um cliente pediu no WhatsApp. Transforme isso num orçamento.
 
+A mensagem pode ser um pedido novo (acao = criar) ou uma mudança num orçamento que já está anotado (acao = editar),
+ex.: "muda a data da Maria pra dia 15", "no 12 são 3 adultos", "o WhatsApp do João é ...". Os orçamentos em aberto vêm junto, com o número.
+Em editar: numero_orcamento é o número do orçamento que muda (pelo número citado, pelo nome do cliente ou pela mensagem respondida),
+e TODOS os campos vêm com o orçamento já mudado: copie do orçamento atual o que não mudou. Se não der pra saber qual orçamento, numero_orcamento = null.
+
 Regras:
 - Trechos: cada deslocamento vira um trecho. Ida e volta são 2 trechos (o segundo invertido). Roteiro com várias cidades vira vários trechos, na ordem.
 - Aeroportos em código IATA. Cidade com mais de um aeroporto: São Paulo = GRU, Rio de Janeiro = GIG, Belo Horizonte = CNF, a menos que a pessoa diga outro.
@@ -47,10 +53,11 @@ Regras:
 - observacao: o que mais for útil pro pesquisador e não couber nos campos (ex.: "aniversário de casamento", "aceita sair de Campinas"). Vazio se não houver.
 - faltando: o que precisa perguntar ao cliente antes de pesquisar (ex.: "data da volta", "quantas pessoas"). Não invente dados pra preencher lacunas.
 - nome_contato e whatsapp: só se aparecerem na mensagem.
-- e_pedido_de_viagem: false se a mensagem não for um pedido de viagem; aí os outros campos podem ficar vazios.`;
+- acao = outro se a mensagem não for pedido nem mudança; aí os outros campos podem ficar vazios.`;
 
 // devolve o pedido, ou { erro: 'texto pro dono' }
-export async function interpretar(env, texto) {
+// abertos: os orçamentos que ainda podem mudar, pro caso de a mensagem ser uma edição
+export async function interpretar(env, texto, abertos = []) {
   const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // AAAA-MM-DD
   const diaSemana = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long' });
   const cliente = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
@@ -59,7 +66,7 @@ export async function interpretar(env, texto) {
       model: MODELO,
       max_tokens: 16000,
       system: INSTRUCOES,
-      messages: [{ role: 'user', content: `Hoje é ${hoje} (${diaSemana}).\n\nPedido:\n${texto}` }],
+      messages: [{ role: 'user', content: `Hoje é ${hoje} (${diaSemana}).\n\nOrçamentos em aberto:\n${JSON.stringify(abertos)}\n\nMensagem:\n${texto}` }],
       output_config: { format: zodOutputFormat(Pedido) },
     });
     if (r.stop_reason === 'refusal') return { erro: 'A IA não quis processar essa mensagem. Pode reescrever?' };
