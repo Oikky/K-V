@@ -19,7 +19,7 @@ KVTelas['fechamento'] = function () {
 
   // ---------- salvar sozinho (igual à proposta) ----------
   let timer = null, salvando = null, sujo = false;
-  const dados = () => ({ id: o.id, aceita: o.aceita, cliente: o.clienteId, passageiros: o.passageirosIds, forma: o.receb.forma, parcelas: o.receb.forma === 'parcelado' ? o.receb.parcelas : null, recebido: o.receb.recebido || 0 });
+  const dados = () => ({ id: o.id, aceita: o.aceita, cliente: o.clienteId, passageiros: o.passageirosIds, forma: o.receb.forma, parcelas: o.receb.forma === 'parcelado' ? o.receb.parcelas : null, recebido: o.receb.recebido || 0, previsto: o.receb.previsto || null });
   function marcarSujo() { sujo = true; clearTimeout(timer); timer = setTimeout(salvar, 700); }
   async function salvar() {
     clearTimeout(timer);
@@ -41,7 +41,7 @@ KVTelas['fechamento'] = function () {
     if (o.aceita == null && o.combos.length === 1 && !fechado()) { o.aceita = o.combos[0].id; preencheu = true; }
     if (o.clienteId == null && o.pessoaId && !fechado()) { o.clienteId = o.pessoaId; preencheu = true; }
     o.passageirosIds = o.passageirosLista.map((p) => p.id);
-    o.receb = { forma: o.receb.forma || 'pix', parcelas: o.receb.parcelas || (P.aceita(o) || {}).vezes || P.vezesPadrao, recebido: o.receb.recebido || 0 };
+    o.receb = { forma: o.receb.forma || 'pix', parcelas: o.receb.parcelas || (P.aceita(o) || {}).vezes || P.vezesPadrao, recebido: o.receb.recebido || 0, previsto: o.receb.previsto || null };
   }
   async function carregarJuntos() { juntos = o.clienteId ? await KVApi.juntos(o.clienteId).catch(() => []) : []; }
 
@@ -118,7 +118,10 @@ KVTelas['fechamento'] = function () {
   const rapidos = () => { const c = P.aceita(o); return `<div class="rapidos"><button class="btn pequeno" data-rec="0">Nada ainda</button>${c ? `<button class="btn pequeno" data-rec="${Math.round(P.valorFinal(o) / 2)}">Metade</button><button class="btn pequeno" data-rec="${P.valorFinal(o)}">Tudo</button>` : ''}</div>`; };
   const seletorVersao = () => `<div class="versoes" role="group" aria-label="Versões do recebimento"><span>Comparando</span>${Object.entries(VERSOES).map(([k, n]) => `<button class="pilula" data-versao="${k}" aria-pressed="${versao() === k}"><b>${k}</b> ${n}</button>`).join('')}</div>`;
 
-  function recebimento() {
+  // quando o dinheiro entra (a K&V recebe de uma vez, mesmo no parcelado); aparece na agenda enquanto faltar receber
+  const campoPrevisto = () => `<div class="receb-prev"><label class="rot" for="prev">Dinheiro entra em</label><input type="date" id="prev" data-previsto value="${o.receb.previsto || ''}"><span class="faint">aparece na agenda enquanto faltar receber</span></div>`;
+  const recebimento = () => { const h = recebimentoVersao(); return P.aceita(o) ? h + campoPrevisto() : h; };
+  function recebimentoVersao() {
     const s = P.situacao(o), v = versao();
     const cab = cabSecao(4, 'Recebimento', !!s && s.id === 'pago', '<span class="n">dá pra emitir antes ou depois de receber</span>') + seletorVersao();
     if (!P.aceita(o)) return cab + '<div class="vazio">Escolha a combinação aceita pra ver o valor.</div>';
@@ -239,6 +242,7 @@ KVTelas['fechamento'] = function () {
       if (e.target.matches('[data-parcelas]')) { o.receb.parcelas = +e.target.value; marcarSujo(); atualizarSitu(); const t = app.querySelector('[data-parc-txt]'); if (t) t.textContent = parcelaTxt(); }
     });
     app.addEventListener('input', (e) => {
+      if (e.target.matches('[data-previsto]')) { o.receb.previsto = e.target.value || null; marcarSujo(); }
       if (e.target.matches('[data-recebido]')) { o.receb.recebido = lerNum(e.target.value); marcarSujo(); atualizarSitu(); }
     });
     app.addEventListener('focusout', (e) => { if (e.target.matches('[data-recebido]')) render(); });

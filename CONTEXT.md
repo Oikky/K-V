@@ -268,4 +268,3 @@ Uma versão só de cada tela, no jeito da rodada 8. Uma trilha no topo (Pesquisa
 - **Vaga extra de beneficiário:** quando o programa libera mais CPFs pra uma conta. Soma no limite até a data escolhida, ou até alguém tirar.
 - **Fechamento:** "Quem paga" virou **Cliente** (quem está comprando) e "Quem voa" virou **Passageiros** (os nomes que vão na passagem). O cliente entra como passageiro sozinho; "também viaja" desmarcado tira ele.
 - **Recebimento:** 3 versões no ar pra escolher (A resumo com barra, B recibo, C cartões; seletor em cima do bloco). Escolhida a versão, as outras saem.
-

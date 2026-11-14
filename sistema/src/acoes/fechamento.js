@@ -44,10 +44,12 @@ acao('fech.salvar', ['dono'], async ({ db }, d) => {
   if (parcelas != null && !inteiro(parcelas, 2, 12)) throw new Recusa('Número de parcelas inválido');
   const recebido = d.recebido ?? 0;
   if (!inteiro(recebido, 0, 1_000_000_00)) throw new Recusa('Valor recebido inválido');
+  const previsto = d.previsto || null;
+  if (previsto != null && !/^\d{4}-\d{2}-\d{2}$/.test(previsto)) throw new Recusa('Data prevista inválida');
 
   const comandos = [
-    db.prepare(`UPDATE orcamentos SET combo_aceita = ?, cliente_id = ?, pessoa_id = COALESCE(pessoa_id, ?), receb_forma = ?, receb_parcelas = ?, receb_recebido = ?
-      ${fechar ? ", etapa = 'fechado'" : ''} WHERE id = ?`).bind(aceita?.id ?? null, d.cliente ?? null, d.cliente ?? null, forma, parcelas, recebido, o.id),
+    db.prepare(`UPDATE orcamentos SET combo_aceita = ?, cliente_id = ?, pessoa_id = COALESCE(pessoa_id, ?), receb_forma = ?, receb_parcelas = ?, receb_recebido = ?, receb_previsto = ?
+      ${fechar ? ", etapa = 'fechado'" : ''} WHERE id = ?`).bind(aceita?.id ?? null, d.cliente ?? null, d.cliente ?? null, forma, parcelas, recebido, previsto, o.id),
     db.prepare('DELETE FROM orcamento_passageiros WHERE orcamento_id = ?').bind(o.id),
     ...pax.map((p, i) => db.prepare('INSERT INTO orcamento_passageiros (orcamento_id, pessoa_id, ordem) VALUES (?, ?, ?)').bind(o.id, p, i)),
   ];

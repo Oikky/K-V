@@ -14,7 +14,7 @@
   };
   const SAIDA_TIPOS = { emissao: { nome: 'Emissão' }, transferencia: { nome: 'Transferência' }, expiracao: { nome: 'Expiração' }, ajuste: { nome: 'Ajuste' } };
 
-  let programas = [], categorias = [], contas = [];
+  let programas = [], categorias = [], contas = [], cartoes = [];
   const programa = (id) => programas.find((p) => p.id === id);
 
   // conta do servidor → formato das telas
@@ -64,6 +64,7 @@
     const [est, lista] = await Promise.all([KVApi.estado(), KVApi.contas()]);
     programas = est.programas.map((p) => ({ ...p, valorMilha: p.valor_milha }));
     categorias = est.categorias;
+    cartoes = est.cartoes || [];
     contas = lista.map(adaptar);
     return est;
   }
@@ -71,6 +72,15 @@
   window.KV = Object.assign(window.KV || {}, {
     hoje: HOJE, isoDia, diasAte, esc, fmt, entradaTipos: ENTRADA_TIPOS, saidaTipos: SAIDA_TIPOS,
     carregar, adaptar, programa, programas: () => programas, categoriasAzul: () => Object.fromEntries(categorias.filter((c) => c.programa_id === 'azul').map((c) => [c.nome, c.limite])),
-    contas: () => contas, custoRealPrograma, conta: (id) => contas.find((c) => c.id === +id), titulares, beneficiarios, vencendo, alertas, lotesConsumidos,
+    contas: () => contas, custoRealPrograma,
+    // cartões de crédito da K&V; o último usado num lançamento vem marcado da próxima vez (só neste navegador)
+    cartoes: () => cartoes, cartao: (id) => cartoes.find((c) => c.id === +id),
+    opcoesCartao: (sel, rotuloSem = 'Pix ou outro') => {
+      let ult = sel; if (ult === undefined) { try { ult = +localStorage.getItem('kv-cartao') || null; } catch (e) { ult = null; } }
+      const ativos = cartoes.filter((c) => c.ativo || c.id === ult);
+      return `<option value="">${rotuloSem}</option>` + ativos.map((c) => `<option value="${c.id}" ${c.id === ult ? 'selected' : ''}>${esc(c.nome)}${c.final ? ` · ${esc(c.final)}` : ''}</option>`).join('');
+    },
+    usarCartoes: (lista) => { cartoes = lista || []; },
+    lembrarCartao: (id) => { try { if (id) localStorage.setItem('kv-cartao', id); } catch (e) {} }, conta: (id) => contas.find((c) => c.id === +id), titulares, beneficiarios, vencendo, alertas, lotesConsumidos,
   });
 })();

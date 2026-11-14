@@ -60,3 +60,33 @@
     .fin-valor { font-size: 11.5px; }
   }
   @media (prefers-reduced-motion: reduce) { .fin-trilho i { transition: none; } }
+
+  /* cartões de crédito: a fatura aberta em destaque, o limite numa barra */
+  .fin-cartoes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+  .fin-cartao { cursor: pointer; min-height: 168px; }
+  .fin-cartao:hover { background: var(--surface-2); }
+  .fin-cartao:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+  .fin-cartao .rot { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-2); padding-right: 48px; }
+  .fin-cartao .rot svg.lucide { width: 16px; height: 16px; color: var(--teal-soft); }
+  .fin-seta { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; background: var(--surface-1); border: 1px solid var(--line); transition: background .15s, rotate .2s; }
+  .fin-cartao:hover .fin-seta { background: var(--surface-3); rotate: 45deg; }
+  .fin-fat { display: grid; gap: 4px; }
+  .fin-fat b { font: 800 30px/1.05 var(--font-brand); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .fin-fat small, .fin-limite small { font-size: 12.5px; color: var(--text-3); font-weight: 600; }
+  .fin-limite { display: grid; gap: 6px; }
+  .btn.pequeno { height: 36px; padding: 0 14px; font-size: 13.5px; }
+
+  /* janela das faturas */
+  .fin-faturas { display: grid; gap: 12px; padding-bottom: 22px; }
+  .fin-fatura { background: var(--surface-2); border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px; }
+  .fin-fatura.atual { outline: 1.5px solid var(--orange); }
+  .ff-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .ff-cab > span b { text-transform: capitalize; }
+  .ff-cab small { display: block; font-size: 12.5px; color: var(--text-3); font-weight: 600; margin-top: 2px; }
+  .ff-cab > b { font: 800 20px/1 var(--font-brand); font-variant-numeric: tabular-nums; }
+  .fin-fatura ul { list-style: none; margin: 0; padding: 0; display: grid; }
+  .fin-fatura li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .fin-fatura li span { min-width: 0; color: var(--text-2); }
+  .fin-fatura li small { color: var(--text-3); font-weight: 700; margin-left: 4px; }
+  .fin-fatura li b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fin-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

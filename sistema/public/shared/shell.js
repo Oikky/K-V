@@ -9,6 +9,7 @@
     { id: 'orcamentos', nome: 'Orçamentos', icone: 'plane', href: 'orcamentos.html' },
     { id: 'contas', nome: 'Contas de pontos', icone: 'wallet', href: 'contas.html', soDono: true },
     { id: 'clientes', nome: 'Clientes', icone: 'users', href: 'clientes.html', soDono: true },
+    { id: 'agenda', nome: 'Agenda', icone: 'calendar-days', href: 'agenda.html', soDono: true },
     { id: 'financeiro', nome: 'Financeiro', icone: 'chart-column', href: 'financeiro.html', soDono: true },
     { id: 'ponto', nome: 'Ponto', icone: 'timer', href: 'ponto.html', hrefDono: 'folha.html' },
     { id: 'config', nome: 'Configurações', icone: 'settings', href: 'programas.html', soDono: true },

@@ -52,3 +52,13 @@
   .item-c .saldo { font-size: 13px; color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
   .busca-c { width: 100%; margin-bottom: 12px; }
   .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+
+  /* pago com: cartão da K&V e o valor (taxa ou passagem) */
+  .pago-com { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+  @media (max-width: 520px) { .pago-com { grid-template-columns: 1fr; } }
+  .voo .pago-com .caixa { display: flex; align-items: center; height: 44px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); padding: 0 14px; gap: 6px; }
+  .voo .pago-com .caixa:focus-within { border-color: var(--orange); }
+  .voo .pago-com .caixa span { font-weight: 700; color: var(--text-3); }
+  .voo .pago-com .caixa input { flex: 1; min-width: 0; border: 0; background: none; outline: none; padding: 0; height: 100%; font-size: 16px; }
+  /* sem cartão, não tem valor pra anotar */
+  .pago-com:has(select option[value=""]:checked) > .campo:last-child { display: none; }

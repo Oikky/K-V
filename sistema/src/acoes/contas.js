@@ -4,6 +4,7 @@ import { acao, Recusa, hojeBR } from '../acoes.js';
 import { contasCompletas } from '../contas.js';
 import { gastar, devolver, proximos } from '../pontos.js';
 import { cpfValido } from './pessoas.js';
+import { parcelasValidas } from './cartoes.js';
 
 const ENTRADAS = ['clube', 'compra', 'transferencia', 'cartao', 'bonus', 'estorno', 'inicial'];
 const COM_CUSTO = ['clube', 'compra', 'transferencia'];
@@ -15,8 +16,9 @@ const soDigitos = (s) => String(s || '').replace(/\D/g, '');
 const pts = (n) => n.toLocaleString('pt-BR');
 const somaMeses = (dia, n) => { const d = new Date(dia + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); };
 
-// confere e monta uma entrada (lote). l: { conta, tipo, data, pontos, custo, vence, origem, bonus_pct, obs }
-function validarEntrada(l) {
+// confere e monta uma entrada (lote). l: { conta, tipo, data, pontos, custo, vence, origem, bonus_pct, obs, cartao, parcelas }
+// cartoes: ids dos cartões cadastrados (o cartão só vale em entrada com custo)
+function validarEntrada(l, cartoes = new Set()) {
   if (!ENTRADAS.includes(l.tipo)) throw new Recusa('Tipo de entrada inválido');
   if (!ehData(l.data)) throw new Recusa('Data inválida');
   if (!inteiro(l.pontos, 1, 100_000_000)) throw new Recusa('Pontos inválidos');
@@ -25,11 +27,14 @@ function validarEntrada(l) {
   const vence = l.vence && ehData(l.vence) ? l.vence : somaMeses(l.data, 24);
   const bonus = l.tipo === 'transferencia' && l.bonus_pct != null ? l.bonus_pct : null;
   if (bonus != null && !inteiro(bonus, 0, 1000)) throw new Recusa('Bônus inválido');
-  return { tipo: l.tipo, data: l.data, pontos: l.pontos, custo, vence, bonus, origem: l.tipo === 'transferencia' ? String(l.origem || '').slice(0, 40) || null : null, obs: String(l.obs || '').trim().slice(0, OBS_MAX) };
+  const cartao = custo > 0 && l.cartao != null ? l.cartao : null;
+  if (cartao != null && !cartoes.has(cartao)) throw new Recusa('Cartão não encontrado; recarregue a página');
+  const parcelas = cartao != null ? parcelasValidas(l.parcelas) : 1;
+  return { tipo: l.tipo, data: l.data, pontos: l.pontos, custo, cartao, parcelas, vence, bonus, origem: l.tipo === 'transferencia' ? String(l.origem || '').slice(0, 40) || null : null, obs: String(l.obs || '').trim().slice(0, OBS_MAX) };
 }
 const insertEntrada = (db, id, contaId, e, quando, email, parId = null) => db.prepare(`INSERT INTO movimentos
-  (id, conta_id, lado, tipo, data, pontos, custo, vence, resta, bonus_pct, origem, par_id, obs, criado_em, criado_por)
-  VALUES (?, ?, 'entrada', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(id, contaId, e.tipo, e.data, e.pontos, e.custo, e.vence, e.pontos, e.bonus, e.origem, parId, e.obs, quando, email);
+  (id, conta_id, lado, tipo, data, pontos, custo, cartao_id, parcelas, vence, resta, bonus_pct, origem, par_id, obs, criado_em, criado_por)
+  VALUES (?, ?, 'entrada', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(id, contaId, e.tipo, e.data, e.pontos, e.custo, e.cartao ?? null, e.parcelas ?? 1, e.vence, e.pontos, e.bonus, e.origem, parId, e.obs, quando, email);
 
 // uma ou várias entradas de uma vez (ex.: todos os clubes do mês)
 acao('mov.entradas', ['dono'], async ({ db, env, usuario, quando }, { linhas }) => {
@@ -39,9 +44,10 @@ acao('mov.entradas', ['dono'], async ({ db, env, usuario, quando }, { linhas }) 
   const contas = await contasCompletas(env, { ids });
   if (contas.length !== ids.length) throw new Recusa('Conta não encontrada');
   const novoId = await proximos(db, 'movimentos');
+  const cartoes = new Set((await db.prepare('SELECT id FROM cartoes').all()).results.map((x) => x.id));
   const comandos = [], eventos = [], criados = [];
   linhas.forEach((l) => {
-    const e = validarEntrada(l), c = contas.find((x) => x.id === l.conta), id = novoId();
+    const e = validarEntrada(l, cartoes), c = contas.find((x) => x.id === l.conta), id = novoId();
     criados.push(id);
     comandos.push(insertEntrada(db, id, c.id, e, quando, usuario.email));
     eventos.push({ entidade: 'conta', id: c.id, texto: `Entrada: +${pts(e.pontos)} pts (${e.tipo})`, depois: e });
@@ -247,13 +253,19 @@ acao('mov.editar', ['dono'], async ({ db, env }, d) => {
     if (d.custo != null && COM_CUSTO.includes(m.tipo)) { if (!inteiro(d.custo, 0, 100_000_000)) throw new Recusa('Custo inválido'); muda.custo = d.custo; }
     if (d.vence != null) { if (!ehData(d.vence)) throw new Recusa('Vencimento inválido'); muda.vence = d.vence; }
   }
+  // cartão e parcelas: em qualquer entrada com custo (inclusive as antigas, pra completar o que foi pago em cartão)
+  if (m.lado === 'entrada' && d.cartao !== undefined && COM_CUSTO.includes(m.tipo)) {
+    if (d.cartao != null && !(await db.prepare('SELECT 1 FROM cartoes WHERE id = ?').bind(d.cartao).first())) throw new Recusa('Cartão não encontrado; recarregue a página');
+    muda.cartao_id = d.cartao ?? null;
+    muda.parcelas = d.cartao != null ? parcelasValidas(d.parcelas) : 1;
+  }
   const campos = Object.keys(muda).filter((k) => muda[k] !== m[k]);
   if (!campos.length) return { resultado: { id: m.id } };
   comandos.unshift(db.prepare(`UPDATE movimentos SET ${campos.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`).bind(...campos.map((k) => muda[k]), m.id));
   // transferência: a data é a mesma nas duas pontas
   if (m.par_id && campos.includes('data')) comandos.push(db.prepare('UPDATE movimentos SET data = ? WHERE id = ?').bind(muda.data, m.par_id));
   const antes = Object.fromEntries(campos.map((k) => [k, m[k]])), depois = Object.fromEntries(campos.map((k) => [k, muda[k]]));
-  const oQue = campos.filter((k) => k !== 'resta').map((k) => ({ obs: 'observação', data: 'data', pontos: 'pontos', custo: 'custo', vence: 'vencimento' }[k])).join(', ');
+  const oQue = campos.filter((k) => k !== 'resta').map((k) => ({ obs: 'observação', data: 'data', pontos: 'pontos', custo: 'custo', vence: 'vencimento', cartao_id: 'cartão', parcelas: 'parcelas' }[k])).join(', ');
   return { resultado: { id: m.id, antes }, comandos, eventos: [{ entidade: 'conta', id: m.conta_id, texto: `Corrigiu ${m.lado === 'entrada' ? 'a entrada' : 'a saída'} de ${NOMES_MOV[m.tipo] || m.tipo}: ${oQue}`, antes, depois }] };
 });
 

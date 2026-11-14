@@ -8,6 +8,7 @@ import { SITES } from './pesquisa.js';
 import { contasCompletas } from '../contas.js';
 import { gastar, devolver, proximos } from '../pontos.js';
 import { OBS_MAX } from './contas.js';
+import { cartaoValido } from './cartoes.js';
 
 const ehData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
@@ -33,6 +34,10 @@ acao('emi.registrar', ['dono'], async (ctx, d) => {
   if (ja) throw new Recusa(`Esse voo já foi emitido (${ja.localizador})`, 409);
   const pax = (await db.prepare('SELECT pessoa_id FROM orcamento_passageiros WHERE orcamento_id = ? ORDER BY ordem').bind(o.id).all()).results.map((p) => p.pessoa_id);
   const obs = String(d.obs || '').trim().slice(0, OBS_MAX);
+  // o que foi pago no cartão da K&V (taxa, ou a passagem em dinheiro)
+  const cartao = await cartaoValido(db, d.cartao);
+  const pago = cartao != null ? (d.pago ?? 0) : 0;
+  if (!inteiro(pago, 0, 100_000_000)) throw new Recusa('Valor pago no cartão inválido');
 
   const programa = SITES[op.site];
   const pagantes = o.adultos + o.criancas;
@@ -54,8 +59,8 @@ acao('emi.registrar', ['dono'], async (ctx, d) => {
   }
   // a emissão vem antes da saída (a saída aponta pra ela)
   comandos.unshift(
-    db.prepare('INSERT INTO emissoes (id, orcamento_id, trecho, conta_id, pontos, localizador, obs, em, por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(emissaoId, o.id, d.trecho, conta ? conta.id : null, pontos, loc, obs, quando, usuario.email),
+    db.prepare('INSERT INTO emissoes (id, orcamento_id, trecho, conta_id, pontos, localizador, obs, cartao_id, pago, em, por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(emissaoId, o.id, d.trecho, conta ? conta.id : null, pontos, loc, obs, cartao, pago, quando, usuario.email),
     ...pax.map((p) => db.prepare('INSERT INTO emissao_passageiros (emissao_id, pessoa_id) VALUES (?, ?)').bind(emissaoId, p)),
   );
   const { n } = await db.prepare('SELECT COUNT(*) AS n FROM emissoes WHERE orcamento_id = ?').bind(o.id).first();
@@ -84,16 +89,19 @@ acao('emi.corrigir', ['dono'], async ({ db }, d) => {
   if (loc.length < 5 || loc.length > 8) throw new Recusa('Localizador inválido: são de 5 a 8 letras e números');
   const obs = d.obs != null ? String(d.obs).trim().slice(0, OBS_MAX) : e.obs;
   if (d.data != null && !ehData(d.data)) throw new Recusa('Data inválida');
-  const comandos = [db.prepare('UPDATE emissoes SET localizador = ?, obs = ? WHERE id = ?').bind(loc, obs, e.id)];
+  const cartao = d.cartao !== undefined ? await cartaoValido(db, d.cartao) : e.cartao_id;
+  const pago = cartao == null ? 0 : d.pago ?? e.pago;
+  if (!inteiro(pago, 0, 100_000_000)) throw new Recusa('Valor pago no cartão inválido');
+  const comandos = [db.prepare('UPDATE emissoes SET localizador = ?, obs = ?, cartao_id = ?, pago = ? WHERE id = ?').bind(loc, obs, cartao, pago, e.id)];
   if (saida) {
     // a saída na conta leva o localizador e a observação no texto
     comandos.push(db.prepare('UPDATE movimentos SET obs = ?, data = ? WHERE id = ?').bind([resumoSaida(o, t, loc), obs].filter(Boolean).join('\n'), d.data || saida.data, saida.id));
   }
-  const mudou = [loc !== e.localizador && `localizador ${e.localizador} → ${loc}`, obs !== e.obs && 'observação', saida && d.data && d.data !== saida.data && 'data'].filter(Boolean);
+  const mudou = [loc !== e.localizador && `localizador ${e.localizador} → ${loc}`, obs !== e.obs && 'observação', (cartao !== e.cartao_id || pago !== e.pago) && 'cartão', saida && d.data && d.data !== saida.data && 'data'].filter(Boolean);
   return {
     resultado: { id: e.id },
     comandos,
-    eventos: mudou.length ? [{ entidade: 'orcamento', id: o.id, texto: `Corrigiu a emissão ${t.de} → ${t.para}: ${mudou.join(', ')}`, antes: { localizador: e.localizador, obs: e.obs, data: saida && saida.data } }] : [],
+    eventos: mudou.length ? [{ entidade: 'orcamento', id: o.id, texto: `Corrigiu a emissão ${t.de} → ${t.para}: ${mudou.join(', ')}`, antes: { localizador: e.localizador, obs: e.obs, data: saida && saida.data, cartao: e.cartao_id, pago: e.pago } }] : [],
   };
 });
 

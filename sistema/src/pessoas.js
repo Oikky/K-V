@@ -22,7 +22,7 @@ export async function clientes(env) {
   const db = env.DB;
   const [pessoas, orcs] = await Promise.all([
     listarPessoas(env),
-    todos(db, `SELECT id, cliente_id, etapa, adultos, criancas, bebes, combo_aceita, receb_forma, receb_parcelas, receb_recebido, criado_em,
+    todos(db, `SELECT id, cliente_id, etapa, adultos, criancas, bebes, combo_aceita, receb_forma, receb_parcelas, receb_recebido, receb_previsto, criado_em,
                -- quando fechou (o financeiro conta a venda nesse mês); os importados não têm o evento e usam a criação
                (SELECT MIN(e.quando) FROM eventos e WHERE e.entidade = 'orcamento' AND e.entidade_id = CAST(o.id AS TEXT) AND e.acao = 'fech.salvar' AND e.texto LIKE 'Fechou%') AS fechado_em
                FROM orcamentos o WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL`),
@@ -50,7 +50,7 @@ export async function clientes(env) {
       passageirosIds: pax.filter((p) => p.orcamento_id === o.id).map((p) => p.pessoa_id),
       combo: c ? { ...c, escolha: JSON.parse(c.escolha), milha: JSON.parse(c.milha || '{}') } : null,
       opcoes: c ? opcoes.filter((x) => JSON.parse(c.escolha).includes(x.id)) : [],
-      receb: { forma: o.receb_forma, parcelas: o.receb_parcelas, recebido: o.receb_recebido },
+      receb: { forma: o.receb_forma, parcelas: o.receb_parcelas, recebido: o.receb_recebido, previsto: o.receb_previsto },
       emissoes: emissoes.filter((e) => e.orcamento_id === o.id).map(({ trecho, localizador, cancelada, devolvido, programa_id }) => ({ trecho, localizador, cancelada: !!cancelada, devolvido, programa_id })),
     };
   });
@@ -62,3 +62,15 @@ export async function clientes(env) {
 export const custosPontos = (env) => todos(env.DB, `SELECT substr(m.data, 1, 7) AS mes, m.tipo, c.programa_id AS programa, SUM(m.custo) AS custo, SUM(m.pontos) AS pontos
   FROM movimentos m JOIN contas c ON c.id = m.conta_id
   WHERE m.lado = 'entrada' AND m.custo > 0 GROUP BY mes, m.tipo, c.programa_id ORDER BY mes`);
+
+// tudo o que foi pago nos cartões: entradas de pontos com custo e emissões (taxa ou passagem em dinheiro)
+export const gastosCartao = (env) => todos(env.DB, `
+  SELECT 'mov' AS origem, m.id, m.cartao_id, m.data, m.custo AS valor, m.parcelas, m.tipo, p.nome AS quem, c.programa_id AS programa, NULL AS orcamento_id
+    FROM movimentos m JOIN contas c ON c.id = m.conta_id JOIN pessoas p ON p.id = c.titular_id
+    WHERE m.cartao_id IS NOT NULL AND m.custo > 0
+  UNION ALL
+  SELECT 'emi', e.id, e.cartao_id, COALESCE((SELECT s.data FROM movimentos s WHERE s.emissao_id = e.id AND s.lado = 'saida'), substr(e.em, 1, 10)), e.pago, 1,
+         CASE WHEN e.conta_id IS NULL THEN 'passagem' ELSE 'taxa' END, t.de || ' → ' || t.para, NULL, e.orcamento_id
+    FROM emissoes e LEFT JOIN trechos t ON t.orcamento_id = e.orcamento_id AND t.ordem = e.trecho
+    WHERE e.cartao_id IS NOT NULL AND e.pago > 0 AND e.cancelada = 0
+  ORDER BY 4`);

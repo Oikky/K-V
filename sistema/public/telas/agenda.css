@@ -1,0 +1,41 @@
+/* Estilo da tela agenda (só vale enquanto ela está aberta). */
+  .cab-ag { display: flex; align-items: flex-end; gap: 18px 40px; flex-wrap: wrap; }
+  .cab-ag h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .ag-sub { font-size: 14px; color: var(--text-2); font-weight: 600; margin-top: 2px; }
+  .cab-ag .kpis { margin-left: auto; }
+  .ag-filtros { margin: 26px 0 8px; }
+  .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+
+  /* um bloco por dia; o dia fica grudado no topo enquanto rola */
+  .ag-dia { margin-top: 22px; }
+  .ag-dia h2 { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 10px; padding: 8px 0; background: var(--bg); font-size: 15px; font-weight: 700; color: var(--text-2); }
+  .ag-data { font: 800 20px/1 var(--font-brand); letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+  .ag-dia.hoje .ag-data { color: var(--orange); }
+  .ag-dia.atrasado h2 { color: var(--warn); align-items: center; }
+  .ag-dia.atrasado h2 svg.lucide { width: 18px; height: 18px; }
+  .ag-nota { font-size: 13px; color: var(--text-3); margin: 0 0 8px; }
+  .ag-dia ul { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; background: var(--surface-1); border-radius: var(--r-card); }
+  .ag-dia.atrasado ul { background: var(--warn-bg); }
+
+  .ag-item { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; color: var(--text); text-decoration: none; }
+  .ag-item:hover { background: var(--surface-2); }
+  .ag-item:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+  .ag-ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
+  .ag-ic svg.lucide { width: 18px; height: 18px; }
+  /* cor pelo tipo: petróleo = pontos (como no resto do sistema), laranja só no voo do dia */
+  .ag-item[data-t="pontos"] .ag-ic { background: var(--teal-bg); color: var(--teal-soft); }
+  .ag-item.forte .ag-ic { background: var(--orange-soft); color: var(--orange); }
+  .ag-txt { display: grid; gap: 2px; min-width: 0; }
+  .ag-txt b { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ag-txt small { font-size: 13px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ag-valor { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 15px; }
+  .ag-valor.entra { color: var(--ok); }
+
+  @media (max-width: 720px) {
+    .cab-ag h1 { font-size: 28px; }
+    .cab-ag .kpis { margin-left: 0; }
+    .cab-ag .kpi b { font-size: 26px; }
+    .ag-item { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; padding: 10px 8px; }
+    .ag-ic { width: 34px; height: 34px; grid-row: span 2; }
+    .ag-valor { grid-column: 2; font-size: 14px; }
+  }

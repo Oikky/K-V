@@ -44,6 +44,8 @@ KVTelas['entrada'] = function () {
             <div class="campo"><label for="data">Data</label><input id="data" type="date" value="${KV.hoje}"></div>
             <div class="campo"><label for="pontos">Pontos</label><input id="pontos" inputmode="numeric" placeholder="ex.: 2.000"></div>
             <div class="campo" data-so="custo"><label for="custo">Custo (R$)</label><input id="custo" inputmode="decimal" placeholder="ex.: 35,00"></div>
+            ${KV.cartoes().length ? `<div class="campo" data-so="custo"><label for="cartao">Pago com</label><select id="cartao" data-combo="nao">${KV.opcoesCartao()}</select></div>
+            <div class="campo" data-so="parc"><label for="parcelas">Parcelas</label><select id="parcelas" data-combo="nao">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${i ? `${i + 1}x` : 'À vista'}</option>`).join('')}</select></div>` : ''}
             <div class="campo" data-so="transf"><label for="origem">Veio de</label><select id="origem"><option>Livelo</option><option>Esfera</option><option>Smiles</option><option>Latam Pass</option><option>TudoAzul</option><option>Outro</option></select></div>
             <div class="campo" data-so="transf"><label for="bonus">Bônus da transferência (%)</label><input id="bonus" inputmode="numeric" value="0"></div>
             <div class="campo inteiro" data-so="transf"><span class="ajuda">Transferência de uma conta que já está no sistema (ex.: a Livelo de um titular) se registra pela <a href="saida.html?tipo=transferencia" style="color:var(--orange)">saída</a>: as duas pontas entram juntas.</span></div>
@@ -59,6 +61,7 @@ KVTelas['entrada'] = function () {
         const custo = centavos($('custo').value);
         app.querySelectorAll('[data-so="custo"]').forEach((e) => e.classList.toggle('oculto', !KV.entradaTipos[tipo].temCusto));
         app.querySelectorAll('[data-so="transf"]').forEach((e) => e.classList.toggle('oculto', tipo !== 'transferencia'));
+        app.querySelectorAll('[data-so="parc"]').forEach((e) => e.classList.toggle('oculto', !KV.entradaTipos[tipo].temCusto || !$('cartao') || !$('cartao').value));
         const porMilha = pts && custo && KV.entradaTipos[tipo].temCusto ? Math.round(custo * 1e4 / pts) : null;
         $('previa').innerHTML = `<div class="card"><div class="muted" style="font-size:13px;margin-bottom:6px">Saldo de ${esc(c.titular.split(' ')[0])} na ${p.nome}</div>
           <div class="de-para num"><span class="de">${fmt.pts(c.saldo)}</span><i data-lucide="arrow-right"></i><span>${fmt.pts(c.saldo + pts)}</span></div>
@@ -70,7 +73,10 @@ KVTelas['entrada'] = function () {
         e.preventDefault();
         const tipo = $('tipo').value, pts = num($('pontos').value);
         if (!pts) { $('pontos').focus(); $('pontos').style.borderColor = 'var(--danger)'; return; }
+        const cartao = KV.entradaTipos[tipo].temCusto && $('cartao') && $('cartao').value ? +$('cartao').value : null;
+        KV.lembrarCartao(cartao);
         gravar($('previa'), [{ conta: +$('conta').value, tipo, data: $('data').value, pontos: pts, custo: KV.entradaTipos[tipo].temCusto ? centavos($('custo').value) : 0,
+          ...(cartao ? { cartao, parcelas: +$('parcelas').value } : {}),
           ...(tipo === 'transferencia' ? { origem: $('origem').value, bonus_pct: num($('bonus').value) } : {}), vence: $('vence').value, obs: $('obs').value }], e.submitter);
       };
       atualizar();
@@ -87,15 +93,16 @@ KVTelas['entrada'] = function () {
           <div class="topo"><div><h1>Registrar entradas</h1><div class="muted">Várias de uma vez. Tab pula de campo; Enter na última coluna cria outra linha.</div></div>
           <div class="acoes"><button class="btn" id="clubes"><i data-lucide="calendar-sync"></i>Puxar os clubes do mês</button></div></div>
           ${linhas.length > 3 ? `<div class="aviso-lote"><i data-lucide="info"></i>${linhas.filter((l) => l.tipo === 'clube').length} clubes puxados com o valor de sempre. Confira os pontos e o custo de cada um antes de registrar.</div>` : ''}
-          <div class="tabela-wrap"><table class="lote"><thead><tr><th>Conta</th><th>Tipo</th><th class="dir">Pontos</th><th class="dir">Custo (R$)</th><th>Vence em</th><th></th></tr></thead>
+          <div class="tabela-wrap"><table class="lote"><thead><tr><th>Conta</th><th>Tipo</th><th class="dir">Pontos</th><th class="dir">Custo (R$)</th>${KV.cartoes().length ? '<th>Pago com</th>' : ''}<th>Vence em</th><th></th></tr></thead>
           <tbody>${linhas.map((l, i) => `<tr>
             <td style="min-width:240px"><select data-i="${i}" data-k="conta">${opcoesConta(l.conta)}</select></td>
             <td style="min-width:170px"><select data-i="${i}" data-k="tipo">${TIPOS.map((t) => `<option value="${t.id}" ${t.id === l.tipo ? 'selected' : ''}>${KV.entradaTipos[t.id].nome}</option>`).join('')}</select></td>
             <td><input class="num" data-i="${i}" data-k="pontos" value="${l.pontos}" inputmode="numeric" placeholder="0"></td>
             <td><input class="num" data-i="${i}" data-k="custo" value="${l.custo}" inputmode="decimal" placeholder="${KV.entradaTipos[l.tipo].temCusto ? '0,00' : 'sem custo'}" ${KV.entradaTipos[l.tipo].temCusto ? '' : 'disabled'}></td>
+            ${KV.cartoes().length ? `<td style="min-width:170px"><select data-i="${i}" data-k="cartao" data-combo="nao" ${KV.entradaTipos[l.tipo].temCusto ? '' : 'disabled'}>${KV.opcoesCartao(l.cartao === undefined ? undefined : +l.cartao || null)}</select></td>` : ''}
             <td><input data-i="${i}" data-k="vence" type="date" value="${l.vence}"></td>
             <td><button class="btn icone" data-tirar="${i}" aria-label="Tirar linha"><i data-lucide="x"></i></button></td></tr>`).join('')}</tbody>
-          <tfoot><tr><td colspan="2"><button class="btn" id="mais"><i data-lucide="plus"></i>Linha</button></td><td class="dir num">${fmt.pts(total)} pts</td><td class="dir num">${fmt.brl(custo)}</td><td colspan="2"></td></tr></tfoot></table></div>
+          <tfoot><tr><td colspan="2"><button class="btn" id="mais"><i data-lucide="plus"></i>Linha</button></td><td class="dir num">${fmt.pts(total)} pts</td><td class="dir num">${fmt.brl(custo)}</td><td colspan="${KV.cartoes().length ? 3 : 2}"></td></tr></tfoot></table></div>
           <div class="rodape-form" style="justify-content:flex-start"><button class="btn primario" id="ok"><i data-lucide="check"></i>Registrar ${linhas.length} entrada${linhas.length > 1 ? 's' : ''}</button></div>
           <div id="salvo" style="margin-top:14px"></div>`;
         app.querySelectorAll('[data-k]').forEach((el) => el.addEventListener('change', () => { linhas[el.dataset.i][el.dataset.k] = el.value; if (el.dataset.k === 'tipo') desenhar(); }));
@@ -109,9 +116,13 @@ KVTelas['entrada'] = function () {
           desenhar();
         };
         app.querySelector('#ok').onclick = (e) => {
-          const validas = linhas.filter((l) => num(l.pontos));
+          // o cartão de cada linha vem do que está escolhido na tela (a linha nova já aparece com o último usado)
+          const cartaoDa = (i) => { const el = app.querySelector(`[data-i="${i}"][data-k="cartao"]`); return el && !el.disabled && el.value ? +el.value : null; };
+          const validas = linhas.map((l, i) => ({ ...l, cartao: cartaoDa(i) })).filter((l) => num(l.pontos));
           if (!validas.length) { KVShell.aviso('Preencha os pontos de pelo menos uma linha', { erro: true }); return; }
-          gravar(app.querySelector('#salvo'), validas.map((l) => ({ conta: +l.conta, tipo: l.tipo, data: KV.hoje, pontos: num(l.pontos), custo: KV.entradaTipos[l.tipo].temCusto ? centavos(l.custo) : 0, vence: l.vence })), e.currentTarget);
+          KV.lembrarCartao(validas.map((l) => l.cartao).find(Boolean));
+          // shortcut: na planilha cada linha é à vista; compra parcelada se lança pela entrada única
+          gravar(app.querySelector('#salvo'), validas.map((l) => ({ conta: +l.conta, tipo: l.tipo, data: KV.hoje, pontos: num(l.pontos), custo: KV.entradaTipos[l.tipo].temCusto ? centavos(l.custo) : 0, ...(l.cartao ? { cartao: l.cartao } : {}), vence: l.vence })), e.currentTarget);
         };
         poeAlternancia();
       };

@@ -52,7 +52,7 @@ export async function abrirOrcamento(env, usuario, id) {
     todos(db, 'SELECT de, para, data, janela, outras_datas FROM trechos WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, 'SELECT ordem, texto, feito FROM conferencia WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, `SELECT id, trecho, site, data, sai, chega, cia, voo, escalas, bagagem, milhas, taxa, preco, link, obs, criada_por,
-                      de, para, duracao, escalas_onde, milhas_mala, mala_mao, destaque
+                      de, para, duracao, escalas_onde, milhas_mala, mala_mao, destaque, cabine
                FROM opcoes WHERE orcamento_id = ? ORDER BY id`, id),
   ]);
   const base = {
@@ -72,7 +72,7 @@ export async function abrirOrcamento(env, usuario, id) {
     todos(db, 'SELECT id, ordem, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE orcamento_id = ? ORDER BY ordem', id),
     todos(db, `SELECT p.id, p.nome, p.cpf, p.nascimento, p.whatsapp, p.passaporte_numero, p.passaporte_validade
                FROM orcamento_passageiros op JOIN pessoas p ON p.id = op.pessoa_id WHERE op.orcamento_id = ? ORDER BY op.ordem`, id),
-    todos(db, 'SELECT id, trecho, conta_id, pontos, localizador, cancelada, cancelada_em, cancelada_obs, devolvido, obs, em FROM emissoes WHERE orcamento_id = ? ORDER BY trecho', id),
+    todos(db, 'SELECT id, trecho, conta_id, pontos, localizador, cancelada, cancelada_em, cancelada_obs, devolvido, obs, cartao_id, pago, em FROM emissoes WHERE orcamento_id = ? ORDER BY trecho', id),
     todos(db, 'SELECT ep.emissao_id, ep.pessoa_id FROM emissao_passageiros ep JOIN emissoes e ON e.id = ep.emissao_id WHERE e.orcamento_id = ?', id),
     todos(db, `SELECT e.quando, e.quem, COALESCE(u.nome, CASE e.quem WHEN 'bot' THEN 'Bot do Telegram' ELSE e.quem END) AS nome, e.texto
                FROM eventos e LEFT JOIN usuarios u ON u.email = e.quem
@@ -83,7 +83,7 @@ export async function abrirOrcamento(env, usuario, id) {
     ...base,
     clienteId: o.cliente_id, cliente,
     enviadaEm: o.enviada_em, aceita: o.combo_aceita,
-    receb: { forma: o.receb_forma, parcelas: o.receb_parcelas, recebido: o.receb_recebido },
+    receb: { forma: o.receb_forma, parcelas: o.receb_parcelas, recebido: o.receb_recebido, previsto: o.receb_previsto },
     combos: combos.map((c) => ({ ...c, escolha: JSON.parse(c.escolha), milha: JSON.parse(c.milha || '{}') })),
     passageirosLista: pax,
     emissoes: emissoes.map((e) => ({ ...e, cancelada: !!e.cancelada, passageiros: emPax.filter((x) => x.emissao_id === e.id).map((x) => x.pessoa_id) })),

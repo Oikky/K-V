@@ -15,7 +15,11 @@ KVTelas['emissao'] = function () {
   const opDo = (ti) => P.op(o, P.aceita(o).escolha[ti]);
   const emPontos = (ti) => O.site(opDo(ti).site).forma === 'pontos';
   const emissao = (ti) => o.emissoes.find((e) => e.trecho === ti);
-  const escolha = (ti) => (escolhas[ti] = escolhas[ti] || { contaId: null, localizador: '', obs: '', sugerida: false });
+  const escolha = (ti) => (escolhas[ti] = escolhas[ti] || { contaId: null, localizador: '', obs: '', sugerida: false, cartao: undefined, pago: null });
+  // o que vai pro cartão da K&V: a taxa (em pontos) ou a passagem inteira (em dinheiro), pra todos os pagantes
+  const valorCartao = (ti) => { const x = opDo(ti), pag = O.pagantes(o); return (emPontos(ti) ? x.taxa || 0 : x.preco || 0) * pag; };
+  const reais = (c) => (c ? (c / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
+  const nomeCartao = (id) => { const c = KV.cartao(id); return c ? `${c.nome}${c.final ? ` · ${c.final}` : ''}` : 'outro cartão'; };
   const contaDe = (cid) => contas.find((c) => c.id === cid);
 
   // pra cada conta do programa: saldo depois, CPFs novos (ocupam vaga) e se estoura o limite. Avisa, não bloqueia.
@@ -80,6 +84,7 @@ KVTelas['emissao'] = function () {
       const situ = e.cancelada ? `<span class="etiqueta danger"><i data-lucide="x"></i>Cancelada</span>` : '<span class="etiqueta ok"><i data-lucide="check"></i>Emitido</span>';
       return `<article class="cartao-ref voo feito ${e.cancelada ? 'cancelada' : ''}">${canto}${cab}${gasto}
         <div class="feito-linha">${situ}<span class="locz">${esc(e.localizador)}</span>
+          ${e.cartao_id ? `<span class="pq" style="flex-basis:100%">${e.conta_id ? 'Taxa' : 'Passagem'} no cartão ${esc(nomeCartao(e.cartao_id))}: ${fmt.brl(e.pago)}</span>` : ''}
           <span class="pq" style="flex-basis:100%">${e.conta_id ? `Saiu da conta de ${esc(c ? c.titular : 'outra pessoa')}${c ? ` (${esc(c.programa)})` : ''}` : 'Comprado em dinheiro'}</span>
           ${e.cancelada ? `<span class="pq" style="flex-basis:100%">${e.devolvido ? `Devolvido ao cliente: ${fmt.brl(e.devolvido)}` : 'Nada devolvido ao cliente'}${e.cancelada_obs ? ` · ${esc(e.cancelada_obs)}` : ''}</span>` : ''}
           ${e.obs ? `<span class="obs-voo">${esc(e.obs)}</span>` : ''}</div></article>`;
@@ -92,7 +97,9 @@ KVTelas['emissao'] = function () {
           <span class="saldo">${fmt.pts(info.conta.saldo)} → sobram ${fmt.pts(Math.max(0, info.sobra))} pts</span><i data-lucide="chevron-right" class="ir"></i></button><div class="chips">${chipsConta(info)}</div>`
         : `<button class="conta-bt" data-conta="${ti}"><span class="rot">Sai da conta</span><b>${contasPara(ti).length ? 'Escolher a conta' : `Nenhuma conta ${esc(P.progNome(O.site(x.site).programa))} cadastrada`}</b><i data-lucide="chevron-right" class="ir"></i></button>`;
     }
-    return `<article class="cartao-ref voo">${cab}${gasto}${conta}
+    const pagoCom = KV.cartoes().length ? `<div class="pago-com"><div class="campo"><label for="cartao-${ti}">${pts ? 'Taxa paga com' : 'Passagem paga com'}</label><select id="cartao-${ti}" data-cartao="${ti}" data-combo="nao">${KV.opcoesCartao(es.cartao)}</select></div>
+      <div class="campo"><label for="pago-${ti}">Valor no cartão</label><div class="caixa"><span>R$</span><input id="pago-${ti}" data-pago="${ti}" inputmode="decimal" autocomplete="off" value="${reais(es.pago ?? valorCartao(ti))}"></div></div></div>` : '';
+    return `<article class="cartao-ref voo">${cab}${gasto}${conta}${pagoCom}
       <div class="campo"><label for="obs-${ti}">Observação (opcional)</label><input id="obs-${ti}" data-obs="${ti}" maxlength="2000" autocomplete="off" placeholder="ex.: assento marcado, pago com o cartão X" value="${esc(es.obs)}"></div>
       <div class="loc"><div class="campo"><label for="loc-${ti}">Localizador</label><input id="loc-${ti}" data-loc="${ti}" maxlength="8" autocomplete="off" spellcheck="false" placeholder="ABC123" value="${esc(es.localizador)}"></div>
         <button class="btn primario" data-emitir="${ti}"><i data-lucide="ticket-check"></i>Registrar</button></div></article>`;
@@ -146,6 +153,8 @@ KVTelas['emissao'] = function () {
     const sub = `${P.nomeTrecho(o, e.trecho)} · ${t.de} → ${t.para} · ${esc(e.localizador)}${c ? ` · conta de ${esc(c.titular)}` : ''}`;
     const corpo = tipo === 'corrigir'
       ? `<div class="campo"><label for="j-loc">Localizador</label><input id="j-loc" class="loc-grande" maxlength="8" autocomplete="off" spellcheck="false" value="${esc(e.localizador)}"></div>
+         ${KV.cartoes().length ? `<div class="pago-com"><div class="campo"><label for="j-cartao">Pago com</label><select id="j-cartao" data-combo="nao">${KV.opcoesCartao(e.cartao_id || null)}</select></div>
+         <div class="campo"><label for="j-pago">Valor no cartão</label><div class="caixa"><span>R$</span><input id="j-pago" inputmode="decimal" autocomplete="off" value="${reais(e.pago || valorCartao(e.trecho))}"></div></div></div>` : ''}
          <div class="campo"><label for="j-obs">Observação</label><textarea id="j-obs" rows="3" maxlength="2000" placeholder="Opcional">${esc(e.obs || '')}</textarea></div>
          <p class="faint" style="font-size:13px;margin:0">Pra trocar a conta ou os pontos, use "Lancei errado: desfazer" e emita de novo.</p>`
       : `${e.pontos ? `<div class="campo"><label for="j-pts">Pontos que o programa devolveu</label><input id="j-pts" inputmode="numeric" autocomplete="off" value="${fmt.pts(e.pontos)}">
@@ -165,7 +174,8 @@ KVTelas['emissao'] = function () {
       try {
         if (tipo === 'corrigir') {
           if (loc.value.length < 5) { loc.focus(); KVShell.aviso('O localizador tem de 5 a 8 letras e números', { erro: true }); return; }
-          await KVApi.acao('emi.corrigir', { id: e.id, localizador: loc.value, obs });
+          const jc = dlg.querySelector('#j-cartao'), cartao = jc && jc.value ? +jc.value : null;
+          await KVApi.acao('emi.corrigir', { id: e.id, localizador: loc.value, obs, ...(jc ? { cartao, pago: cartao ? O.lerReais(dlg.querySelector('#j-pago').value) || 0 : 0 } : {}) });
           fechar(); await carregar(); render(); KVShell.aviso('Emissão corrigida');
         } else {
           const ptsEl = dlg.querySelector('#j-pts'), cpf = dlg.querySelector('#j-cpf');
@@ -228,14 +238,17 @@ KVTelas['emissao'] = function () {
         if (loc.length < 5) { inp.style.borderColor = 'var(--danger)'; inp.focus(); return; }
         b.disabled = true;
         try {
-          const r = await KVApi.acao('emi.registrar', { orcamento: o.id, trecho: ti, conta: emPontos(ti) ? escolha(ti).contaId : null, localizador: loc, obs: escolha(ti).obs });
+          const sc = app.querySelector(`[data-cartao="${ti}"]`), cartao = sc && sc.value ? +sc.value : null;
+          const pago = cartao ? O.lerReais(app.querySelector(`[data-pago="${ti}"]`).value) || 0 : 0;
+          KV.lembrarCartao(cartao);
+          const r = await KVApi.acao('emi.registrar', { orcamento: o.id, trecho: ti, conta: emPontos(ti) ? escolha(ti).contaId : null, localizador: loc, obs: escolha(ti).obs, cartao, pago });
           delete escolhas[ti];
           await carregar(); render();
           KVShell.aviso(r.tudo ? 'Tudo emitido' : 'Voo registrado', { desfazer: async () => { await KVApi.acao('emi.desfazer', { id: r.id }); await carregar(); render(); KVShell.aviso('Emissão desfeita. Os pontos voltaram pra conta.'); } });
         } catch (err) { KVShell.aviso(err.message, { erro: true }); b.disabled = false; }
       }
     });
-    app.addEventListener('input', (e) => { if (e.target.dataset.obs) escolha(+e.target.dataset.obs).obs = e.target.value; if (e.target.dataset.loc) { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); escolha(+e.target.dataset.loc).localizador = e.target.value; e.target.style.borderColor = ''; } });
+    app.addEventListener('input', (e) => { if (e.target.dataset.cartao) escolha(+e.target.dataset.cartao).cartao = e.target.value ? +e.target.value : null; if (e.target.dataset.pago) escolha(+e.target.dataset.pago).pago = O.lerReais(e.target.value) || 0; if (e.target.dataset.obs) escolha(+e.target.dataset.obs).obs = e.target.value; if (e.target.dataset.loc) { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); escolha(+e.target.dataset.loc).localizador = e.target.value; e.target.style.borderColor = ''; } });
     app.addEventListener('keydown', (e) => { if (e.target.dataset.loc && e.key === 'Enter') app.querySelector(`[data-emitir="${e.target.dataset.loc}"]`).click(); });
   }
 
@@ -245,6 +258,7 @@ KVTelas['emissao'] = function () {
       const est = await KVApi.estado();
       if (!(est.eu.papel === 'dono' || est.eu.papel === 'admin')) { KVRota.trocar(`orcamento.html?id=${id}`); return; }
       P.usarProgramas(est.programas);
+      KV.usarCartoes(est.cartoes);
       await carregar();
       document.querySelector('.carregando').remove();
       app = KVShell.montar('orcamentos', { dono: true });
