@@ -196,7 +196,7 @@
     const item = (o, extra = '') => `<li><button type="button" class="b-orc" data-abrir="${o.id}">
         <span class="rota">${esc(O.rota(o))}</span>
         <span class="sub">#${o.id} · ${esc(o.contato.nome || 'sem nome')} · ${esc(O.fmtPax(o.passageiros))}</span>
-        <span class="sub">${o.trechos.map((t) => O.dataCurta(t.data)).join(' · ')} · ${o.nOpcoes} ${o.nOpcoes === 1 ? 'opção' : 'opções'}${extra}</span></button></li>`;
+        <span class="sub">${o.trechos.map((t) => [t.data, ...(t.outrasDatas || [])].map(O.dataCurta).join(' e ')).join(' · ')} · ${o.nOpcoes} ${o.nOpcoes === 1 ? 'opção' : 'opções'}${extra}</span></button></li>`;
     const nomeDe = (email) => ((est.usuarios || []).find((u) => u.email === email) || {}).nome || email;
     return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}${recadoHtml()}
       <h2 class="b-tit">Em pesquisa com você <span class="n">${com.length}</span></h2>
@@ -210,7 +210,7 @@
     const l = lancadas(), t = orc.trechos[trecho], ed = editando && (orc.opcoes || []).find((x) => x.id === editando);
     return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}
       <div class="a-orc">${voltar()}<div><span class="a-id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span>
-        <b class="a-rota">${rotaTxt()}</b><span class="a-dia">${O.diaCurto(t.data)} ${O.dataCurta(t.data)}${t.janela ? ' · janela de 14 dias' : ''}</span></div></div>
+        <b class="a-rota">${rotaTxt()}</b><span class="a-dia">${[t.data, ...(t.outrasDatas || [])].map((x) => `${O.diaCurto(x)} ${O.dataCurta(x)}`).join(' e ')}${t.outrasDatas && t.outrasDatas.length ? ' · olhar esses dias' : t.janela ? ' · janela de 14 dias' : ''}</span></div></div>
       ${trechos()}${nota()}
       ${recadoHtml()}
       ${ed ? `<div class="b-editando">${icone('pencil')}<span>Editando <b>${opResumo(ed)}</b></span><button type="button" class="btn pequeno fantasma" data-cancelar-edicao>Cancelar</button></div>` : ''}

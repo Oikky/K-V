@@ -22,7 +22,7 @@ KVTelas['novo-orcamento'] = function () {
     const [t0, t1] = o.trechos;
     const tipo = o.trechos.length === 1 ? 'ida' : o.trechos.length === 2 && t1.de === t0.para && t1.para === t0.de ? 'ida-volta' : 'varios';
     Object.assign(st, { nome: o.contato.nome, whatsapp: (o.contato.whatsapp || '').length > 11 ? o.contato.whatsapp : mascaraFone(o.contato.whatsapp || ''), pessoaId: o.pessoaId || null, tipo,
-      trechos: o.trechos.map(({ de, para, data, janela }) => ({ de, para, data, janela })), pax: { ...o.passageiros },
+      trechos: o.trechos.map(({ de, para, data, janela, outrasDatas }) => ({ de, para, data, janela, outrasDatas: [...outrasDatas] })), pax: { ...o.passageiros },
       especiais: o.pedido ? o.pedido.split(' · ') : [], obs: o.observacao || '', faltando: (o.faltando || []).join('\n') });
   }
   let criado = null, erros = [];
@@ -69,7 +69,9 @@ KVTelas['novo-orcamento'] = function () {
             <div class="campo para ${erros.includes('para' + i) ? 'erro-campo' : ''}"><label for="para${i}">Para</label><select id="para${i}" data-tr="${i}" data-k="para">${opAero(t.para)}</select></div>
             <div class="campo data ${erros.includes('data' + i) ? 'erro-campo' : ''}"><label for="dt${i}">${i === 0 ? 'Dia' : st.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="dt${i}" type="date" data-tr="${i}" data-k="data" value="${t.data}" ${editar ? '' : `min="${hoje}"`}></div>
             ${st.tipo === 'varios' && st.trechos.length > 2 ? `<button class="btn icone fantasma rem" data-rem="${i}" aria-label="Tirar trecho ${i + 1}"><i data-lucide="x"></i></button>` : '<span></span>'}
-            <label class="jan"><input type="checkbox" data-tr="${i}" data-k="janela" ${t.janela ? 'checked' : ''}>Pesquisar a janela de 14 dias (semana do dia + a seguinte)</label></div>`).join('')}</div>
+            <label class="jan"><input type="checkbox" data-tr="${i}" data-k="janela" ${t.janela ? 'checked' : ''}>Pesquisar a janela de 14 dias (semana do dia + a seguinte)</label>
+            <div class="outros-dias"><span class="faint">Outros dias pra olhar:</span>${(t.outrasDatas || []).map((x, k) => `<button class="pilula" data-tira-dia="${i}|${k}" aria-label="Tirar ${O.dataCurta(x)}">${O.dataCurta(x)} <i data-lucide="x"></i></button>`).join('')}
+              <input type="date" data-outro-dia="${i}" aria-label="Pôr outro dia no trecho ${i + 1}"></div></div>`).join('')}</div>
           ${st.tipo === 'varios' ? '<button class="btn" data-add-trecho style="justify-self:start"><i data-lucide="plus"></i>Outro trecho</button>' : ''}</section>
 
         <section class="card"><h2><span class="n">3</span>Passageiros</h2>
@@ -134,6 +136,7 @@ ${editar ? '' : `
         if (t.dataset.k === 'janela') tr.janela = t.checked;
         else if (t.dataset.k === 'de' || t.dataset.k === 'para') { tr[t.dataset.k] = t.value; if (+t.dataset.tr === 1) tr.espelho = false; if (erros.length) validar(); render(); }
       }
+      if (t.dataset.outroDia != null && t.value) { const tr = st.trechos[+t.dataset.outroDia]; tr.outrasDatas = [...new Set([...(tr.outrasDatas || []), t.value])].sort(); render(); }
       if (t.dataset.padrao != null) { st.padrao[+t.dataset.padrao].on = t.checked; render(); }
       if (t.dataset.extra != null && !t.checked) { st.extras.splice(+t.dataset.extra, 1); render(); }
     });
@@ -151,6 +154,7 @@ ${editar ? '' : `
       }
       else if (b.hasAttribute('data-add-trecho')) { const ult = st.trechos[st.trechos.length - 1]; st.trechos.push({ de: ult.para, para: '', data: '', janela: true }); render(); }
       else if (b.dataset.rem != null) { st.trechos.splice(+b.dataset.rem, 1); render(); }
+      else if (b.dataset.tiraDia) { const [i, k] = b.dataset.tiraDia.split('|').map(Number); st.trechos[i].outrasDatas.splice(k, 1); render(); }
       else if (b.dataset.pax) { st.pax[b.dataset.pax] += +b.dataset.d; render(); }
       else if (b.dataset.esp) { const i = st.especiais.indexOf(b.dataset.esp); i < 0 ? st.especiais.push(b.dataset.esp) : st.especiais.splice(i, 1); render(); }
       else if (b.hasAttribute('data-add-item')) { const v = app.querySelector('#item').value.trim(); if (v) { st.extras.push(v); render(); app.querySelector('#item').focus(); } }
@@ -161,7 +165,7 @@ ${editar ? '' : `
         enviando = true; b.disabled = true;
         const dados = {
           contato: { nome: st.nome.trim(), whatsapp: soDig(st.whatsapp) }, pessoaId: st.pessoaId, responsavel: st.responsavel || null,
-          trechos: st.trechos.map(({ de, para, data, janela }) => ({ de, para, data, janela })), passageiros: { ...st.pax },
+          trechos: st.trechos.map(({ de, para, data, janela, outrasDatas }) => ({ de, para, data, janela, outrasDatas: outrasDatas || [] })), passageiros: { ...st.pax },
           especiais: st.especiais, observacao: st.obs.trim(),
           conferencia: [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras],
         };

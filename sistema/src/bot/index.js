@@ -118,12 +118,9 @@ async function tratar(env, upd) {
 // o que a IA devolveu → o formato das ações orc.criar e orc.editar
 const pedidoDa = (p) => ({
   contato: { nome: String(p.nome_contato || '').trim(), whatsapp: p.whatsapp || '' },
-  trechos: p.trechos.map((t) => ({ de: t.de.toUpperCase(), para: t.para.toUpperCase(), data: t.data, janela: t.data_flexivel })),
+  trechos: p.trechos.map((t) => ({ de: t.de.toUpperCase(), para: t.para.toUpperCase(), data: t.data, janela: t.data_flexivel, outrasDatas: t.outras_datas || [] })),
   passageiros: { adultos: Math.max(p.adultos, 0), criancas: Math.max(p.criancas, 0), bebes: Math.max(p.bebes, 0) },
-  especiais: p.pedidos_especiais, faltando: p.faltando, comoEntendi: p.como_entendi,
-  // o trecho guarda um dia só: os outros dias pedidos vão pra observação, pro pesquisador ver
-  observacao: [p.observacao, ...p.trechos.filter((t) => t.outras_datas?.length)
-    .map((t) => `Olhar também ${t.outras_datas.map(dataBr).join(', ')} (${t.de.toUpperCase()} → ${t.para.toUpperCase()})`)].filter(Boolean).join('. '),
+  especiais: p.pedidos_especiais, observacao: p.observacao, faltando: p.faltando, comoEntendi: p.como_entendi,
 });
 
 async function pedirConfirmacao(env, chat, dados) {
@@ -149,11 +146,11 @@ async function abertos(env) {
   const os = (await env.DB.prepare(`SELECT id, contato_nome, contato_whatsapp, adultos, criancas, bebes, pedido, observacao, faltando, etapa
     FROM orcamentos WHERE etapa NOT IN ('emitido', 'perdido', 'cancelado') ORDER BY id DESC LIMIT 40`).all()).results;
   if (!os.length) return [];
-  const ts = (await env.DB.prepare(`SELECT orcamento_id, de, para, data, janela FROM trechos WHERE orcamento_id IN (${os.map(() => '?').join(',')}) ORDER BY ordem`)
+  const ts = (await env.DB.prepare(`SELECT orcamento_id, de, para, data, janela, outras_datas FROM trechos WHERE orcamento_id IN (${os.map(() => '?').join(',')}) ORDER BY ordem`)
     .bind(...os.map((o) => o.id)).all()).results;
   return os.map((o) => ({
     numero: o.id, etapa: o.etapa, nome_contato: o.contato_nome, whatsapp: o.contato_whatsapp || null,
-    trechos: ts.filter((t) => t.orcamento_id === o.id).map((t) => ({ de: t.de, para: t.para, data: t.data, data_flexivel: !!t.janela })),
+    trechos: ts.filter((t) => t.orcamento_id === o.id).map((t) => ({ de: t.de, para: t.para, data: t.data, data_flexivel: !!t.janela, outras_datas: JSON.parse(t.outras_datas || '[]') })),
     adultos: o.adultos, criancas: o.criancas, bebes: o.bebes, pedidos_especiais: o.pedido ? o.pedido.split(' · ') : [],
     observacao: o.observacao || '', faltando: JSON.parse(o.faltando || '[]'),
   }));
@@ -226,7 +223,7 @@ function resumo(o) {
   const t0 = o.trechos[0], t1 = o.trechos[1];
   const tipo = o.trechos.length === 1 ? 'Só ida' : o.trechos.length === 2 && t1.de === t0.para && t1.para === t0.de ? 'Ida e volta' : `${o.trechos.length} trechos`;
   linhas.push(`<b>${tipo}</b>`);
-  o.trechos.forEach((t) => linhas.push(h(`${t.de} → ${t.para}  ${dataBr(t.data)}${t.janela ? '' : ' (data fixa)'}`)));
+  o.trechos.forEach((t) => linhas.push(h(`${t.de} → ${t.para}  ${[t.data, ...(t.outrasDatas || [])].map(dataBr).join(' e ')}${t.janela ? '' : ' (data fixa)'}`)));
   linhas.push(pessoas || 'passageiros a confirmar');
   if (o.especiais?.length) linhas.push(h(`Pedido: ${o.especiais.join(' · ')}`));
   if (o.observacao) linhas.push(h(`Obs.: ${o.observacao}`));

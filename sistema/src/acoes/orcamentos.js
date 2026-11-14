@@ -8,7 +8,7 @@ const ehData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 const ehIata = (s) => /^[A-Z]{3}$/.test(s);
 const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 
-// dados: { contato: {nome, whatsapp}, trechos: [{de, para, data, janela}], passageiros: {adultos, criancas, bebes},
+// dados: { contato: {nome, whatsapp}, trechos: [{de, para, data, janela, outrasDatas}], passageiros: {adultos, criancas, bebes},
 //          especiais: [], observacao, faltando: [], origem, textoOriginal, audio, chat }
 acao('orc.criar', ['dono'], (ctx, d) => criar(ctx, d));
 
@@ -17,9 +17,11 @@ function lerPedido(d) {
   const nome = String(d.contato?.nome || '').trim();
   const whatsapp = soDigitos(d.contato?.whatsapp);
   if (!nome) throw new Recusa('Falta o nome de quem pediu');
-  const trechos = (d.trechos || []).map((t) => ({ de: String(t.de || '').toUpperCase(), para: String(t.para || '').toUpperCase(), data: t.data, janela: t.janela !== false }));
+  const trechos = (d.trechos || []).map((t) => ({ de: String(t.de || '').toUpperCase(), para: String(t.para || '').toUpperCase(), data: t.data, janela: t.janela !== false,
+    // outros dias pedidos pro mesmo trecho ("dia 30 e 31"), sem repetir o dia principal
+    outrasDatas: [...new Set(Array.isArray(t.outrasDatas) ? t.outrasDatas : [])].filter((x) => x !== t.data).sort() }));
   if (!trechos.length) throw new Recusa('Falta pelo menos um trecho');
-  if (trechos.some((t) => !ehIata(t.de) || !ehIata(t.para) || !ehData(t.data))) throw new Recusa('Trecho com aeroporto ou data inválidos');
+  if (trechos.some((t) => !ehIata(t.de) || !ehIata(t.para) || !ehData(t.data) || t.outrasDatas.length > 31 || !t.outrasDatas.every(ehData))) throw new Recusa('Trecho com aeroporto ou data inválidos');
   const p = d.passageiros || {};
   const [adultos, criancas, bebes] = [p.adultos ?? 1, p.criancas ?? 0, p.bebes ?? 0];
   if (!inteiro(adultos, 0, 30) || !inteiro(criancas, 0, 30) || !inteiro(bebes, 0, 30) || adultos + criancas + bebes === 0) throw new Recusa('Número de passageiros inválido');
@@ -54,8 +56,8 @@ async function criar({ db, usuario, quando }, d) {
                 origem, texto_original, audio, origem_chat, criado_em, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .bind(id, nome, whatsapp, pessoa ? pessoa.id : null, responsavel, adultos, criancas, bebes, especiais.join(' · '), String(d.observacao || '').trim(),
         JSON.stringify(faltando), d.origem === 'telegram' ? 'telegram' : 'manual', d.textoOriginal || null, d.audio ? 1 : 0, d.chat || null, quando, usuario.email),
-    ...trechos.map((t, i) => db.prepare('INSERT INTO trechos (orcamento_id, ordem, de, para, data, janela) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(id, i, t.de, t.para, t.data, t.janela ? 1 : 0)),
+    ...trechos.map((t, i) => db.prepare('INSERT INTO trechos (orcamento_id, ordem, de, para, data, janela, outras_datas) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, i, t.de, t.para, t.data, t.janela ? 1 : 0, t.outrasDatas.length ? JSON.stringify(t.outrasDatas) : null)),
     ...conferencia.map((texto, i) => db.prepare('INSERT INTO conferencia (orcamento_id, ordem, texto) VALUES (?, ?, ?)')
       .bind(id, i, texto)),
   ];
@@ -97,7 +99,7 @@ acao('orc.editar', ['dono', 'pesquisa'], async ({ db, usuario }, d) => {
   if (!ehDono(usuario) && o.responsavel !== usuario.email && !(o.etapa === 'novo' && !o.responsavel)) throw new Recusa('Esse orçamento não está com você', 403);
   const n = lerPedido(d);
   const id = o.id;
-  const antigos = (await db.prepare('SELECT de, para, data, janela FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
+  const antigos = (await db.prepare('SELECT de, para, data, janela, outras_datas FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
   // opções, combinações e emissões apontam pro trecho pela posição: mudar a quantidade não pode deixar nada sem trecho
   if (n.trechos.length !== antigos.length) {
     const [combo, emi, op] = await Promise.all([
@@ -121,8 +123,8 @@ acao('orc.editar', ['dono', 'pesquisa'], async ({ db, usuario }, d) => {
       db.prepare('UPDATE orcamentos SET contato_nome = ?, contato_whatsapp = ?, adultos = ?, criancas = ?, bebes = ?, pedido = ?, observacao = ?, faltando = ? WHERE id = ?')
         .bind(n.nome, n.whatsapp, n.adultos, n.criancas, n.bebes, n.especiais.join(' · '), n.observacao, JSON.stringify(n.faltando), id),
       db.prepare('DELETE FROM trechos WHERE orcamento_id = ?').bind(id),
-      ...n.trechos.map((t, i) => db.prepare('INSERT INTO trechos (orcamento_id, ordem, de, para, data, janela) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(id, i, t.de, t.para, t.data, t.janela ? 1 : 0)),
+      ...n.trechos.map((t, i) => db.prepare('INSERT INTO trechos (orcamento_id, ordem, de, para, data, janela, outras_datas) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(id, i, t.de, t.para, t.data, t.janela ? 1 : 0, t.outrasDatas.length ? JSON.stringify(t.outrasDatas) : null)),
       ...saem.map((t) => db.prepare('DELETE FROM conferencia WHERE orcamento_id = ? AND texto = ? AND feito = 0').bind(id, t)),
       ...entram.map((t, i) => db.prepare('INSERT INTO conferencia (orcamento_id, ordem, texto) VALUES (?, ?, ?)').bind(id, m + 1 + i, t)),
     ],
@@ -163,10 +165,10 @@ acao('orc.etapa', ['dono'], async ({ db }, { id, etapa }) => {
 // novo orçamento com o mesmo contato, trechos, passageiros e pedido (sem opções, sem responsável)
 acao('orc.duplicar', ['dono'], async (ctx, { id }) => {
   const o = await orcamento(ctx.db, id);
-  const trechos = (await ctx.db.prepare('SELECT de, para, data, janela FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
+  const trechos = (await ctx.db.prepare('SELECT de, para, data, janela, outras_datas FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
   const r = await criar(ctx, {
     contato: { nome: o.contato_nome, whatsapp: o.contato_whatsapp },
-    trechos: trechos.map((t) => ({ ...t, janela: !!t.janela })),
+    trechos: trechos.map((t) => ({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]') })),
     passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
     especiais: o.pedido ? o.pedido.split(' · ') : [],
     observacao: o.observacao,

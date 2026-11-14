@@ -55,6 +55,7 @@ KVTelas['orcamento'] = function () {
       <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.id}${dono && o.pessoaId ? ' · <span style="color:var(--orange)">é cliente</span>' : ''}</span>
         <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1>
         <div class="kpis"><span class="kpi"><b>${O.dataCurta(o.trechos[0].data)}</b><span>${o.trechos.length > 1 ? `a ${O.dataCurta(o.trechos[o.trechos.length - 1].data)}` : 'só ida'}</span></span>
+          ${o.trechos.some((t) => t.outrasDatas.length) ? `<span class="kpi dias-pedidos"><b>+ ${o.trechos.filter((t) => t.outrasDatas.length).map((t) => (o.trechos.length > 1 ? `${t.de}→${t.para} ` : '') + t.outrasDatas.map(O.dataCurta).join(' e ')).join(' · ')}</b><span>também olhar</span></span>` : ''}
           <span class="kpi"><b>${pessoas()}</b><span>${pessoas() > 1 ? 'pessoas' : 'pessoa'}</span></span><span class="kpi ${dono && o.etapa === 'pesquisado' ? 'destaque' : ''}"><b>${o.opcoes.length}</b><span>opções</span></span></div>
         <div class="linha-acoes">${o.pedido ? `<span class="pedido-pilula"><i data-lucide="message-square-quote"></i>${esc(o.pedido)}</span>` : ''}
           <button class="btn" data-conf><i data-lucide="list-checks"></i>Conferência ${feitos}/${o.conferencia.length}</button>
@@ -83,12 +84,12 @@ KVTelas['orcamento'] = function () {
   const maisBarata = (l) => [...l].sort((a, b) => peso(a) - peso(b))[0];
   const curto = (x) => (x.milhas != null ? kMil(x.milhas) : `R$${Math.round(x.preco / 100)}`);
   function filtroDias(ti, dias) {
-    const dia = KVShell.param('dia'), pedido = o.trechos[ti].data;
+    const dia = KVShell.param('dia'), pedidos = [o.trechos[ti].data, ...o.trechos[ti].outrasDatas];
     const n = (d) => opsDo(ti).filter((x) => x.data === d).length;
     // antes do "Todos", o botão da linha do tempo de todos os trechos
     const abre = o.trechos.length > 1 ? '<button class="cal-abre" data-abre-cal aria-label="Linha do tempo de todos os trechos" title="Todos os trechos"><i data-lucide="calendar-range"></i></button>' : '';
     const todos = dias.length > 1 ? `<button class="dia-c todos" data-dia="" aria-pressed="${!dia}">Todos</button>` : '';
-    const chip = (d) => `<button class="dia-c ${d === pedido ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}" aria-label="${O.diaCurto(d)} ${+d.slice(8)} de ${MESES[mesDe(d)]} de ${d.slice(0, 4)}: ${n(d)} opções"><small>${O.diaCurto(d)}</small><b>${d.slice(8)}</b><em>${MESES[mesDe(d)]}</em><i>${n(d)}</i></button>`;
+    const chip = (d) => `<button class="dia-c ${pedidos.includes(d) ? 'pedido' : ''}" data-dia="${d}" aria-pressed="${d === dia}" aria-label="${O.diaCurto(d)} ${+d.slice(8)} de ${MESES[mesDe(d)]} de ${d.slice(0, 4)}: ${n(d)} opções"><small>${O.diaCurto(d)}</small><b>${d.slice(8)}</b><em>${MESES[mesDe(d)]}</em><i>${n(d)}</i></button>`;
     const anos = [...new Set(dias.map((d) => d.slice(0, 4)))];
     const fita = dias.length > 1 ? anos.map((a) => `<div class="fd-ano"><span class="fd-ano-n">${a}</span>${dias.filter((d) => d.startsWith(a)).map(chip).join('')}</div>`).join('') : '';
     return `<div class="fa-dias">${abre}${todos}${fita}</div>`;
