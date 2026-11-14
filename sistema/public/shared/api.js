@@ -112,6 +112,7 @@
     ponto: () => obter('/api/ponto'),
     pessoas: () => obter('/api/pessoas'),
     clientes: () => obter('/api/clientes'),
+    financeiro: () => obter('/api/financeiro'),
     juntos: (id) => obter('/api/pessoas/juntos?id=' + encodeURIComponent(id)),
     contas: (programa) => obter('/api/contas' + (programa ? '?programa=' + encodeURIComponent(programa) : '')),
     conta: (id) => obter('/api/conta?id=' + encodeURIComponent(id)),

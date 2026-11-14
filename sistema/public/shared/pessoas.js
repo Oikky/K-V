@@ -16,7 +16,7 @@
     const prog = v.opcoes.map((x) => O.site(x.site).programa).find(Boolean);
     const emitidas = v.emissoes.filter((e) => !e.cancelada);
     return {
-      id: v.id, clienteId: v.clienteId, destino: O.destino(v), internacional: O.internacional(v), trechos: v.trechos,
+      id: v.id, clienteId: v.clienteId, fechadoEm: v.fechadoEm, raw: o, destino: O.destino(v), internacional: O.internacional(v), trechos: v.trechos,
       passageiros: v.passageirosIds, etapa: ETAPA[v.etapa], forma: prog ? P.progNome(prog) : 'Dinheiro', programa: prog,
       localizador: emitidas.length ? emitidas.map((e) => e.localizador).join(' · ') : null,
       venda: P.valorFinal(o) || 0, recebido: v.receb.recebido || 0, devolvido: v.emissoes.reduce((s, e) => s + (e.devolvido || 0), 0),
@@ -77,8 +77,20 @@
     return lista;
   }
 
+  // custo da viagem pra K&V: milhas × custo real da milha do programa (sem custo anotado, o valor da milha das configurações)
+  // + taxas + trechos em dinheiro. Precisa das contas carregadas (KV.carregar) pro custo real.
+  // shortcut: viagem cancelada fica fora (venda e lucro zero), mesmo se a K&V ficou com parte do dinheiro; refinar quando o dono responder a pergunta 10.
+  function custo(v) {
+    if (v.etapa === 'Cancelado') return 0;
+    const o = v.raw, c = o.combos[0]; if (!c) return 0;
+    const pts = P.porPrograma(o, c).reduce((s, g) => s + Math.round(g.milhas * ((KV.custoRealPrograma && KV.custoRealPrograma(g.programa)) ?? g.padrao) / 1e4), 0);
+    return pts + P.taxas(o, c) + P.dinheiro(o, c);
+  }
+  const lucro = (v) => v.etapa === 'Cancelado' ? 0 : v.venda - custo(v) - v.devolvido;
+
   window.KV = window.KV || {};
   window.KV.pessoas = {
+    custo, lucro,
     carregar, lista: () => pessoas, pessoa, viagens: () => viagens, viagensDe, ehCliente, aReceber, situacao, deveTotal, proximo, ultima,
     viajaCom, pontos: pontosDe, avisos, diasAte, hoje: HOJE, programa: (id) => programas.find((p) => p.id === id) || { nome: id },
     clienteDesde: (id) => { const vs = viagens.filter((v) => v.clienteId === id); return vs.length ? vs.map((v) => v.trechos[0].data).sort()[0] : null; },

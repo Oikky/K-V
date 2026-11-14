@@ -1,0 +1,62 @@
+/* Estilo da tela financeiro (só vale enquanto ela está aberta). */
+  .cab-fin { display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; margin-bottom: 18px; }
+  .cab-fin h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .fin-mesnav { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; }
+  .fin-mesnav b { min-width: 150px; text-align: center; font-size: 16px; text-transform: capitalize; }
+  .fin-mesnav .btn:disabled { opacity: .35; cursor: default; }
+  .kpi b small { font-size: 18px; color: var(--text-3); margin-left: 1px; }
+
+  /* vendas dos 6 meses: o mês escolhido em laranja; tocar numa barra troca o mês */
+  .fin-graf { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; margin: 28px 0 8px; background: var(--surface-1); border-radius: var(--r-card); padding: 18px 14px 12px; }
+  .fin-barra { position: relative; display: grid; grid-template-rows: auto 120px auto; gap: 6px; justify-items: center; background: none; border: 0; padding: 4px 2px; border-radius: 12px; cursor: pointer; color: var(--text-2); font: inherit; }
+  .fin-barra:disabled { cursor: default; opacity: .4; }
+  .fin-barra:not(:disabled):hover { background: var(--surface-2); }
+  .fin-barra:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+  .fin-valor { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fin-trilho { width: min(44px, 70%); height: 100%; display: flex; align-items: flex-end; border-bottom: 1px solid var(--line); }
+  .fin-trilho i { display: block; width: 100%; background: var(--surface-3); border-radius: 4px 4px 0 0; transition: height .35s cubic-bezier(.16, 1, .3, 1); }
+  .fin-barra:not(:disabled):hover .fin-trilho i { background: var(--teal); }
+  .fin-barra[aria-pressed="true"] .fin-trilho i { background: var(--orange); }
+  .fin-barra[aria-pressed="true"] { color: var(--text); }
+  .fin-mes { font-size: 13px; font-weight: 700; text-transform: capitalize; }
+  .fin-dica { position: absolute; bottom: calc(100% - 8px); left: 50%; translate: -50% 0; z-index: 4; background: var(--surface-3); color: var(--text); box-shadow: var(--shadow-pop); border-radius: 12px; padding: 8px 11px; font-size: 12.5px; font-weight: 600; line-height: 1.5; text-align: left; white-space: nowrap; pointer-events: none; display: none; }
+  .fin-dica::first-line { text-transform: capitalize; font-weight: 800; }
+  .fin-barra:not(:disabled):hover .fin-dica, .fin-barra:focus-visible .fin-dica { display: block; }
+  /* nas pontas a dica abre pra dentro, sem passar da tela */
+  .fin-barra:nth-child(-n+2) .fin-dica { left: 0; translate: 0 0; }
+  .fin-barra:nth-child(n+5) .fin-dica { left: auto; right: 0; translate: 0 0; }
+  @media (hover: none) { .fin-barra .fin-dica { display: none !important; } }
+
+  .fin-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 16px; align-items: start; }
+  .fin-bloco { background: var(--surface-1); border-radius: var(--r-card); padding: 20px; display: grid; gap: 12px; align-content: start; }
+  .fin-bloco h2 { font-size: 19px; font-weight: 600; }
+  .fin-lista { list-style: none; margin: 0; padding: 0; display: grid; }
+  .fin-lista li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .fin-lista li:first-child { border-top: 0; padding-top: 2px; }
+  .fin-lista li > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fin-lista b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fin-lista small { color: var(--text-3); font-size: 12.5px; font-weight: 600; }
+  .fin-lista a { color: var(--text); text-decoration: none; }
+  .fin-lista a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .fin-dupla { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .fin-nota { font-size: 13px; color: var(--text-3); line-height: 1.45; margin: 0; }
+  .fin-mais { font-size: 13.5px; font-weight: 700; color: var(--text-2); }
+  .tabela-wrap + .fin-nota { margin-top: 10px; }
+  .fin-tab td { font-variant-numeric: tabular-nums; }
+  .fin-tab td:first-child { font-weight: 600; }
+  .fin-tab .neg { color: var(--danger); }
+  .fin-tab .muted { color: var(--text-2); }
+  .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
+  .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+
+  @media (max-width: 720px) {
+    .cab-fin h1 { font-size: 28px; }
+    .fin-mesnav { margin-left: 0; width: 100%; justify-content: space-between; }
+    .fin-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 12px; }
+    .fin-kpis .kpi { flex-direction: column; gap: 4px; }
+    .fin-kpis .kpi b { font-size: 28px; }
+    .fin-graf { padding: 14px 6px 10px; }
+    .fin-barra { grid-template-rows: auto 96px auto; }
+    .fin-valor { font-size: 11.5px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .fin-trilho i { transition: none; } }

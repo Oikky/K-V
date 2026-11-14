@@ -3,6 +3,8 @@
 
      MAPA PRA MEXER
      Cada tela é um arquivo de código e um de estilo, em telas/:
+       painel           Painel do dono (precisa de você, próximos voos, o mês) (quem vê: dono)  →  telas/painel.js e telas/painel.css
+       financeiro       Financeiro do mês (vendas, lucro, a receber, custos, folha, estoque) (quem vê: dono)  →  telas/financeiro.js e telas/financeiro.css
        orcamentos       Fila de orçamentos (quem vê: todos)  →  telas/orcamentos.js e telas/orcamentos.css
        novo-orcamento   Novo orçamento (dono) e ?editar=N (todos) →  telas/novo-orcamento.js e telas/novo-orcamento.css
        orcamento        Pesquisa de voos de um orçamento (quem vê: todos)  →  telas/orcamento.js e telas/orcamento.css
@@ -44,6 +46,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>K&amp;V</title>
 <link rel="stylesheet" href="shared/base.css?r=9">
+<link rel="stylesheet" href="telas/painel.css?r=1" data-tela="painel" media="not all">
+<link rel="stylesheet" href="telas/financeiro.css?r=1" data-tela="financeiro" media="not all">
 <link rel="stylesheet" href="telas/orcamentos.css?r=3" data-tela="orcamentos" media="not all">
 <link rel="stylesheet" href="telas/novo-orcamento.css?r=2" data-tela="novo-orcamento" media="not all">
 <link rel="stylesheet" href="telas/orcamento.css?r=10" data-tela="orcamento" media="not all">
@@ -65,17 +69,19 @@
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="shared/rota.js?r=2"></script>
-<script src="shared/api.js?r=11"></script>
+<script src="shared/api.js?r=12"></script>
 <script src="shared/orc.js?r=6"></script>
 <script src="shared/proposta.js?r=2"></script>
 <script src="shared/resumo.js?r=3"></script>
 <script src="shared/contas.js?r=4"></script>
-<script src="shared/pessoas.js?r=2"></script>
+<script src="shared/pessoas.js?r=3"></script>
 <script src="shared/ponto.js?r=2"></script>
-<script src="shared/shell.js?r=10"></script>
+<script src="shared/shell.js?r=11"></script>
 <script src="shared/combo.js?r=2"></script>
 <script src="shared/pessoa-form.js?r=3"></script>
 <script src="shared/opcao-form.js?r=3"></script>
+<script src="telas/painel.js?r=1"></script>
+<script src="telas/financeiro.js?r=1"></script>
 <script src="telas/orcamentos.js?r=4"></script>
 <script src="telas/novo-orcamento.js?r=3"></script>
 <script src="telas/orcamento.js?r=14"></script>

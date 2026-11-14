@@ -1,0 +1,50 @@
+/* Estilo da tela painel (só vale enquanto ela está aberta). */
+  .cab-pn { display: flex; align-items: flex-end; gap: 18px 40px; flex-wrap: wrap; }
+  .cab-pn h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .pn-hoje { font-size: 14px; color: var(--text-2); font-weight: 600; margin-top: 2px; }
+  .cab-pn .kpis { margin-left: auto; }
+  .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+
+  /* precisa de você: cartões da referência, o cartão inteiro é o link */
+  .pn-grade { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+  .pn-cartao { min-height: 150px; padding-bottom: 18px; }
+  .pn-cartao .rot { font-size: 12.5px; color: var(--text-3); font-weight: 700; }
+  .pn-cartao.cheio .rot { color: var(--orange-ink); opacity: .72; }
+  .pn-cartao .grande { align-self: end; }
+  .pn-seta { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; background: var(--surface-1); border: 1px solid var(--line); transition: background .15s, rotate .2s; }
+  .pn-cartao:hover .pn-seta { background: var(--surface-3); rotate: 45deg; }
+  .pn-cartao:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+
+  /* próximos voos: uma linha por trecho */
+  .pn-voos { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; background: var(--surface-1); border-radius: var(--r-card); }
+  .pn-voo { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 12px 14px; border-radius: 14px; color: var(--text); text-decoration: none; }
+  .pn-voo:hover { background: var(--surface-2); }
+  .pn-voo:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+  .pn-data, .pn-rota { display: grid; gap: 3px; min-width: 0; }
+  .pn-data b { font: 800 22px/1 var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .pn-voo.hoje .pn-data b { color: var(--orange); }
+  .pn-data small, .pn-rota small { font-size: 13px; color: var(--text-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pn-rota b { display: inline-flex; align-items: center; gap: 6px; font-size: 16px; letter-spacing: .02em; }
+  .pn-rota b svg.lucide { width: 15px; height: 15px; color: var(--text-3); }
+  .pn-fim { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+  .pn-loc { font-size: 13px; font-weight: 700; color: var(--text-2); letter-spacing: .06em; }
+  .etiqueta.hoje { background: var(--orange); color: var(--orange-ink); }
+
+  /* este mês: faixa que leva ao financeiro */
+  .pn-mes { display: flex; align-items: center; gap: 14px 36px; flex-wrap: wrap; background: var(--surface-1); border-radius: var(--r-card); padding: 18px 20px; color: var(--text); text-decoration: none; }
+  .pn-mes:hover { background: var(--surface-2); }
+  .pn-mes > span:not(.pn-ir) { display: grid; gap: 4px; }
+  .pn-mes small { font-size: 12.5px; color: var(--text-3); font-weight: 700; }
+  .pn-mes b { font: 800 24px/1 var(--font-brand); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .pn-ir { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: var(--text-2); }
+
+  @media (max-width: 720px) {
+    .cab-pn h1 { font-size: 28px; }
+    .cab-pn .kpis { margin-left: 0; }
+    .pn-voo { grid-template-columns: 78px minmax(0, 1fr); gap: 6px 12px; padding: 12px 10px; }
+    .pn-data b { font-size: 19px; }
+    .pn-data small { white-space: normal; }
+    .pn-fim { grid-column: 2; justify-content: flex-start; }
+    .pn-mes { display: grid; grid-template-columns: 1fr 1fr; }
+    .pn-ir { grid-column: 1 / -1; margin-left: 0; }
+  }

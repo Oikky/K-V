@@ -22,8 +22,10 @@ export async function clientes(env) {
   const db = env.DB;
   const [pessoas, orcs] = await Promise.all([
     listarPessoas(env),
-    todos(db, `SELECT id, cliente_id, etapa, adultos, criancas, bebes, combo_aceita, receb_forma, receb_parcelas, receb_recebido, criado_em
-               FROM orcamentos WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL`),
+    todos(db, `SELECT id, cliente_id, etapa, adultos, criancas, bebes, combo_aceita, receb_forma, receb_parcelas, receb_recebido, criado_em,
+               -- quando fechou (o financeiro conta a venda nesse mês); os importados não têm o evento e usam a criação
+               (SELECT MIN(e.quando) FROM eventos e WHERE e.entidade = 'orcamento' AND e.entidade_id = CAST(o.id AS TEXT) AND e.acao = 'fech.salvar' AND e.texto LIKE 'Fechou%') AS fechado_em
+               FROM orcamentos o WHERE etapa IN ('fechado', 'emitido', 'cancelado') AND combo_aceita IS NOT NULL`),
   ]);
   if (!orcs.length) return { pessoas, viagens: [] };
   // as viagens fechadas por subconsulta: uma lista de ids passaria do limite de 100 valores por consulta do D1
@@ -42,7 +44,7 @@ export async function clientes(env) {
   const viagens = orcs.map((o) => {
     const c = combos.find((x) => x.id === o.combo_aceita);
     return {
-      id: o.id, clienteId: o.cliente_id, etapa: o.etapa, criadoEm: o.criado_em,
+      id: o.id, clienteId: o.cliente_id, etapa: o.etapa, criadoEm: o.criado_em, fechadoEm: o.fechado_em || o.criado_em,
       passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
       trechos: trechos.filter((t) => t.orcamento_id === o.id).map(({ de, para, data }) => ({ de, para, data })),
       passageirosIds: pax.filter((p) => p.orcamento_id === o.id).map((p) => p.pessoa_id),
@@ -54,3 +56,9 @@ export async function clientes(env) {
   });
   return { pessoas, viagens };
 }
+
+// Financeiro (só o dono): o que se pagou por pontos (clube, compra, transferência), por mês e tipo.
+// Vendas, recebimentos e folha a tela tira de /api/clientes e /api/ponto, com as mesmas contas das outras telas.
+export const custosPontos = (env) => todos(env.DB, `SELECT substr(m.data, 1, 7) AS mes, m.tipo, c.programa_id AS programa, SUM(m.custo) AS custo, SUM(m.pontos) AS pontos
+  FROM movimentos m JOIN contas c ON c.id = m.conta_id
+  WHERE m.lado = 'entrada' AND m.custo > 0 GROUP BY mes, m.tipo, c.programa_id ORDER BY mes`);
