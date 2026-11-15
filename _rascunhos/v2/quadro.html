@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orçamentos · K&amp;V (quadro A/B/C)</title>
+<!-- RASCUNHO DESCARTÁVEL: 3 versões do croqui (título + quem está com o ponto ligado + novo orçamento, busca, 3 colunas por etapa). Dados fictícios. -->
+<link rel="stylesheet" href="../../sistema/public/shared/base.css">
+<link rel="stylesheet" href="../../sistema/public/telas/orcamentos.css">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+  body { font-size: 14px; }
+  /* ---------- carregando: logo com o anel girando em volta ---------- */
+  .carregando { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); transition: opacity .35s cubic-bezier(.16,1,.3,1), visibility .35s; }
+  .carregando.fora { opacity: 0; visibility: hidden; }
+  .carregando.leve { background: rgb(1 14 31 / .55); }
+  .anel { position: relative; width: 132px; height: 132px; display: grid; place-items: center; }
+  .anel::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 55%, var(--orange) 100%); mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); animation: gira .9s linear infinite; }
+  .anel img { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; }
+  @keyframes gira { to { rotate: 360deg; } }
+
+  /* ---------- casca ---------- */
+  /* menu lateral: cheio, só ícones ou escondido (o botão do topo do menu alterna; escondido, volta pelo botão ao lado do título) */
+  .casca { --mw: 200px; display: grid; grid-template-columns: var(--mw) minmax(0, 1fr); min-height: 100dvh; transition: grid-template-columns .28s cubic-bezier(.16,1,.3,1); }
+  [data-menu-modo="icones"] .casca { --mw: 68px; }
+  [data-menu-modo="fora"] .casca { --mw: 0px; }
+  .menu { overflow: hidden; }
+  [data-menu-modo="fora"] .menu { visibility: hidden; border: 0; padding-inline: 0; }
+  .menu .txt { white-space: nowrap; transition: opacity .15s; }
+  [data-menu-modo="icones"] .menu .txt { opacity: 0; pointer-events: none; }
+  [data-menu-modo="icones"] .menu .marca { padding-inline: 5px; }
+  .menu .cab-m { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+  [data-menu-modo="icones"] .menu .cab-m { flex-direction: column; align-items: flex-start; }
+  .bt-menu { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 0; background: none; color: var(--text-2); display: grid; place-items: center; cursor: pointer; }
+  .bt-menu:hover { background: var(--surface-2); color: var(--text); } .bt-menu svg { width: 18px; }
+  [data-menu-modo="icones"] .menu .cab-m .bt-menu { margin: 0 0 8px 7px; }
+  .abre-menu { display: none; }
+  [data-menu-modo="fora"] .abre-menu { display: grid; margin-left: -8px; }
+  .menu { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; background: var(--surface-1); border-right: 1px solid var(--line); }
+  .menu .marca { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; text-decoration: none; }
+  .menu .marca img { flex: none; width: 38px; height: 38px; border-radius: 10px; object-fit: cover; }
+  .menu .marca b { font: 800 18px/1 var(--font-brand); } .menu .marca b i { color: var(--orange); font-style: normal; }
+  .menu .marca small { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .menu a.pg { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 10px; color: var(--text-2); text-decoration: none; font-weight: 600; }
+  .menu a.pg svg { flex: none; width: 17px; height: 17px; } .menu a.pg:hover { background: var(--surface-2); color: var(--text); }
+  .menu a.pg[aria-current] { background: var(--surface-3); color: var(--text); }
+  .pagina { min-width: 0; padding: 20px 26px 32px; display: flex; flex-direction: column; }
+
+  /* ---------- topo do croqui: título, quem está trabalhando, + novo ---------- */
+  .topo { display: flex; align-items: center; gap: 18px; margin: 0; flex-wrap: nowrap; }
+  .topo h1 { font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
+  .topo .novo { margin-left: auto; height: 40px; padding: 0 18px; border-radius: var(--r-pill); border: 0; background: var(--orange); color: var(--orange-ink); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  .topo .novo svg { width: 17px; }
+  .time { display: flex; align-items: center; }
+  .av { position: relative; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: var(--surface-3); color: var(--text); }
+  .busca-g { position: relative; margin: 16px 0 18px; }
+  .busca-g svg { position: absolute; left: 16px; top: 50%; translate: 0 -50%; width: 18px; color: var(--text-3); }
+  .busca-g input { width: 100%; height: 44px; padding: 0 16px 0 46px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); font-size: 14.5px; }
+  .busca-g input:focus { outline: none; border-color: var(--orange); }
+
+  /* ---------- colunas ---------- */
+  .colunas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); flex: 1; min-height: 0; }
+  .col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+  .col-cab { display: flex; align-items: center; gap: 8px; }
+  .col-cab h2 { font-size: 15px; font-weight: 700; }
+  .col-cab .n { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .lista { display: flex; flex-direction: column; gap: 12px; }
+  .vazio-c { color: var(--text-3); font-size: 13px; padding: 10px 2px; }
+
+  /* cartão atual (com o canto do menu), um pouco mais justo */
+  .ca { cursor: pointer; transition: background .15s; }
+  .ca:hover { background: var(--surface-2); }
+  .ca:hover .canto { background: var(--bg); }
+  .ca .rodape { display: flex; gap: 6px; flex-wrap: wrap; }
+  .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
+  .etiqueta.teal { background: var(--teal-bg); color: var(--teal-soft); }
+  .ca .cobre { cursor: pointer; }
+
+  /* ===== A: fiel ao croqui ===== */
+  .v-a .col { padding: 0 18px; border-left: 1px solid var(--line); }
+  .v-a .col:first-child { padding-left: 0; border-left: 0; } .v-a .col:last-child { padding-right: 0; }
+  .v-a .col-cab h2 { padding: 6px 14px; border: 1px solid var(--line); border-radius: 10px; }
+  .v-a .ca { padding: 16px 16px 14px; border-radius: 22px; gap: 10px; }
+  .v-a .ca .nome { font-size: 21px; }
+  .v-a .time .av { margin-left: -8px; box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--ok); }
+  .v-a .time .av:first-child { margin-left: 4px; }
+  .v-a .time .tempo { margin-left: 12px; color: var(--text-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  /* ===== B: compacto pra tela HD, cada coluna rola sozinha ===== */
+  .v-b .pagina { height: 100dvh; padding-bottom: 0; }
+  .v-b .colunas { gap: 14px; }
+  .v-b .col { gap: 0; min-height: 0; }
+  .v-b .col-cab { padding: 0 4px 10px; }
+  .v-b .col-cab h2::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: var(--c); }
+  .v-b .lista { overflow: auto; gap: 8px; padding: 0 4px 20px; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+  .v-b .ca { padding: 12px 12px 12px 14px; border-radius: 18px; gap: 6px; }
+  .v-b .ca .canto { width: 46px; height: 46px; border-radius: 0 0 0 14px; }
+  .v-b .ca .canto::after { left: 30px; top: 46px; }
+  .v-b .ca .canto button { width: 36px; height: 36px; border-radius: 12px; }
+  .v-b .ca .avc { width: 32px; height: 32px; font-size: 12px; }
+  .v-b .ca .ca-quem b { font-size: 13.5px; } .v-b .ca .ca-quem small { font-size: 12px; }
+  .v-b .ca .nome { font-size: 19px; }
+  .v-b .ca .sub { font-size: 12.5px; margin-top: 2px; }
+  .v-b .ca .linha-b { display: flex; gap: 6px; flex-wrap: wrap; }
+  .v-b .ca .etiqueta { height: 24px; padding: 0 9px; font-size: 12px; }
+  :is(.v-b, .d) .time { gap: 8px; }
+  :is(.v-b, .d) .time .pessoa { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 4px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); }
+  :is(.v-b, .d) .time .pessoa .av { width: 26px; height: 26px; font-size: 11px; }
+  :is(.v-b, .d) .time .pessoa b { font-size: 13px; } :is(.v-b, .d) .time .pessoa span { font-size: 12.5px; color: var(--ok); font-variant-numeric: tabular-nums; }
+
+  /* ===== C: raias com fundo, cartão mostra o andamento dos trechos ===== */
+  .v-c .colunas { gap: 14px; align-items: start; }
+  .v-c .col { --bg: var(--surface-1); background: var(--surface-1); border-radius: 24px; padding: 14px; gap: 10px; }
+  .v-c .col-cab { padding: 2px 4px 4px; }
+  .v-c .col-cab .ic { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--cbg); color: var(--c); }
+  .v-c .col-cab .ic svg { width: 16px; }
+  .v-c .lista { gap: 10px; }
+  .v-c .ca { background: var(--surface-2); padding: 14px; border-radius: 20px; gap: 9px; }
+  .v-c .ca:hover { background: var(--surface-3); }
+  .v-c .ca .canto { width: 52px; height: 52px; }
+  .v-c .ca .canto::after { left: 36px; top: 52px; }
+  .v-c .ca .canto button { width: 40px; height: 40px; border-radius: 13px; background: var(--surface-2); }
+  .v-c .ca .nome { font-size: 20px; }
+  .v-c .trilho { display: flex; gap: 4px; }
+  .v-c .trilho i { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-3); }
+  .v-c .trilho i.ok { background: var(--teal-soft); }
+  .v-c .trilho-t { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-top: -3px; }
+  .v-c:not(.d) .time .av { margin-left: 6px; }
+  .v-c:not(.d) .time .av::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--ok); border-right-color: var(--ok); animation: gira 2.8s linear infinite; }
+  .v-c:not(.d) .time .av .pt { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 2px var(--bg); }
+
+  /* tooltip simples pra equipe */
+  .av[data-dica]:hover::before { content: attr(data-dica); position: absolute; top: calc(100% + 8px); left: 50%; translate: -50% 0; white-space: nowrap; padding: 6px 10px; border-radius: 8px; background: var(--surface-3); color: var(--text); font-size: 12.5px; font-weight: 600; z-index: 5; box-shadow: var(--shadow-pop); }
+
+  /* ---------- trocar de versão ---------- */
+  .versoes { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: var(--surface-3); box-shadow: var(--shadow-pop); }
+  .versoes button { width: 36px; height: 36px; border-radius: 50%; border: 0; background: none; font-weight: 800; cursor: pointer; color: var(--text-2); }
+  .versoes button[aria-pressed="true"] { background: var(--orange); color: var(--orange-ink); }
+
+  /* ---------- janela por cima (igual à v2) ---------- */
+  .veu { position: fixed; inset: 0; z-index: 40; background: rgb(1 8 18 / .62); display: grid; place-items: center; padding: 24px; opacity: 0; transition: opacity .2s; }
+  .veu.aberto { opacity: 1; }
+  .jan { width: min(1180px, 100%); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; background: var(--surface-1); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-pop); overflow: hidden; translate: 0 10px; scale: .985; transition: translate .25s cubic-bezier(.16,1,.3,1), scale .25s cubic-bezier(.16,1,.3,1); }
+  .veu.aberto .jan { translate: 0 0; scale: 1; }
+  .j-topo { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+  .j-topo h2 { font-size: 22px; font-weight: 700; } .j-topo h2 span { color: var(--text-3); font-weight: 600; }
+  .j-topo .sub { color: var(--text-2); font-size: 13.5px; margin-top: 4px; }
+  .j-topo .acoes { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn-x { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--surface-2); display: grid; place-items: center; cursor: pointer; }
+  .btn-x:hover { background: var(--surface-3); } .btn-x svg { width: 18px; }
+  .bt { height: 36px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+  .bt { white-space: nowrap; } .j2 .j-topo { flex-wrap: wrap; } .j2 .j-topo > div:nth-child(2) { flex: 1 1 260px; }
+  .bt svg { width: 16px; } .bt.pri { background: var(--orange); color: var(--orange-ink); border-color: transparent; }
+  .campos { display: flex; gap: 8px 26px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .campos small { display: block; font-size: 11.5px; color: var(--text-3); font-weight: 700; } .campos b { font-weight: 600; } .campos .pedido { color: var(--warn); }
+  .j-corpo { overflow: auto; padding: 16px 20px 20px; background: var(--bg); }
+  .trechos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+  .trecho { background: var(--surface-1); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .trecho header { display: flex; align-items: baseline; gap: 8px; }
+  .trecho header b { font-size: 17px; } .trecho header .i { color: var(--text-3); font-weight: 700; font-size: 12px; } .trecho header small { margin-left: auto; color: var(--text-2); font-size: 12.5px; }
+  .voo { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 10px; border-radius: 12px; background: var(--surface-2); cursor: pointer; }
+  .voo:hover { background: var(--surface-3); } .voo:focus-visible { outline: 2px solid var(--orange); }
+  .voo .site { grid-row: span 2; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--surface-3); }
+  .voo .l1 { font-weight: 700; font-variant-numeric: tabular-nums; } .voo .l2 { font-size: 12.5px; color: var(--text-2); }
+  .voo .preco { grid-row: span 2; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; } .voo .preco small { display: block; font-weight: 600; font-size: 12px; color: var(--text-2); }
+  .voo.menor .preco { color: var(--ok); }
+  .vazio-t { color: var(--warn); font-size: 13px; padding: 8px 2px; }
+  .lancar { height: 34px; border-radius: 10px; border: 1px dashed var(--line); background: none; color: var(--text-2); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .lancar:hover { color: var(--orange); border-color: var(--orange); } .lancar svg { width: 15px; }
+  .veu.dois { z-index: 50; background: rgb(1 8 18 / .45); } .veu.dois .jan { width: min(520px, 100%); }
+  .linhas { display: grid; grid-template-columns: 130px 1fr; gap: 9px 14px; padding: 16px 20px 20px; }
+  .linhas dt { color: var(--text-3); font-weight: 700; font-size: 13px; } .linhas dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+  /* ---------- variações da janela do cartão (?j=1..4) ---------- */
+  .veu .mini { color: var(--text-3); font-size: 12px; font-weight: 700; }
+  .sitec { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; background: var(--surface-3); flex: none; }
+  .num { font-variant-numeric: tabular-nums; }
+  /* 2: gaveta na direita, o quadro continua aparecendo à esquerda */
+  .veu.um.j2 { place-items: stretch end; padding: 0; background: rgb(1 8 18 / .45); }
+  .j2 .jan { width: min(720px, 100%); max-height: none; height: 100dvh; border-radius: 22px 0 0 22px; border-right: 0; translate: 40px 0; scale: 1; }
+  .veu.aberto.j2 .jan { translate: 0 0; }
+  .j2 .j-corpo { flex: 1; display: flex; flex-direction: column; gap: 18px; }
+  .t2 header { display: flex; align-items: baseline; gap: 10px; padding: 0 2px 8px; }
+  .t2 header b { font-size: 16px; } .t2 header small { color: var(--text-2); font-size: 12.5px; }
+  .t2 header .st { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--warn); } .t2 header .st.ok { color: var(--ok); }
+  .t2 .lst { background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .v2 { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: 30px 64px 1fr auto; gap: 12px; align-items: center; padding: 9px 12px; cursor: pointer; border-top: 1px solid var(--line); }
+  .v2:first-child { border-top: 0; } .v2:hover { background: var(--surface-2); } .v2:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+  .v2 .d { font-weight: 700; } .v2 .m small { display: block; color: var(--text-2); font-size: 12.5px; } .v2 .p { text-align: right; font-weight: 700; } .v2 .p small { display: block; color: var(--text-2); font-weight: 600; font-size: 12px; }
+  .v2.menor .p { color: var(--ok); }
+  .lancar-l { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); color: var(--text-2); font-weight: 700; cursor: pointer; }
+  .lancar-l:first-child { border-top: 0; } .lancar-l:hover { color: var(--orange); background: var(--surface-2); } .lancar-l svg { width: 15px; }
+  .lancar-l .falta { margin-left: auto; color: var(--warn); font-weight: 600; font-size: 12.5px; }
+  /* 3: tabela, igual ao Coda antigo */
+  .j3 .j-corpo { padding: 0; background: var(--surface-1); }
+  .tab3 { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tab3 th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); text-align: left; font-size: 12px; color: var(--text-3); font-weight: 700; padding: 8px 12px; }
+  .tab3 td { padding: 9px 12px; border-top: 1px solid var(--line); vertical-align: middle; }
+  .tab3 .dir { text-align: right; }
+  .tab3 tr.grupo td { background: var(--bg); padding: 10px 12px 8px; border-top: 1px solid var(--line); }
+  .tab3 tr.grupo b { font-size: 15px; } .tab3 tr.grupo small { color: var(--text-2); margin-left: 8px; }
+  .tab3 tr.grupo .lancar { height: 30px; padding: 0 10px; float: right; }
+  .tab3 tr.lin { cursor: pointer; } .tab3 tr.lin:hover td { background: var(--surface-2); }
+  .tab3 tr.lin:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+  .tab3 .site3 { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+  .tab3 .menor td.mi { color: var(--ok); font-weight: 700; }
+  .tab3 .vazio-t { padding: 4px 0; }
+  /* 4: trechos à esquerda, voos do trecho escolhido à direita */
+  .j4 .jan { height: min(640px, calc(100dvh - 48px)); }
+  .j4 .meio { flex: 1; min-height: 0; display: grid; grid-template-columns: 290px 1fr; }
+  .j4 aside { border-right: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 6px; overflow: auto; }
+  .tr4 { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 10px 12px; border-radius: 12px; cursor: pointer; }
+  .tr4:hover { background: var(--surface-2); } .tr4[aria-selected="true"], .tr4[aria-selected="true"]:hover { background: none; } .tr4:focus-visible { outline: 2px solid var(--orange); }
+  .tr4 .i { grid-row: span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface-3); }
+  .tr4 .i.ok { background: var(--ok-bg); color: var(--ok); }
+  .tr4 b { font-size: 15px; } .tr4 small { color: var(--text-2); font-size: 12.5px; } .tr4 .n { grid-row: span 2; font-size: 12px; font-weight: 700; color: var(--text-3); }
+  .j4 .ped { margin-top: auto; padding: 12px; border-radius: 12px; background: var(--warn-bg); color: var(--text); font-size: 13px; } .j4 .ped b { display: block; color: var(--warn); font-size: 12px; }
+  .j4 .lado { overflow: auto; padding: 16px 20px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+  .j4 .lado h3 { font-size: 18px; } .j4 .lado h3 small { color: var(--text-2); font-size: 13px; font-weight: 600; margin-left: 8px; }
+  .v4 { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: center; padding: 14px 16px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--line); cursor: pointer; }
+  @media (hover: hover) and (pointer: fine) { .v4:hover { border-color: var(--text-3); } } .v4:focus-visible { outline: 2px solid var(--orange); }
+  .v4 .sitec { grid-row: span 2; width: 40px; height: 40px; border-radius: 10px; font-size: 12px; }
+  .v4 .h { font-size: 17px; font-weight: 700; } .v4 .m { color: var(--text-2); font-size: 13px; }
+  .v4 .p { grid-row: span 2; text-align: right; font-size: 17px; font-weight: 700; } .v4 .p small { display: block; font-size: 12.5px; color: var(--text-2); font-weight: 600; }
+  .v4.menor .p { color: var(--ok); }
+  .v4 .melhor { font-size: 11.5px; font-weight: 800; color: var(--ok); margin-left: 6px; }
+
+  /* janela do voo */
+  .acoes-v { display: flex; gap: 8px; flex-wrap: wrap; } .bt.perigo { color: var(--danger); margin-left: auto; }
+  .v4.on { border-color: var(--orange); }
+  :root { --eo: cubic-bezier(0.23, 1, 0.32, 1); }
+  .trs { position: relative; display: flex; flex-direction: column; gap: 6px; }
+  .trs .ind { position: absolute; left: 0; right: 0; top: 0; border-radius: 12px; background: var(--orange-soft); transition: transform .3s var(--eo); pointer-events: none; }
+  .tr4 { position: relative; } .tr4 .i { transition: background-color .2s ease, color .2s ease; }
+  .tr4[aria-selected="true"] .i { background: var(--orange); color: var(--orange-ink); }
+  /* voos entrando (trocou de trecho ou abriu a janela) */
+  @keyframes sobe { from { opacity: 0; transform: translateY(calc(var(--dir, 1) * 12px)); } }
+  .lado.entra > * { animation: sobe .34s var(--eo) both; }
+  .lado.entra > :nth-child(2) { animation-delay: .04s; } .lado.entra > :nth-child(3) { animation-delay: .08s; } .lado.entra > :nth-child(4) { animation-delay: .12s; } .lado.entra > :nth-child(n+5) { animation-delay: .16s; }
+  .veu.um.j4 .trs > .tr4 { animation: sobe .34s var(--eo) both; }
+  .veu.um.j4 .trs > :nth-child(3) { animation-delay: .04s; } .veu.um.j4 .trs > :nth-child(4) { animation-delay: .08s; } .veu.um.j4 .trs > :nth-child(n+5) { animation-delay: .12s; }
+  /* B: o voo abre embaixo dele mesmo */
+  .v4c { border: 1px solid var(--line); border-radius: 16px; background: var(--surface-1); overflow: hidden; flex: none; transition: border-color .2s ease, box-shadow .3s var(--eo); }
+  .v4c.aberto { border-color: var(--orange); box-shadow: 0 12px 28px rgb(0 0 0 / .3); }
+  .v4c .v4 { width: 100%; border: 0; border-radius: 0; background: none; grid-template-columns: auto 1fr auto auto; transition: transform .12s var(--eo), background-color .2s ease; }
+  .v4c .v4:active { transform: scale(.99); }
+  .v4c .v4 .h, .v4c .v4 .m { grid-column: 2; } .v4c .v4 .p { grid-column: 3; grid-row: 1 / span 2; } .v4c .v4 .chev { grid-column: 4; grid-row: 1 / span 2; }
+  @media (hover: hover) and (pointer: fine) { .v4c:not(.aberto):hover { border-color: var(--text-3); } }
+  .v4 .chev { grid-row: span 2; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--text-3); transition: transform .3s var(--eo), color .2s ease, background-color .2s ease; }
+  .v4 .chev svg { width: 18px; }
+  .v4c.aberto .chev { transform: rotate(180deg); color: var(--orange); background: var(--orange-soft); }
+  .det-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s var(--eo); }
+  .v4c.aberto .det-wrap { grid-template-rows: 1fr; }
+  .det-wrap > div { min-height: 0; overflow: hidden; }
+  .v4c .det dt, .v4c .det dd, .v4c .det .acoes-v { opacity: 0; transform: translateY(-6px); transition: opacity .12s ease, transform .2s var(--eo); }
+  .v4c.aberto .det dt, .v4c.aberto .det dd, .v4c.aberto .det .acoes-v { opacity: 1; transform: none; transition: opacity .25s ease calc(.06s + var(--i) * .03s), transform .3s var(--eo) calc(.06s + var(--i) * .03s); }
+  .det .linhas, .det3 .linhas { padding: 4px 0 14px; grid-template-columns: 120px 1fr; }
+  .v4c .det { padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+  .voltar { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-weight: 700; align-self: flex-start; padding: 4px 2px; }
+  .voltar:hover { color: var(--text); } .voltar:focus-visible { outline: 2px solid var(--orange); } .voltar svg { width: 16px; }
+  .cab-v { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--line); }
+  .cab-v .sitec { width: 44px; height: 44px; border-radius: 11px; font-size: 13px; } .cab-v h3 { font-size: 19px; }
+  .cab-v .p { text-align: right; font-size: 19px; font-weight: 700; } .cab-v .p small { display: block; font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .j4 .meio.tres { grid-template-columns: 250px 1fr 360px; }
+  .det3 { border-left: 1px solid var(--line); padding: 14px 18px; overflow: auto; background: var(--surface-1); }
+  .cab3 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; } .cab3 b { font-size: 16px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lado.entra > *, .veu.um.j4 .trs > .tr4 { animation-name: esmaece; }
+    .trs .ind, .det-wrap, .v4 .chev { transition: none; }
+    .v4c .det dt, .v4c .det dd, .v4c .det .acoes-v { transform: none; }
+    .anel::before { animation: respira 1.6s ease-in-out infinite alternate; background: var(--orange); }
+    .v-c:not(.d) .time .av::after { animation: none; border-color: var(--ok); }
+    .veu, .jan { transition: none; }
+  }
+  @keyframes esmaece { from { opacity: 0; } }
+  @keyframes respira { from { opacity: .25; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="carregando" id="carregando" role="status" aria-label="Carregando"><div class="anel"><img src="../../marca/Logo K&amp;V.png" alt=""></div></div>
+
+<div class="casca" id="casca">
+  <nav class="menu" aria-label="Páginas">
+    <div class="cab-m"><a class="marca" href="#"><img src="../../marca/Logo K&amp;V.png" alt=""><span class="txt"><b>K<i>&amp;</i>V</b><small>Easy Traveling</small></span></a>
+      <button class="bt-menu" id="bt-menu" data-menu-acao></button></div>
+    <a class="pg" href="#" aria-current="page" title="Orçamentos"><i data-lucide="plane"></i><span class="txt">Orçamentos</span></a>
+    <a class="pg" href="#" title="Meu ponto"><i data-lucide="clock"></i><span class="txt">Meu ponto</span></a>
+    <a class="pg" href="#" title="Extensão"><i data-lucide="puzzle"></i><span class="txt">Extensão</span></a>
+  </nav>
+  <main class="pagina">
+    <div class="topo"><button class="bt-menu abre-menu" data-menu-acao="cheio" aria-label="Mostrar o menu" title="Mostrar o menu (Ctrl+B)" aria-keyshortcuts="Control+B"><i data-lucide="panel-left-open"></i></button><h1>Orçamentos</h1><div class="time" id="equipe"></div>
+      <button class="novo"><i data-lucide="plus"></i>Novo orçamento</button></div>
+    <label class="busca-g"><i data-lucide="search"></i><input type="search" id="busca" placeholder="Buscar por nome, cidade, sigla ou nº do orçamento" aria-label="Buscar orçamento"></label>
+    <div class="colunas" id="colunas"></div>
+  </main>
+</div>
+
+<script>
+// ---------- dados fictícios ----------
+const EU = 'Bruna';
+const EQUIPE = [{ nome: 'Bruna', desde: Date.now() - (2 * 3600 + 14 * 60) * 1000 }, { nome: 'Caio', desde: Date.now() - (47 * 60) * 1000 }, { nome: 'Dani', desde: null }];
+const ETAPAS = { novo: 'Novo', pesquisa: 'Em pesquisa', pesquisado: 'Pesquisado' };
+const COLS = [
+  { id: 'novo', nome: 'Novos', ic: 'inbox', c: 'var(--warn)', cbg: 'var(--warn-bg)' },
+  { id: 'pesquisa', nome: 'Em pesquisa', ic: 'search', c: 'var(--orange)', cbg: 'var(--orange-soft)' },
+  { id: 'pesquisado', nome: 'Pesquisados', ic: 'check', c: 'var(--ok)', cbg: 'var(--ok-bg)' },
+];
+const TRILHA = ['novo', 'pesquisa', 'pesquisado', 'enviado', 'fechado'];
+const T = (de, para, datas, voos = []) => ({ de, para, datas, voos });
+const V = (site, s, dia, hora, info, mi, tx) => [site, s, dia, hora, info, mi, tx];
+const ORC = [
+  { id: 216, nome: 'Rafael Martins', etapa: 'novo', resp: null, mexido: 'hoje 11:02', pax: 1, destino: 'Santiago', trechos: [T('BSB', 'SCL', '10–14 jan'), T('SCL', 'BSB', '20–24 jan')] },
+  { id: 215, nome: 'Lia Pacheco', etapa: 'novo', resp: null, mexido: 'hoje 09:30', pax: 3, destino: 'Fortaleza', trechos: [T('GIG', 'FOR', '03–08 fev')] },
+  { id: 217, nome: 'Otávio Nunes', etapa: 'novo', resp: null, mexido: 'hoje 11:40', pax: 2, destino: 'Paris', trechos: [T('GRU', 'CDG', '01–07 mai'), T('CDG', 'GRU', '20–27 mai')] },
+  { id: 214, nome: 'Marina Ribeiro', etapa: 'pesquisa', resp: EU, mexido: 'hoje 10:40', pax: 2, pedido: 'só voo direto', destino: 'Lisboa e Madri',
+    trechos: [T('GRU', 'LIS', '12–18 jan', [V('Latam', 'LA', '14 jan', '22:05 → 11:40', 'direto · 1 mala', '62.000 mi', 'R$ 410'), V('Smiles', 'SM', '15 jan', '23:30 → 13:10', 'direto · sem mala', '70.000 mi', 'R$ 380')]),
+              T('LIS', 'MAD', '19–21 jan', [V('TudoAzul', 'AZ', '19 jan', '09:15 → 11:35', 'direto · 1 mala', '9.000 mi', 'R$ 120')]), T('MAD', 'GRU', '24–26 jan')] },
+  { id: 213, nome: 'Paulo Teixeira', etapa: 'pesquisa', resp: EU, mexido: 'ontem 17:20', pax: 1, destino: 'Orlando',
+    trechos: [T('CNF', 'MCO', '02–09 fev', [V('Skyscanner', 'SK', '03 fev', '01:10 → 09:55', '1 parada · 1 mala', 'R$ 3.240', 'dinheiro')]), T('MCO', 'CNF', '16–23 fev')] },
+  { id: 211, nome: 'Jorge Almeida', etapa: 'pesquisa', resp: 'Caio', mexido: 'hoje 08:50', pax: 2, destino: 'Buenos Aires', trechos: [T('GRU', 'EZE', '14–20 abr', [V('Smiles', 'SM', '15 abr', '07:40 → 10:45', 'direto · 1 mala', '24.000 mi', 'R$ 210')]), T('EZE', 'GRU', '25–30 abr')] },
+  { id: 209, nome: 'Ana Luiza Prado', etapa: 'pesquisado', resp: EU, mexido: '13 nov', pax: 2, destino: 'Salvador',
+    trechos: [T('POA', 'SSA', '20–27 dez', [V('Smiles', 'SM', '21 dez', '06:00 → 10:40', '1 parada · 1 mala', '18.500 mi', 'R$ 64')]), T('SSA', 'POA', '03–10 jan', [V('Latam', 'LA', '05 jan', '14:20 → 19:05', '1 parada · 1 mala', '21.000 mi', 'R$ 64')])] },
+  { id: 207, nome: 'Carla Menezes', etapa: 'pesquisado', resp: 'Caio', mexido: '12 nov', pax: 1, destino: 'Recife', trechos: [T('CWB', 'REC', '08–15 jan', [V('TudoAzul', 'AZ', '09 jan', '10:00 → 15:20', '1 parada · 1 mala', '15.000 mi', 'R$ 52')])] },
+];
+
+const $ = (s) => document.querySelector(s);
+const ini = (n) => n.split(' ').map((p) => p[0]).slice(0, 2).join('');
+const rota = (o) => [o.trechos[0].de, ...o.trechos.map((t) => t.para)].join(' → ');
+const comVoo = (o) => o.trechos.filter((t) => t.voos.length).length;
+const nVoos = (o) => o.trechos.reduce((s, t) => s + t.voos.length, 0);
+const pontos = (o) => { const i = TRILHA.indexOf(o.etapa); return `<span class="pontos" aria-label="Etapa ${ETAPAS[o.etapa]}">${TRILHA.map((e, k) => `<i class="${k < i ? 'feito' : k === i ? 'agora' : ''}"></i>`).join('')}</span>`; };
+const icones = () => lucide.createIcons();
+const canto = (o) => `<span class="canto"><button data-menu="${o.id}" aria-label="Ações do orçamento #${o.id}"><i data-lucide="menu"></i></button></span>`;
+const tempo = (desde) => { const s = Math.floor((Date.now() - desde) / 1000); return `${Math.floor(s / 3600)}h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}min`; };
+let v = new URLSearchParams(location.search).get('v') || 'd', busca = '';
+
+const quem = (o) => o.resp ? (o.resp === EU ? '' : `<span class="etiqueta teal"><i data-lucide="user"></i>com ${o.resp}</span>`) : '';
+const progresso = (o) => o.etapa === 'pesquisa' ? `<span class="etiqueta ${comVoo(o) === o.trechos.length ? 'ok' : ''}"><i data-lucide="route"></i>${comVoo(o)} de ${o.trechos.length} ${o.trechos.length > 1 ? "trechos" : "trecho"} com voo</span>` : o.etapa === 'pesquisado' ? `<span class="etiqueta ok"><i data-lucide="plane"></i>${nVoos(o)} ${nVoos(o) > 1 ? "voos" : "voo"}</span>` : '';
+
+// A: cartão atual inteiro
+const cartaoA = (o) => `<article class="cartao-ref ca" data-id="${o.id}">${canto(o)}
+  <div class="ca-quem"><span class="avc">${ini(o.nome)}</span><span><b>${o.nome}</b><small>#${o.id} · ${o.mexido}</small></span></div>
+  <div class="titulo-op"><span class="nome">${rota(o)}</span><span class="sub">${o.destino} · ${o.pax} ${o.pax > 1 ? 'pessoas' : 'pessoa'}</span></div>
+  <div class="grupos"><div><span class="rot">Datas</span><div class="tags"><span class="etiqueta">${o.trechos[0].datas}</span></div></div><div class="dir"><span class="rot">${ETAPAS[o.etapa]}</span>${pontos(o)}</div></div>
+  ${progresso(o) + quem(o) ? `<div class="rodape">${progresso(o)}${quem(o)}</div>` : ''}</article>`;
+// B: mesmo cartão, sem o bloco de etapa (a coluna já diz) e mais baixo
+const cartaoB = (o) => `<article class="cartao-ref ca" data-id="${o.id}">${canto(o)}
+  <div class="ca-quem"><span class="avc">${ini(o.nome)}</span><span><b>${o.nome}</b><small>#${o.id} · ${o.mexido}</small></span></div>
+  <div class="titulo-op"><span class="nome">${rota(o)}</span><span class="sub">${o.destino} · ${o.trechos[0].datas} · ${o.pax} ${o.pax > 1 ? 'pessoas' : 'pessoa'}</span></div>
+  ${progresso(o) + quem(o) ? `<div class="linha-b">${progresso(o)}${quem(o)}</div>` : ''}</article>`;
+// C: cartão com o trilho dos trechos (cada traço é um trecho; azul = já tem voo)
+const cartaoC = (o) => `<article class="cartao-ref ca" data-id="${o.id}">${canto(o)}
+  <div class="ca-quem"><span class="avc">${ini(o.nome)}</span><span><b>${o.nome}</b><small>#${o.id} · ${o.mexido}</small></span></div>
+  <div class="titulo-op"><span class="nome">${rota(o)}</span><span class="sub">${o.destino} · ${o.trechos[0].datas} · ${o.pax} ${o.pax > 1 ? 'pessoas' : 'pessoa'}</span></div>
+  <div><div class="trilho">${o.trechos.map((t) => `<i class="${t.voos.length ? 'ok' : ''}" title="${t.de} → ${t.para}"></i>`).join('')}</div></div>
+  <div class="trilho-t"><span>${comVoo(o)} de ${o.trechos.length} ${o.trechos.length > 1 ? "trechos" : "trecho"} com voo</span><span>${o.resp ? (o.resp === EU ? 'com você' : 'com ' + o.resp) : 'sem ninguém'}</span></div></article>`;
+
+function equipe() {
+  const on = EQUIPE.filter((p) => p.desde);
+  if (v === 'b' || v === 'd') return on.map((p) => `<span class="pessoa"><span class="av">${p.nome[0]}</span><b>${p.nome}</b><span>${tempo(p.desde)}</span></span>`).join('');
+  if (v === 'c') return on.map((p) => `<span class="av" data-dica="${p.nome} · trabalhando há ${tempo(p.desde)}">${p.nome[0]}<span class="pt"></span></span>`).join('');
+  return on.map((p) => `<span class="av" data-dica="${p.nome} · trabalhando há ${tempo(p.desde)}">${p.nome[0]}</span>`).join('') + `<span class="tempo">${on.length} trabalhando agora</span>`;
+}
+
+function desenhar() {
+  document.body.className = v === 'd' ? 'v-c d' : 'v-' + v;
+  document.querySelectorAll('.versoes button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.jv === jv));
+  $('#equipe').innerHTML = equipe();
+  const q = busca.toLowerCase();
+  const casa = (o) => !q || `${o.nome} ${o.destino} ${rota(o)} ${o.id}`.toLowerCase().includes(q);
+  const cartao = { a: cartaoA, b: cartaoB, c: cartaoC, d: cartaoC }[v];
+  $('#colunas').innerHTML = COLS.map((c) => {
+    const l = ORC.filter((o) => o.etapa === c.id && casa(o));
+    return `<section class="col" style="--c:${c.c};--cbg:${c.cbg}"><div class="col-cab">${(v === 'c' || v === 'd') ? `<span class="ic"><i data-lucide="${c.ic}"></i></span>` : ''}<h2>${c.nome}</h2><span class="n">${l.length}</span></div>
+      <div class="lista">${l.length ? l.map(cartao).join('') : '<p class="vazio-c">Nada aqui.</p>'}</div></section>`;
+  }).join('');
+  icones();
+}
+setInterval(() => { $('#equipe').innerHTML = equipe(); }, 30000);
+
+// ---------- janelas (cada uma é um passo do voltar) ----------
+// ---------- variações da janela do cartão ----------
+let j = new URLSearchParams(location.search).get('j') || '4', aberto = null, sel = 0;
+const acoesOrc = (o) => o.etapa === 'novo' ? '<button class="bt pri"><i data-lucide="hand"></i>Pegar pra mim</button>' : o.etapa === 'pesquisa' ? '<button class="bt"><i data-lucide="list-checks"></i>Conferência</button><button class="bt pri"><i data-lucide="check"></i>Marcar como pesquisado</button>' : '';
+const topoOrc = (o) => `<div class="j-topo"><span class="avc">${ini(o.nome)}</span><div><h2 id="t-orc">${o.nome} <span>#${o.id}</span></h2><div class="sub">${rota(o)} · ${o.destino}</div></div>
+  <div class="acoes">${acoesOrc(o)}<button class="btn-x" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></div></div>`;
+const camposOrc = (o) => `<div class="campos"><div><small>Etapa</small><b>${ETAPAS[o.etapa]}</b></div><div><small>Com quem</small><b>${o.resp || 'ninguém'}</b></div><div><small>Passageiros</small><b>${o.pax}</b></div><div><small>Mexido</small><b>${o.mexido}</b></div>${o.pedido ? `<div><small>Pedido especial</small><b class="pedido">${o.pedido}</b></div>` : ''}</div>`;
+const pessoas = (n) => `${n} ${n > 1 ? 'pessoas' : 'pessoa'}`;
+// o voo de menor milhagem do trecho fica verde (só quando tem mais de um)
+const menor = (t, k) => t.voos.length > 1 && k === 0;
+
+function janela2(o) {
+  return `<div class="veu um j2" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc">${topoOrc(o)}${camposOrc(o)}
+    <div class="j-corpo">${o.trechos.map((t, i) => `<section class="t2"><header><span class="mini">${i + 1}</span><b>${t.de} → ${t.para}</b><small>${t.datas}</small><span class="st ${t.voos.length ? 'ok' : ''}">${t.voos.length ? `${t.voos.length} ${t.voos.length > 1 ? 'voos' : 'voo'}` : 'falta voo'}</span></header>
+      <div class="lst">${t.voos.map((x, k) => `<button class="v2 ${menor(t, k) ? 'menor' : ''}" data-voo="${o.id}:${i}:${k}"><span class="sitec">${x[1]}</span><span class="d num">${x[2]}</span><span class="m num">${x[3]}<small>${x[0]} · ${x[4]}</small></span><span class="p num">${x[5]}<small>+ ${x[6]}</small></span></button>`).join('')}
+        <button class="lancar-l"><i data-lucide="plus"></i>Lançar voo${t.voos.length ? '' : '<span class="falta">nenhum voo ainda</span>'}</button></div></section>`).join('')}</div></div></div>`;
+}
+function janela3(o) {
+  return `<div class="veu um j3" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc">${topoOrc(o)}${camposOrc(o)}
+    <div class="j-corpo"><table class="tab3"><thead><tr><th>Dia</th><th>Horário</th><th>Site</th><th>Escalas e mala</th><th class="dir">Milhas</th><th class="dir">Taxa</th></tr></thead>
+    ${o.trechos.map((t, i) => `<tbody><tr class="grupo"><td colspan="6"><button class="lancar"><i data-lucide="plus"></i>Lançar voo</button><span class="mini">${i + 1}</span> <b>${t.de} → ${t.para}</b><small>${t.datas}</small></td></tr>
+      ${t.voos.length ? t.voos.map((x, k) => `<tr class="lin ${menor(t, k) ? 'menor' : ''}" tabindex="0" data-voo="${o.id}:${i}:${k}"><td class="num">${x[2]}</td><td class="num">${x[3]}</td><td><span class="site3"><span class="sitec">${x[1]}</span>${x[0]}</span></td><td>${x[4]}</td><td class="dir num mi">${x[5]}</td><td class="dir num">${x[6]}</td></tr>`).join('') : '<tr><td colspan="6"><p class="vazio-t">Nenhum voo ainda.</p></td></tr>'}</tbody>`).join('')}</table></div></div></div>`;
+}
+// janela do voo (?jv=a..d): a = janelinha por cima, b = abre embaixo do voo, c = troca a lista pelo voo, d = 3ª coluna
+let jv = new URLSearchParams(location.search).get('jv') || 'b', vooSel = null;
+const linhasVoo = (o, x) => `<dl class="linhas">${[['Dia e horário', `${x[2]} · ${x[3]}`], ['Escalas e mala', x[4]], ['Milhas', x[5]], ['Taxa', x[6]], ['Site', `${x[0]} · <a href="#">abrir o preço no site</a>`], ['Lançado por', `${o.resp || 'Bruna'} · ${o.mexido}`]]
+  .map(([r, v], i) => `<dt style="--i:${i}">${r}</dt><dd style="--i:${i}">${v}</dd>`).join('')}</dl>`;
+const acoesVoo = (o) => `<div class="acoes-v" style="--i:6"><button class="bt"><i data-lucide="pencil"></i>Editar</button>${o.trechos.length > 1 ? '<button class="bt"><i data-lucide="move-right"></i>Mover pra outro trecho</button>' : ''}<button class="bt perigo"><i data-lucide="trash-2"></i>Apagar</button></div>`;
+const cartaoVoo = (o, t, i, k) => { const x = t.voos[k], on = vooSel && vooSel[0] === i && vooSel[1] === k;
+  return `<button class="v4 ${menor(t, k) ? 'menor' : ''} ${on ? 'on' : ''}" data-voo="${o.id}:${i}:${k}" ${jv === 'b' ? `aria-expanded="${!!on}"` : ''} ${on ? 'data-foco' : ''}><span class="sitec">${x[1]}</span><span class="h num">${x[2]} · ${x[3]}</span><span class="p num">${x[5]}<small>+ ${x[6]}</small></span><span class="m">${x[0]} · ${x[4]}${menor(t, k) ? '<span class="melhor">menos milhas</span>' : ''}</span>${jv === 'b' ? '<span class="chev"><i data-lucide="chevron-down"></i></span>' : ''}</button>`; };
+function ladoVoos(o, t) {
+  if (jv === 'c' && vooSel) { const x = t.voos[vooSel[1]];
+    return `<button class="voltar" data-voltar-voo data-foco><i data-lucide="arrow-left"></i>Voos de ${t.de} → ${t.para}</button>
+      <div class="cab-v"><span class="sitec">${x[1]}</span><div><h3>${x[2]} · ${x[3]}</h3><span class="muted">${x[0]} · ${x[4]}</span></div><span class="p num">${x[5]}<small>+ ${x[6]}</small></span></div>
+      <div class="det">${linhasVoo(o, x)}${acoesVoo(o)}</div>`; }
+  return `<h3>${t.de} → ${t.para}<small>${t.datas}</small></h3>
+    ${t.voos.length ? t.voos.map((x, k) => { if (jv !== 'b') return cartaoVoo(o, t, sel, k); const on = vooSel && vooSel[1] === k;
+      return `<div class="v4c ${on ? 'aberto' : ''}" data-k="${k}">${cartaoVoo(o, t, sel, k)}<div class="det-wrap" ${on ? '' : 'inert'}><div><div class="det">${linhasVoo(o, x)}${acoesVoo(o)}</div></div></div></div>`; }).join('') : '<p class="vazio-t">Nenhum voo ainda neste trecho.</p>'}
+    <button class="lancar"><i data-lucide="plus"></i>Lançar voo em ${t.de} → ${t.para}</button>`;
+}
+function janela4(o) {
+  const t = o.trechos[sel] || o.trechos[0], tres = jv === 'd' && vooSel;
+  return `<div class="veu um j4" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc">${topoOrc(o)}
+    <div class="meio ${tres ? 'tres' : ''}"><aside><div class="trs" role="tablist" aria-label="Trechos" aria-orientation="vertical"><span class="ind" aria-hidden="true"></span>${o.trechos.map((x, i) => `<button class="tr4" role="tab" aria-selected="${i === sel}" data-trecho="${i}"><span class="i ${x.voos.length ? 'ok' : ''}">${i + 1}</span><b>${x.de} → ${x.para}</b><span class="n">${x.voos.length || '—'}</span><small>${x.datas}</small></button>`).join('')}</div>
+      <p class="muted" style="font-size:13px;padding:8px 12px">${ETAPAS[o.etapa]} · ${o.resp ? 'com ' + o.resp : 'sem ninguém'} · ${pessoas(o.pax)} · ${o.mexido}</p>
+      ${o.pedido ? `<div class="ped"><b>Pedido especial</b>${o.pedido}</div>` : ''}</aside>
+    <div class="lado entra" role="tabpanel">${ladoVoos(o, t)}</div>
+    ${tres ? `<aside class="det3" aria-label="Voo escolhido"><div class="cab3"><b>Voo</b><button class="btn-x" data-voltar-voo aria-label="Fechar o voo"><i data-lucide="x"></i></button></div>${linhasVoo(o, t.voos[vooSel[1]])}${acoesVoo(o)}</aside>` : ''}</div></div></div>`;
+}
+function janelaOrc(o) {
+  aberto = o.id;
+  if (j === '2') return janela2(o);
+  if (j === '3') return janela3(o);
+  if (j === '4') return janela4(o);
+  return `<div class="veu um" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc">
+    <div class="j-topo"><span class="avc">${ini(o.nome)}</span><div><h2 id="t-orc">${o.nome} <span>#${o.id}</span></h2><div class="sub">${rota(o)} · ${o.destino}</div></div>
+      <div class="acoes">${o.etapa === 'novo' ? '<button class="bt pri"><i data-lucide="hand"></i>Pegar pra mim</button>' : o.etapa === 'pesquisa' ? '<button class="bt"><i data-lucide="list-checks"></i>Conferência</button><button class="bt pri"><i data-lucide="check"></i>Marcar como pesquisado</button>' : ''}
+      <button class="btn-x" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></div></div>
+    <div class="campos"><div><small>Etapa</small><b>${ETAPAS[o.etapa]}</b></div><div><small>Com quem</small><b>${o.resp || 'ninguém'}</b></div><div><small>Passageiros</small><b>${o.pax}</b></div><div><small>Mexido</small><b>${o.mexido}</b></div>${o.pedido ? `<div><small>Pedido especial</small><b class="pedido">${o.pedido}</b></div>` : ''}</div>
+    <div class="j-corpo"><div class="trechos">${o.trechos.map((t, i) => `<section class="trecho"><header><span class="i">${i + 1}</span><b>${t.de} → ${t.para}</b><small>${t.datas}</small></header>
+      ${t.voos.length ? t.voos.map((x, k) => `<button class="voo ${t.voos.length > 1 && k === 0 ? 'menor' : ''}" data-voo="${o.id}:${i}:${k}"><span class="site">${x[1]}</span><span class="l1">${x[2]} · ${x[3]}</span><span class="preco">${x[5]}<small>+ ${x[6]}</small></span><span class="l2">${x[0]} · ${x[4]}</span></button>`).join('') : '<p class="vazio-t">Nenhum voo ainda.</p>'}
+      <button class="lancar"><i data-lucide="plus"></i>Lançar voo</button></section>`).join('')}</div></div></div></div>`;
+}
+function janelaVoo(o, i, k) {
+  const t = o.trechos[i], x = t.voos[k];
+  return `<div class="veu dois" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-voo">
+    <div class="j-topo"><span class="avc">${x[1]}</span><div><h2 id="t-voo">${t.de} → ${t.para}</h2><div class="sub">${x[0]} · ${x[2]}</div></div>
+      <div class="acoes"><button class="btn-x" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></div></div>
+    ${linhasVoo(o, x)}<div style="padding:0 20px 20px">${acoesVoo(o)}</div></div></div>`;
+}
+function abrir(html, passo) {
+  document.body.insertAdjacentHTML('beforeend', html);
+  const vs = document.querySelectorAll('[data-veu]'), el = vs[vs.length - 1];
+  icones(); moverInd(true); requestAnimationFrame(() => el.classList.add('aberto'));
+  el.querySelector('[data-fechar]').focus();
+  history.pushState(passo, '');
+}
+// troca a janela aberta pela versão escolhida, sem animar e sem mexer no voltar
+const reduz = matchMedia('(prefers-reduced-motion: reduce)');
+let proxTrecho = null;
+// pílula laranja dos trechos: vai até o trecho escolhido
+function moverInd(sem) {
+  const ind = document.querySelector('.trs .ind'), b = document.querySelector('.tr4[aria-selected="true"]'); if (!ind || !b) return;
+  if (sem) ind.style.transition = 'none';
+  ind.style.transform = `translateY(${b.offsetTop}px)`; ind.style.height = b.offsetHeight + 'px';
+  if (sem) { void ind.offsetWidth; ind.style.transition = ''; }
+}
+// troca só a parte da direita; os voos entram vindo do lado pra onde a pessoa foi (cima/baixo)
+function trocarTrecho(n) {
+  const o = ORC.find((x) => x.id === aberto), lado = document.querySelector('.j4 .lado');
+  if (jv === 'd' || !lado) { sel = n; return trocarJanela(); }
+  lado.style.setProperty('--dir', n > sel ? 1 : -1); sel = n;
+  lado.innerHTML = ladoVoos(o, o.trechos[sel]); lado.scrollTop = 0;
+  lado.classList.remove('entra'); void lado.offsetWidth; lado.classList.add('entra');
+  document.querySelectorAll('[data-trecho]').forEach((b) => b.setAttribute('aria-selected', Number(b.dataset.trecho) === sel));
+  moverInd(); icones();
+}
+// B: abre/fecha o detalhe sem redesenhar, pra animação correr (e poder ser interrompida)
+function syncVoo() {
+  document.querySelectorAll('.v4c').forEach((c) => {
+    const on = !!vooSel && vooSel[1] === Number(c.dataset.k);
+    c.classList.toggle('aberto', on); c.querySelector('.v4').setAttribute('aria-expanded', on); c.querySelector('.det-wrap').inert = !on;
+  });
+  const c = vooSel && document.querySelector(`.v4c[data-k="${vooSel[1]}"]`);
+  if (c) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: reduz.matches ? 'auto' : 'smooth' }), 300);
+}
+function trocarJanela() {
+  const el = document.querySelector('.veu.um'); if (!el || aberto == null) return;
+  el.outerHTML = janelaOrc(ORC.find((o) => o.id === aberto));
+  document.querySelector('.veu.um').classList.add('aberto'); icones();
+  const f = document.querySelector('.veu.um [data-foco]'); if (f) f.focus();
+  moverInd(true);
+}
+function fecharUltima() { const vs = document.querySelectorAll('[data-veu]'), el = vs[vs.length - 1]; if (!el) return; el.classList.remove('aberto'); setTimeout(() => el.remove(), 200); }
+// voltar: fecha o voo aberto dentro da janela antes de fechar a janela
+addEventListener('popstate', () => {
+  if (vooSel && !document.querySelector('.veu.dois')) {
+    vooSel = null;
+    if (proxTrecho != null) { const n = proxTrecho; proxTrecho = null; return trocarTrecho(n); }
+    return jv === 'b' ? syncVoo() : trocarJanela();
+  }
+  fecharUltima();
+});
+function carregar(ms, depois, leve) { const c = $('#carregando'); c.classList.toggle('leve', !!leve); c.classList.remove('fora'); setTimeout(() => { c.classList.add('fora'); depois && depois(); }, ms); }
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-jv]'); if (b) { jv = b.dataset.jv; history.replaceState(history.state, '', '?v=d&j=4&jv=' + jv); desenhar(); return trocarJanela(); }
+  if (e.target.closest('[data-voltar-voo]')) return history.back();
+  const tr = e.target.closest('[data-trecho]'); if (tr) { const n = Number(tr.dataset.trecho); if (n === sel) return; if (vooSel) { proxTrecho = n; return history.back(); } return trocarTrecho(n); }
+  if (e.target.closest('[data-fechar]') || e.target.matches('[data-veu]')) return history.back();
+  if (e.target.closest('[data-menu]')) return;
+  const voo = e.target.closest('[data-voo]'); if (voo) { const [id, i, k] = voo.dataset.voo.split(':').map(Number); const o = ORC.find((x) => x.id === id);
+    if (jv === 'a' || j !== '4') return abrir(janelaVoo(o, i, k), { voo: 1 });
+    if (vooSel && vooSel[1] === k) return history.back();
+    if (!vooSel) history.pushState({ voo: 1 }, '');
+    vooSel = [i, k]; return jv === 'b' ? syncVoo() : trocarJanela(); }
+  const c = e.target.closest('.colunas [data-id]'); if (c) { const o = ORC.find((x) => x.id === Number(c.dataset.id)); sel = Math.max(0, o.trechos.findIndex((t) => !t.voos.length)); vooSel = null; carregar(450, () => abrir(janelaOrc(o), { orc: o.id }), true); }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.querySelector('[data-veu]')) history.back(); });
+$('#busca').addEventListener('input', (e) => { busca = e.target.value; desenhar(); });
+
+// ---------- menu lateral: cheio → só ícones → escondido → cheio (fica lembrado neste computador) ----------
+const PROX = { cheio: 'icones', icones: 'fora', fora: 'cheio' };
+const ROT = { cheio: ['panel-left-close', 'Diminuir o menu (Ctrl+B esconde)'], icones: ['panel-left-dashed', 'Esconder o menu (Ctrl+B)'] };
+function modoMenu(m) {
+  document.documentElement.dataset.menuModo = m;
+  try { localStorage.setItem('kv-menu', m); } catch (e) {}
+  const b = $('#bt-menu'); if (ROT[m]) { b.innerHTML = `<i data-lucide="${ROT[m][0]}"></i>`; b.setAttribute('aria-label', ROT[m][1]); b.title = ROT[m][1]; }
+  icones();
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-menu-acao]'); if (b) modoMenu(b.dataset.menuAcao || PROX[document.documentElement.dataset.menuModo]); });
+// Ctrl+B mostra/esconde o menu (volta pro modo que estava antes de esconder)
+let antes = 'cheio';
+addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b' || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  const m = document.documentElement.dataset.menuModo;
+  if (m === 'fora') modoMenu(antes); else { antes = m; modoMenu('fora'); }
+});
+let salvo = 'cheio'; try { salvo = localStorage.getItem('kv-menu') || 'cheio'; } catch (e) {}
+
+desenhar();
+modoMenu(salvo);
+carregar(1300);
+</script>
+</body>
+</html>

@@ -14,6 +14,39 @@
         "value": "consolas",
         "createdAt": "2026-10-17T15:33:30.667Z",
         "reason": "agent: fonte monoespaçada de fallback só pro código de localizador (dado, não decoração)"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "kv ordinal",
+        "createdAt": "2026-11-15T14:56:19.824Z",
+        "reason": "Claude: fonte KV Ordinal já faz parte do base.css aprovado (só º/ª)"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/5958-1794754248/content/orcamentos-jeitos.html"
+        ],
+        "createdAt": "2026-11-15T14:57:32.145Z",
+        "reason": "Claude: miniatura de wireframe no brainstorm"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/5958-1794754248/content/cards-popup.html"
+        ],
+        "createdAt": "2026-11-15T14:57:32.614Z",
+        "reason": "Claude: miniatura de wireframe no brainstorm"
+      },
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "_rascunhos/v2/*.html"
+        ],
+        "createdAt": "2026-11-15T15:55:26.389Z",
+        "reason": "Claude: bolinha vem do orcamentos.css do sistema (ponto ligado, dado ao vivo); os rascunhos v2 nem usam"
       }
     ]
   }

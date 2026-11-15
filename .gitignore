@@ -22,3 +22,4 @@ _rascunhos/.impeccable/
 # Pedidos que chegam pelo bot do Telegram (podem ter nome e telefone de cliente de verdade)
 _rascunhos/dados/
 __pycache__/
+.superpowers/

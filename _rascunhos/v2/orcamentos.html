@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orçamentos · K&amp;V (rascunho v2)</title>
+<!-- RASCUNHO DESCARTÁVEL: layout novo do PC (menu de páginas + abas + cartões + janela por cima, como o Coda). Dados fictícios. -->
+<link rel="stylesheet" href="../../sistema/public/shared/base.css">
+<link rel="stylesheet" href="../../sistema/public/telas/orcamentos.css">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+  /* ---------- carregando: logo com o anel girando em volta ---------- */
+  .carregando { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); transition: opacity .35s cubic-bezier(.16,1,.3,1), visibility .35s; }
+  .carregando.fora { opacity: 0; visibility: hidden; }
+  .carregando.leve { background: rgb(1 14 31 / .55); backdrop-filter: blur(2px); }
+  .anel { position: relative; width: 132px; height: 132px; display: grid; place-items: center; }
+  .anel::before { content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0 55%, var(--orange) 100%);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+    animation: gira .9s linear infinite; }
+  .anel img { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; }
+  @keyframes gira { to { rotate: 360deg; } }
+  @media (prefers-reduced-motion: reduce) { .anel::before { animation: respira 1.6s ease-in-out infinite alternate; background: var(--orange); } }
+  @keyframes respira { from { opacity: .25; } to { opacity: 1; } }
+
+  /* ---------- casca: menu de páginas à esquerda ---------- */
+  body { font-size: 14px; }
+  .casca { display: grid; grid-template-columns: 216px 1fr; min-height: 100dvh; }
+  .menu { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; background: var(--surface-1); border-right: 1px solid var(--line); }
+  .menu .marca { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; text-decoration: none; }
+  .menu .marca img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; }
+  .menu .marca b { font: 800 18px/1 var(--font-brand); letter-spacing: -.02em; } .menu .marca b i { color: var(--orange); font-style: normal; }
+  .menu .marca small { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .menu .grupo { font-size: 11.5px; font-weight: 700; color: var(--text-3); padding: 12px 10px 4px; }
+  .menu a.pg { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 10px; color: var(--text-2); text-decoration: none; font-weight: 600; }
+  .menu a.pg svg { width: 17px; height: 17px; }
+  .menu a.pg:hover { background: var(--surface-2); color: var(--text); }
+  .menu a.pg[aria-current] { background: var(--surface-3); color: var(--text); }
+  .menu a.pg .n { margin-left: auto; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .ponto { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; background: var(--surface-2); }
+  .ponto .bola { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-bg); }
+  .ponto b { display: block; font-variant-numeric: tabular-nums; } .ponto small { color: var(--text-3); font-size: 12px; }
+  .ponto button { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--surface-3); display: grid; place-items: center; cursor: pointer; }
+  .ponto button svg { width: 15px; height: 15px; }
+
+  /* ---------- página ---------- */
+  .pagina { min-width: 0; padding: 18px 28px 40px; }
+  .topo { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+  .topo h1 { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .topo .busca-wrap { margin-left: auto; position: relative; }
+  .topo .busca-wrap svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 16px; color: var(--text-3); }
+  .topo input { width: 280px; height: 38px; padding: 0 12px 0 36px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); }
+  .abas { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 10px 0 18px; }
+  .abas button { position: relative; height: 40px; padding: 0 14px; border: 0; background: none; color: var(--text-2); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .abas button .n { font-size: 12px; padding: 1px 7px; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .abas button:hover { color: var(--text); }
+  .abas button[aria-selected="true"] { color: var(--text); }
+  .abas button[aria-selected="true"]::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--orange); }
+  .abas button[aria-selected="true"] .n { background: var(--orange-soft); color: var(--orange); }
+  .explica { color: var(--text-3); font-size: 13px; margin: -8px 0 14px; }
+
+  /* cartões atuais, só mais justos pra caber em tela HD */
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .grade .cartao-ref { padding: 16px 16px 14px; border-radius: 22px; gap: 10px; cursor: pointer; transition: background .15s; }
+  .grade .cartao-ref:hover { background: var(--surface-2); }
+  .grade .cartao-ref .nome { font-size: 22px; }
+  .ca .rodape { display: flex; gap: 6px; flex-wrap: wrap; }
+  .etiqueta.ok { background: var(--ok-bg); color: var(--ok); }
+  .etiqueta.teal { background: var(--teal-bg); color: var(--teal-soft); }
+
+  /* ---------- janela por cima (pop-up da linha, como no Coda) ---------- */
+  .veu { position: fixed; inset: 0; z-index: 40; background: rgb(1 8 18 / .62); display: grid; place-items: center; padding: 24px; opacity: 0; transition: opacity .2s; }
+  .veu.aberto { opacity: 1; }
+  .jan { width: min(1180px, 100%); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; background: var(--surface-1); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-pop); overflow: hidden; translate: 0 10px; scale: .985; transition: translate .25s cubic-bezier(.16,1,.3,1), scale .25s cubic-bezier(.16,1,.3,1); }
+  .veu.aberto .jan { translate: 0 0; scale: 1; }
+  .j-topo { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+  .j-topo h2 { font-size: 22px; font-weight: 700; } .j-topo h2 span { color: var(--text-3); font-weight: 600; }
+  .j-topo .sub { color: var(--text-2); font-size: 13.5px; margin-top: 4px; }
+  .j-topo .acoes { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn-x { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--surface-2); display: grid; place-items: center; cursor: pointer; }
+  .btn-x:hover { background: var(--surface-3); } .btn-x svg { width: 18px; }
+  .bt { height: 36px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+  .bt svg { width: 16px; } .bt.pri { background: var(--orange); color: var(--orange-ink); border-color: transparent; }
+  .campos { display: flex; gap: 8px 26px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-1); }
+  .campos div { min-width: 0; } .campos small { display: block; font-size: 11.5px; color: var(--text-3); font-weight: 700; }
+  .campos b { font-weight: 600; }
+  .campos .pedido { color: var(--warn); }
+  .j-corpo { overflow: auto; padding: 16px 20px 20px; background: var(--bg); }
+  .trechos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+  .trecho { background: var(--surface-1); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .trecho header { display: flex; align-items: baseline; gap: 8px; }
+  .trecho header b { font-size: 17px; font-variant-numeric: tabular-nums; } .trecho header .i { color: var(--text-3); font-weight: 700; font-size: 12px; }
+  .trecho header small { margin-left: auto; color: var(--text-2); font-size: 12.5px; }
+  .voo { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 10px; border-radius: 12px; background: var(--surface-2); cursor: pointer; }
+  .voo:hover { background: var(--surface-3); } .voo:focus-visible { outline: 2px solid var(--orange); }
+  .voo .site { grid-row: span 2; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--surface-3); }
+  .voo .l1 { font-weight: 700; font-variant-numeric: tabular-nums; } .voo .l2 { font-size: 12.5px; color: var(--text-2); }
+  .voo .preco { grid-row: span 2; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; } .voo .preco small { display: block; font-weight: 600; font-size: 12px; color: var(--text-2); }
+  .voo.menor .preco { color: var(--ok); }
+  .trecho .vazio-t { color: var(--warn); font-size: 13px; padding: 8px 2px; }
+  .lancar { height: 34px; border-radius: 10px; border: 1px dashed var(--line); background: none; color: var(--text-2); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .lancar:hover { color: var(--orange); border-color: var(--orange); } .lancar svg { width: 15px; }
+  /* janelinha do voo, por cima da janela */
+  .veu.dois { z-index: 50; background: rgb(1 8 18 / .45); }
+  .veu.dois .jan { width: min(520px, 100%); }
+  .linhas { display: grid; grid-template-columns: 130px 1fr; gap: 9px 14px; padding: 16px 20px 20px; }
+  .linhas dt { color: var(--text-3); font-weight: 700; font-size: 13px; } .linhas dd { margin: 0; font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { .veu, .jan { transition: none; } }
+</style>
+</head>
+<body>
+<div class="carregando" id="carregando" role="status" aria-label="Carregando"><div class="anel"><img src="../../marca/Logo K&amp;V.png" alt=""></div></div>
+
+<div class="casca">
+  <nav class="menu" aria-label="Páginas">
+    <a class="marca" href="#"><img src="../../marca/Logo K&amp;V.png" alt=""><span><b>K<i>&amp;</i>V</b><small>Easy Traveling</small></span></a>
+    <a class="pg" href="#" aria-current="page"><i data-lucide="plane"></i>Orçamentos<span class="n">5</span></a>
+    <a class="pg" href="#"><i data-lucide="clock"></i>Meu ponto</a>
+    <a class="pg" href="#"><i data-lucide="puzzle"></i>Extensão</a>
+    <div class="ponto"><span class="bola"></span><span><b>2h 14min</b><small>desde 08:10</small></span><button aria-label="Pausar o ponto"><i data-lucide="pause"></i></button></div>
+  </nav>
+
+  <main class="pagina">
+    <div class="topo"><h1>Orçamentos</h1>
+      <label class="busca-wrap"><i data-lucide="search"></i><input type="search" id="busca" placeholder="Nome, cidade ou nº" aria-label="Buscar orçamento"></label></div>
+    <div class="abas" role="tablist" id="abas"></div>
+    <p class="explica" id="explica"></p>
+    <div class="grade" id="grade"></div>
+  </main>
+</div>
+
+<script>
+// ---------- dados fictícios ----------
+const EU = 'Bruna';
+const ETAPAS = { novo: 'Novo', pesquisa: 'Em pesquisa', pesquisado: 'Pesquisado', enviado: 'Enviado', fechado: 'Fechado' };
+const TRILHA = ['novo', 'pesquisa', 'pesquisado', 'enviado', 'fechado'];
+const ORC = [
+  { id: 214, nome: 'Marina Ribeiro', etapa: 'pesquisa', resp: EU, mexido: 'hoje 10:40', pax: 2, pedido: 'só voo direto', destino: 'Lisboa e Madri',
+    trechos: [{ de: 'GRU', para: 'LIS', datas: '12–18 jan', voos: [['Latam', 'LA', '14 jan', '22:05 → 11:40', 'direto · 1 mala', '62.000 mi', 'R$ 410'], ['Smiles', 'SM', '15 jan', '23:30 → 13:10', 'direto · sem mala', '70.000 mi', 'R$ 380']] },
+              { de: 'LIS', para: 'MAD', datas: '19–21 jan', voos: [['TudoAzul', 'AZ', '19 jan', '09:15 → 11:35', 'direto · 1 mala', '9.000 mi', 'R$ 120']] },
+              { de: 'MAD', para: 'GRU', datas: '24–26 jan', voos: [] }] },
+  { id: 213, nome: 'Paulo Teixeira', etapa: 'pesquisa', resp: EU, mexido: 'ontem 17:20', pax: 1, pedido: '', destino: 'Orlando',
+    trechos: [{ de: 'CNF', para: 'MCO', datas: '02–09 fev', voos: [['Skyscanner', 'SK', '03 fev', '01:10 → 09:55', '1 parada · 1 mala', 'R$ 3.240', 'dinheiro']] }, { de: 'MCO', para: 'CNF', datas: '16–23 fev', voos: [] }] },
+  { id: 209, nome: 'Ana Luiza Prado', etapa: 'pesquisado', resp: EU, mexido: '13 nov', pax: 2, pedido: '', destino: 'Salvador',
+    trechos: [{ de: 'POA', para: 'SSA', datas: '20–27 dez', voos: [['Smiles', 'SM', '21 dez', '06:00 → 10:40', '1 parada · 1 mala', '18.500 mi', 'R$ 64']] }, { de: 'SSA', para: 'POA', datas: '03–10 jan', voos: [['Latam', 'LA', '05 jan', '14:20 → 19:05', '1 parada · 1 mala', '21.000 mi', 'R$ 64']] }] },
+  { id: 205, nome: 'Família Souza', etapa: 'enviado', resp: EU, mexido: '10 nov', pax: 4, pedido: 'crianças de 4 e 7 anos', destino: 'Nova York',
+    trechos: [{ de: 'REC', para: 'JFK', datas: '05–12 mar', voos: [['Latam', 'LA', '06 mar', '23:55 → 09:20', '1 parada · 2 malas', '98.000 mi', 'R$ 1.120']] }, { de: 'JFK', para: 'REC', datas: '18–25 mar', voos: [['TudoAzul', 'AZ', '20 mar', '18:40 → 08:15', '1 parada · 2 malas', '110.000 mi', 'R$ 980']] }] },
+  { id: 216, nome: 'Rafael Martins', etapa: 'novo', resp: null, mexido: 'hoje 11:02', pax: 1, pedido: '', destino: 'Santiago', trechos: [{ de: 'BSB', para: 'SCL', datas: '10–14 jan', voos: [] }, { de: 'SCL', para: 'BSB', datas: '20–24 jan', voos: [] }] },
+  { id: 215, nome: 'Lia Pacheco', etapa: 'novo', resp: null, mexido: 'hoje 09:30', pax: 3, pedido: '', destino: 'Fortaleza', trechos: [{ de: 'GIG', para: 'FOR', datas: '03–08 fev', voos: [] }] },
+  { id: 211, nome: 'Jorge Almeida', etapa: 'pesquisa', resp: 'Caio', mexido: 'hoje 08:50', pax: 2, pedido: '', destino: 'Buenos Aires', trechos: [{ de: 'GRU', para: 'EZE', datas: '14–20 abr', voos: [['Smiles', 'SM', '15 abr', '07:40 → 10:45', 'direto · 1 mala', '24.000 mi', 'R$ 210']] }] },
+];
+
+// ---------- abas = recortes da mesma tabela (como as views do Coda) ----------
+const ABAS = [
+  { id: 'minhas', nome: 'Pra pesquisar', explica: 'Os orçamentos que estão com você e ainda não terminaram.', f: (o) => o.resp === EU && o.etapa === 'pesquisa' },
+  { id: 'fila', nome: 'Fila', explica: 'Pedidos novos sem ninguém. Abra um pra pegar pra você.', f: (o) => o.etapa === 'novo' },
+  { id: 'feitas', nome: 'Feitos por mim', explica: 'Tudo o que você já pesquisou, do mais recente pro mais antigo.', f: (o) => o.resp === EU && o.etapa !== 'pesquisa' },
+  { id: 'todas', nome: 'Todos', explica: 'Todos os orçamentos abertos, de qualquer pessoa.', f: () => true },
+];
+let aba = 'minhas', busca = '';
+
+const $ = (s) => document.querySelector(s);
+const ini = (n) => n.split(' ').map((p) => p[0]).slice(0, 2).join('');
+const rota = (o) => [o.trechos[0].de, ...o.trechos.map((t) => t.para)].join(' → ');
+const comVoo = (o) => o.trechos.filter((t) => t.voos.length).length;
+const pontos = (o) => { const i = TRILHA.indexOf(o.etapa); return `<span class="pontos" aria-label="Etapa ${ETAPAS[o.etapa]}">${TRILHA.map((e, k) => `<i class="${k < i ? 'feito' : k === i ? 'agora' : ''}"></i>`).join('')}</span>`; };
+const icones = () => lucide.createIcons();
+
+function cartao(o) {
+  const ok = comVoo(o) === o.trechos.length;
+  const rod = o.etapa === 'novo' ? '<span class="etiqueta warn"><i data-lucide="inbox"></i>sem ninguém</span>'
+    : o.etapa === 'pesquisa' ? `<span class="etiqueta ${ok ? 'ok' : ''}"><i data-lucide="${ok ? 'check' : 'route'}"></i>${comVoo(o)} de ${o.trechos.length} trechos com voo</span>`
+    : '';
+  return `<article class="cartao-ref ca" tabindex="0" data-id="${o.id}" aria-label="Abrir orçamento #${o.id}">
+    <div class="ca-quem"><span class="avc">${ini(o.nome)}</span><span><b>${o.nome}</b><small>#${o.id} · mexido ${o.mexido}</small></span></div>
+    <div class="titulo-op"><span class="nome">${rota(o)}</span><span class="sub">${o.destino} · ${o.trechos.length} trechos · ${o.pax} ${o.pax > 1 ? 'pessoas' : 'pessoa'}</span></div>
+    <div class="grupos"><div><span class="rot">Datas</span><div class="tags"><span class="etiqueta">${o.trechos[0].datas}</span></div></div>
+      <div class="dir"><span class="rot">${ETAPAS[o.etapa]}</span>${pontos(o)}</div></div>
+    ${rod || o.resp && o.resp !== EU ? `<div class="rodape">${rod}${o.resp && o.resp !== EU ? `<span class="etiqueta teal"><i data-lucide="user"></i>com ${o.resp}</span>` : ''}</div>` : ''}
+  </article>`;
+}
+
+function desenhar() {
+  const q = busca.toLowerCase();
+  const casa = (o) => !q || `${o.nome} ${o.destino} ${rota(o)} ${o.id}`.toLowerCase().includes(q);
+  $('#abas').innerHTML = ABAS.map((a) => `<button role="tab" aria-selected="${a.id === aba}" data-aba="${a.id}">${a.nome}<span class="n">${ORC.filter(a.f).filter(casa).length}</span></button>`).join('');
+  const a = ABAS.find((x) => x.id === aba);
+  $('#explica').textContent = a.explica;
+  const l = ORC.filter(a.f).filter(casa);
+  $('#grade').innerHTML = l.length ? l.map(cartao).join('') : '<p class="vazio">Nada aqui por enquanto.</p>';
+  icones();
+}
+
+// ---------- janelas: cada uma é um passo do "voltar" ----------
+function janelaOrc(o) {
+  return `<div class="veu um" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc">
+    <div class="j-topo"><span class="avc">${ini(o.nome)}</span><div><h2 id="t-orc">${o.nome} <span>#${o.id}</span></h2><div class="sub">${rota(o)} · ${o.destino}</div></div>
+      <div class="acoes">${o.etapa === 'novo' ? '<button class="bt pri"><i data-lucide="hand"></i>Pegar pra mim</button>' : o.etapa === 'pesquisa' ? '<button class="bt"><i data-lucide="list-checks"></i>Conferência</button><button class="bt pri"><i data-lucide="check"></i>Marcar como pesquisado</button>' : ''}
+      <button class="btn-x" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></div></div>
+    <div class="campos"><div><small>Etapa</small><b>${ETAPAS[o.etapa]}</b></div><div><small>Com quem</small><b>${o.resp || 'ninguém'}</b></div><div><small>Passageiros</small><b>${o.pax}</b></div><div><small>Mexido</small><b>${o.mexido}</b></div>${o.pedido ? `<div><small>Pedido especial</small><b class="pedido">${o.pedido}</b></div>` : ''}</div>
+    <div class="j-corpo"><div class="trechos">${o.trechos.map((t, i) => {
+      const menor = t.voos.length > 1 ? 0 : -1;
+      return `<section class="trecho"><header><span class="i">${i + 1}</span><b>${t.de} → ${t.para}</b><small>${t.datas}</small></header>
+        ${t.voos.length ? t.voos.map((v, k) => `<button class="voo ${k === menor ? 'menor' : ''}" data-voo="${o.id}:${i}:${k}"><span class="site">${v[1]}</span><span class="l1">${v[2]} · ${v[3]}</span><span class="preco">${v[5]}<small>+ ${v[6]}</small></span><span class="l2">${v[0]} · ${v[4]}</span></button>`).join('') : '<p class="vazio-t">Nenhum voo ainda.</p>'}
+        <button class="lancar"><i data-lucide="plus"></i>Lançar voo</button></section>`; }).join('')}</div></div>
+  </div></div>`;
+}
+function janelaVoo(o, i, k) {
+  const t = o.trechos[i], v = t.voos[k];
+  return `<div class="veu dois" data-veu><div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-voo">
+    <div class="j-topo"><span class="avc">${v[1]}</span><div><h2 id="t-voo">${t.de} → ${t.para}</h2><div class="sub">${v[0]} · ${v[2]}</div></div>
+      <div class="acoes"><button class="bt"><i data-lucide="pencil"></i>Editar</button><button class="btn-x" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></div></div>
+    <dl class="linhas"><dt>Horário</dt><dd>${v[3]}</dd><dt>Escalas e mala</dt><dd>${v[4]}</dd><dt>Preço</dt><dd>${v[5]} + ${v[6]}</dd><dt>Site</dt><dd>${v[0]}</dd><dt>Link do preço</dt><dd><a href="#">abrir no site</a></dd></dl>
+  </div></div>`;
+}
+function abrir(html, passo) {
+  document.body.insertAdjacentHTML('beforeend', html);
+  const veu = document.querySelectorAll('[data-veu]'), v = veu[veu.length - 1];
+  icones(); requestAnimationFrame(() => v.classList.add('aberto'));
+  v.querySelector('[data-fechar]').focus();
+  history.pushState(passo, '');
+}
+function fecharUltima() {
+  const veu = document.querySelectorAll('[data-veu]'), v = veu[veu.length - 1];
+  if (!v) return;
+  v.classList.remove('aberto'); setTimeout(() => v.remove(), 200);
+}
+// voltar do navegador/mouse fecha uma janela por vez
+addEventListener('popstate', fecharUltima);
+const fecharPeloVoltar = () => history.back();
+
+// ---------- carregando ----------
+function carregar(ms, depois, leve) {
+  const c = $('#carregando'); c.classList.toggle('leve', !!leve); c.classList.remove('fora');
+  setTimeout(() => { c.classList.add('fora'); depois && depois(); }, ms);
+}
+
+// ---------- cliques ----------
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-aba]'); if (t) { aba = t.dataset.aba; history.pushState({ aba }, ''); return desenhar(); }
+  if (e.target.closest('[data-fechar]') || e.target.matches('[data-veu]')) return fecharPeloVoltar();
+  const voo = e.target.closest('[data-voo]'); if (voo) { const [id, i, k] = voo.dataset.voo.split(':').map(Number); return abrir(janelaVoo(ORC.find((o) => o.id === id), i, k), { voo: 1 }); }
+  const c = e.target.closest('.grade [data-id]'); if (c) { const o = ORC.find((x) => x.id === Number(c.dataset.id)); carregar(450, () => abrir(janelaOrc(o), { orc: o.id }), true); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.querySelector('[data-veu]')) fecharPeloVoltar();
+  if (e.key === 'Enter' && e.target.matches('.grade [data-id]')) e.target.click();
+});
+$('#busca').addEventListener('input', (e) => { busca = e.target.value; desenhar(); });
+
+desenhar();
+carregar(1300);
+</script>
+</body>
+</html>
