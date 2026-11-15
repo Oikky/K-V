@@ -39,6 +39,25 @@
   };
   // dd/mm; de outro ano, dd/mm/aa
   const dataCurta = (s) => { const [a, m, d] = s.split('-'); return a === String(new Date().getFullYear()) ? `${d}/${m}` : `${d}/${m}/${a.slice(2)}`; };
+  // dias pra olhar em texto curto: seguidos viram faixa e o mês vai uma vez só ("26 a 30/11", "26 e 28/11", "30/11 a 02/12")
+  function diasTexto(isos) {
+    const faixas = [];
+    [...new Set(isos)].sort().forEach((d) => {
+      const f = faixas[faixas.length - 1], prox = f && new Date(f.fim + 'T12:00:00'); if (prox) prox.setDate(prox.getDate() + 1);
+      if (prox && isoDia(prox) === d) f.fim = d; else faixas.push({ ini: d, fim: d });
+    });
+    const dia = (x) => dataCurta(x).slice(0, 2), mes = (x) => dataCurta(x).slice(2);
+    const lista = (l) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} e ${l[l.length - 1]}` : l[0]);
+    const grupos = [];
+    faixas.forEach((f) => {
+      // dois dias seguidos no mesmo mês ficam "26 e 27", não "26 a 27"
+      const dois = f.ini !== f.fim && mes(f.ini) === mes(f.fim) && +dia(f.fim) - +dia(f.ini) === 1;
+      const txts = f.ini === f.fim ? [dia(f.ini)] : dois ? [dia(f.ini), dia(f.fim)] : [`${mes(f.ini) === mes(f.fim) ? dia(f.ini) : dataCurta(f.ini)} a ${dia(f.fim)}`];
+      const g = grupos[grupos.length - 1];
+      if (g && g.mes === mes(f.fim)) g.l.push(...txts); else grupos.push({ mes: mes(f.fim), l: txts });
+    });
+    return lista(grupos.map((g) => lista(g.l) + g.mes));
+  }
   // roteiros alternativos ("Lisboa, mas Porto também serve"): cada um com seus trechos; o trecho guarda a posição geral (opções e emissões apontam pra ela)
   const roteiros = (o) => { const g = []; o.trechos.forEach((t, i) => (g[t.roteiro || 0] ||= []).push(i)); return g.filter(Boolean); };
   const letra = (r) => String.fromCharCode(65 + r);
@@ -112,7 +131,7 @@
     }).join('<i class="liga" aria-hidden="true"></i>')}</nav>`;
   }
 
-  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc, roteiros, letra, cidades,
+  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc, roteiros, letra, cidades, diasTexto,
     sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
     usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, telaDa };
 })();

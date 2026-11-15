@@ -152,3 +152,11 @@
     .tl { --c: 50px; --rotw: 96px; }
     .tl-rot b { font-size: 12px; }
   }
+
+  /* janela: mover a opção pra outro trecho */
+  .mover-l { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface-1); cursor: pointer; text-align: left; color: inherit; font: inherit; min-height: 44px; }
+  .mover-l:hover:not(:disabled) { background: var(--surface-2); }
+  .mover-l:disabled { cursor: default; border-color: var(--orange); background: var(--orange-soft); }
+  .mover-l b { display: block; font-size: 16px; }
+  .mover-l small { color: var(--text-2); font-size: 13px; }
+  .mover-l svg { width: 18px; height: 18px; color: var(--text-2); }

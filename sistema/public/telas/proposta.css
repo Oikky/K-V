@@ -103,3 +103,10 @@
   .item-op .dif .menos { color: var(--ok); }
   .filtro-op { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .vazio { color: var(--text-3); padding: 18px 2px; font-size: 14px; }
+
+  /* Skyscanner perto do preço: só pra equipe comparar */
+  .resultado .sky-ref { flex: 1 0 100%; display: grid; gap: 2px; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); font-size: 13px; font-weight: 600; color: var(--text-2); }
+  .sky-ref b { color: var(--text); }
+  .sky-ref .acima { color: var(--danger, #F26D6D); }
+  .sky-ref .abaixo { color: var(--ok, #3DD68C); }
+  .sky-ref small { font-weight: 500; color: var(--text-3); font-size: 12px; }

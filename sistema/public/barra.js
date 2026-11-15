@@ -41,7 +41,6 @@
     if (/smiles\.com/.test(h)) return 'Smiles';
     if (/latam/.test(h)) return 'Latam';
     if (/voeazul|tudoazul/.test(h)) return 'TudoAzul';
-    if (/skyscanner/.test(h)) return 'Skyscanner';
     return null;
   }
 
@@ -196,7 +195,7 @@
     const item = (o, extra = '') => `<li><button type="button" class="b-orc" data-abrir="${o.id}">
         <span class="rota">${esc(O.rota(o))}</span>
         <span class="sub">#${o.id} · ${esc(o.contato.nome || 'sem nome')} · ${esc(O.fmtPax(o.passageiros))}</span>
-        <span class="sub">${o.trechos.map((t) => [t.data, ...(t.outrasDatas || [])].map(O.dataCurta).join(' e ')).join(' · ')} · ${o.nOpcoes} ${o.nOpcoes === 1 ? 'opção' : 'opções'}${extra}</span></button></li>`;
+        <span class="sub">${o.trechos.map((t) => O.diasTexto([t.data, ...(t.outrasDatas || [])])).join(' · ')} · ${o.nOpcoes} ${o.nOpcoes === 1 ? 'opção' : 'opções'}${extra}</span></button></li>`;
     const nomeDe = (email) => ((est.usuarios || []).find((u) => u.email === email) || {}).nome || email;
     return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}${recadoHtml()}
       <h2 class="b-tit">Em pesquisa com você <span class="n">${com.length}</span></h2>
@@ -211,7 +210,7 @@
     return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}
       <div class="a-orc">${voltar()}<div><span class="a-id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span>
         <b class="a-rota">${rotaTxt()}</b><span class="a-dia">${[t.data, ...(t.outrasDatas || [])].map((x) => `${O.diaCurto(x)} ${O.dataCurta(x)}`).join(' e ')}${t.outrasDatas && t.outrasDatas.length ? ' · olhar esses dias' : t.janela ? ' · janela de 14 dias' : ''}</span></div></div>
-      ${trechos()}${nota()}
+      ${KVSky.html(orc)}${trechos()}${nota()}
       ${recadoHtml()}
       ${ed ? `<div class="b-editando">${icone('pencil')}<span>Editando <b>${opResumo(ed)}</b></span><button type="button" class="btn pequeno fantasma" data-cancelar-edicao>Cancelar</button></div>` : ''}
       <form class="b-form form-op ${ed ? 'em-edicao' : ''}" id="b-form" autocomplete="off">${campos()}
@@ -323,6 +322,7 @@
     const prim = app.querySelector('[data-f="sai"]'); if (prim && ok) prim.focus();
     return ok;
   }
+  KVSky.ligar(app, () => orc, (e) => { recado = { erro: true, texto: e.message }; desenhar(); });
   app.addEventListener('submit', (e) => { e.preventDefault(); gravar(); });
 
   function erro(e) { app.innerHTML = `<p class="b-recado erro">${esc(e.message || 'Erro ao carregar.')}</p><button class="btn" type="button" data-recarregar>Tentar de novo</button>`; }

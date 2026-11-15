@@ -100,6 +100,38 @@ acao('op.apagar', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid
   };
 });
 
+// muda a opção de trecho (lançou na ida o que era da volta, ou no roteiro errado)
+acao('op.mover', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, id, trecho }) => {
+  const o = await orcamento(db, oid);
+  podeLancar(usuario, o);
+  const antes = await db.prepare('SELECT * FROM opcoes WHERE id = ? AND orcamento_id = ?').bind(id, o.id).first();
+  if (!antes) throw new Recusa('Opção não encontrada', 404);
+  const t = Number.isInteger(trecho) ? await db.prepare('SELECT de, para FROM trechos WHERE orcamento_id = ? AND ordem = ?').bind(o.id, trecho).first() : null;
+  if (!t) throw new Recusa('Trecho não encontrado', 404);
+  if (trecho === antes.trecho) return { resultado: { id }, comandos: [], eventos: [] };
+  // a combinação aponta pro voo pela posição do trecho: mover deixaria a combinação errada
+  const combos = (await db.prepare('SELECT escolha FROM combos WHERE orcamento_id = ?').bind(o.id).all()).results;
+  if (combos.some((c) => JSON.parse(c.escolha).includes(id))) throw new Recusa('Essa opção está numa combinação da proposta; troque lá antes', 409);
+  return {
+    resultado: { id },
+    comandos: [db.prepare('UPDATE opcoes SET trecho = ? WHERE id = ?').bind(trecho, id)],
+    eventos: [{ entidade: 'orcamento', id: o.id, texto: `Moveu a opção ${antes.site} das ${antes.sai} pro trecho ${t.de} → ${t.para}`, antes }],
+  };
+});
+
+// Skyscanner de um roteiro: preço por pessoa em centavos (ou vazio) e uma observação
+acao('orc.sky', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, roteiro, valor, texto: obs }) => {
+  const o = await orcamento(db, oid);
+  podeLancar(usuario, o);
+  const { n } = await db.prepare('SELECT MAX(roteiro) + 1 AS n FROM trechos WHERE orcamento_id = ?').bind(o.id).first();
+  if (!inteiro(roteiro, 0, (n || 1) - 1)) throw new Recusa('Roteiro não encontrado', 404);
+  if (valor != null && !inteiro(valor, 1, 1_000_000_00)) throw new Recusa('Valor do Skyscanner inválido');
+  const sky = JSON.parse(o.sky || '[]');
+  while (sky.length <= roteiro) sky.push(null);
+  sky[roteiro] = { valor: valor ?? null, texto: texto(obs, 200) || '' };
+  return { resultado: { sky }, comandos: [db.prepare('UPDATE orcamentos SET sky = ? WHERE id = ?').bind(JSON.stringify(sky), o.id)], eventos: [] };
+});
+
 // marca ou desmarca um item da lista de conferência
 acao('conf.marcar', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, ordem, feito }) => {
   const o = await orcamento(db, oid);

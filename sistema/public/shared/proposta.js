@@ -22,9 +22,14 @@
     { nome: 'Com mala', passa: (x) => x.bagagem },
     { nome: 'Em dinheiro', passa: (x) => O.site(x.site).forma === 'dinheiro' },
   ];
-  // roteiros: a combinação escolhe um voo em cada trecho de UM roteiro (null nos trechos dos outros)
+  // roteiros: a combinação escolhe um voo em cada posição (1º trecho, 2º...), de qualquer roteiro (null nos outros).
+  // Tudo de um roteiro só = esse roteiro; ida de um e volta de outro = misturada (-1).
   const rotDoTrecho = (o, ti) => o.trechos[ti].roteiro || 0;
-  const rotDaCombo = (o, c) => rotDoTrecho(o, Math.max(0, c.escolha.findIndex((id) => id != null)));
+  const rotDaCombo = (o, c) => { const rs = [...new Set(c.escolha.map((id, ti) => (id != null ? rotDoTrecho(o, ti) : null)).filter((r) => r != null))]; return rs.length === 1 ? rs[0] : -1; };
+  // ordem na tela e na mensagem: roteiro A, B..., misturadas por último
+  const ordemRot = (o, c) => { const r = rotDaCombo(o, c); return r < 0 ? 99 : r; };
+  // os trechos que ocupam a mesma posição nos outros roteiros (a ida pra Lisboa e a ida pro Porto), ele incluído
+  const equivalentes = (o, ti) => { const rs = O.roteiros(o), k = rs[rotDoTrecho(o, ti)].indexOf(ti); return rs.map((idx) => idx[k]).filter((x) => x != null); };
   const novaCombo = (dados) => ({ id: null, milha: {}, livre: null, parcelado: null, vezes: VEZES_PADRAO, ...dados });
   // sugestões que o sistema monta sozinho: a mais barata e, quando der diferente, a só de voos diretos (ou com mala).
   // Sem roteiro (r), sugere pra cada roteiro.
@@ -58,10 +63,16 @@
   // Sem roteiro (r), o menor entre os roteiros.
   function teto(o, r) {
     if (r == null) { const vs = O.roteiros(o).map((_, k) => teto(o, k).valor).filter((v) => v != null); return { valor: vs.length ? Math.min(...vs) : null }; }
-    const porTrecho = O.roteiros(o)[r].map((ti) => barata(opsDo(o, ti).filter((x) => O.site(x.site).forma === 'dinheiro')));
+    const sky = ((o.sky || [])[r] || {}).valor;
+    return sky ? { valor: sky * O.pagantes(o) } : tetoDe(o, O.roteiros(o)[r]);
+  }
+  const tetoDe = (o, idx) => {
+    const porTrecho = idx.map((ti) => barata(opsDo(o, ti).filter((x) => O.site(x.site).forma === 'dinheiro')));
     if (porTrecho.some((x) => !x)) return { valor: null };
     return { valor: porTrecho.reduce((s, x) => s + O.custo(x, o), 0) };
-  }
+  };
+  // o teto dos trechos que a combinação escolheu (serve pra misturada também)
+  const tetoCombo = (o, c) => (rotDaCombo(o, c) >= 0 ? teto(o, rotDaCombo(o, c)) : tetoDe(o, c.escolha.map((id, ti) => (id != null ? ti : null)).filter((ti) => ti != null)));
   // os trechos que vão voar: os do roteiro aceito (antes de aceitar, todos)
   const trechosVoo = (o) => { const a = aceita(o); return o.trechos.map((_, ti) => ti).filter((ti) => !a || a.escolha[ti] != null); };
   const aceita = (o) => (o.combos || []).find((c) => c.id === o.aceita) || null;
@@ -91,14 +102,14 @@
     // com roteiros, as combinações de cada roteiro ficam juntas, debaixo do nome dele
     const varios = O.roteiros(o).length > 1;
     let rotAtual = null;
-    [...combos].sort((a, b) => rotDaCombo(o, a) - rotDaCombo(o, b)).forEach((c, i) => {
+    [...combos].sort((a, b) => ordemRot(o, a) - ordemRot(o, b)).forEach((c, i) => {
       const r = rotDaCombo(o, c);
-      if (varios && r !== rotAtual) { rotAtual = r; linhas.push('', `*━━ Roteiro ${O.letra(r)}: ${O.cidades(o, O.roteiros(o)[r]).join(' → ')} ━━*`); }
+      if (varios && r !== rotAtual) { rotAtual = r; linhas.push('', r < 0 ? '*━━ Misturando os roteiros ━━*' : `*━━ Roteiro ${O.letra(r)}: ${O.cidades(o, O.roteiros(o)[r]).join(' → ')} ━━*`); }
       linhas.push('', `*Opção ${i + 1} · ${c.nome}*`);
       opsDaCombo(o, c).forEach((x, j) => {
         const t = o.trechos[x.trecho], depois = +((/ \+(\d)$/.exec(x.chega) || [])[1] || 0);
         if (j) linhas.push('');
-        linhas.push(`${nomeTrecho(o, x.trecho)} ${dataLonga(x.data)}`,
+        linhas.push(`${nomeTrecho(o, x.trecho, r < 0)} ${dataLonga(x.data)}`,
           `${lugar(x.de || t.de)} ${x.sai} → ${lugar(x.para || t.para)} ${x.chega.replace(/ \+\d$/, '')}${depois ? ` (chega ${somaDias(x.data, depois)})` : ''}`,
           ...escalasMsg(x));
         if (x.duracao) linhas.push(`Tempo de viagem: ${x.duracao}`);
@@ -126,7 +137,7 @@
   }
 
   window.KVProp = {
-    usarProgramas, progNome, progDe, opsDo, op, sugerir, rotDoTrecho, rotDaCombo, trechosVoo, novaCombo, opsDaCombo, valorMilha, porPrograma, taxas, dinheiro, milhasCombo, precoCalc, venda,
+    usarProgramas, progNome, progDe, opsDo, op, sugerir, rotDoTrecho, rotDaCombo, ordemRot, equivalentes, tetoCombo, trechosVoo, novaCombo, opsDaCombo, valorMilha, porPrograma, taxas, dinheiro, milhasCombo, precoCalc, venda,
     teto, aceita, mensagem, texto: (o) => o.mensagem || mensagem(o), nomeTrecho, diaSem, formas: FORMAS, valorFinal, situacao, vezesPadrao: VEZES_PADRAO,
   };
 })();

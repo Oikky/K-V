@@ -15,9 +15,10 @@ async function orcamento(db, id) {
 acao('prop.salvar', ['dono'], async ({ db }, { orcamento: oid, combos }) => {
   const o = await orcamento(db, oid);
   if (!['pesquisado', 'enviado'].includes(o.etapa)) throw new Recusa('A proposta só muda antes de fechar', 409);
-  // cada roteiro é uma lista de posições de trecho; a combinação escolhe um voo em cada trecho de UM roteiro (null nos outros)
+  // a combinação escolhe um voo por posição (1º trecho, 2º...), de qualquer roteiro: dá pra misturar a ida de um com a volta de outro (null nos que não usa)
   const roteiroDe = (await db.prepare('SELECT roteiro FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(o.id).all()).results.map((t) => t.roteiro);
   const n = roteiroDe.length, nRot = Math.max(...roteiroDe) + 1;
+  const posDe = roteiroDe.map((r, ti) => roteiroDe.slice(0, ti).filter((x) => x === r).length);
   if (!Array.isArray(combos) || combos.length < 1 || combos.length > 3 * nRot) throw new Recusa(`A proposta tem de 1 a ${3 * nRot} combinações`);
   const opcoes = (await db.prepare('SELECT id, trecho FROM opcoes WHERE orcamento_id = ?').bind(o.id).all()).results;
   const trechoDa = Object.fromEntries(opcoes.map((x) => [x.id, x.trecho]));
@@ -25,8 +26,10 @@ acao('prop.salvar', ['dono'], async ({ db }, { orcamento: oid, combos }) => {
 
   const limpos = combos.map((c, i) => {
     const nome = String(c.nome || '').trim().slice(0, 40) || `Opção ${i + 1}`;
-    const r = Array.isArray(c.escolha) ? roteiroDe[c.escolha.findIndex((id) => id != null)] : undefined;
-    if (r == null || c.escolha.length !== n || c.escolha.some((id, ti) => (roteiroDe[ti] === r ? trechoDa[id] !== ti : id != null))) throw new Recusa('Combinação com voo que não é deste orçamento');
+    const usados = Array.isArray(c.escolha) && c.escolha.length === n ? c.escolha.map((id, ti) => (id != null ? ti : null)).filter((ti) => ti != null) : [];
+    if (!usados.length || usados.some((ti) => trechoDa[c.escolha[ti]] !== ti) || new Set(usados.map((ti) => posDe[ti])).size !== usados.length
+      // completa: posições 0..m-1, e o roteiro do último trecho tem m trechos
+      || Math.max(...usados.map((ti) => posDe[ti])) !== usados.length - 1 || roteiroDe.filter((r) => r === roteiroDe[usados.find((ti) => posDe[ti] === usados.length - 1)]).length !== usados.length) throw new Recusa('Combinação com voo que não é deste orçamento');
     const milha = {};
     for (const [p, v] of Object.entries(c.milha || {})) { if (!inteiro(v, 1, 1_000_000)) throw new Recusa('Valor da milha inválido'); milha[p] = v; }
     if (c.livre != null && !inteiro(c.livre, 1, 1_000_000_00)) throw new Recusa('Preço inválido');

@@ -60,7 +60,7 @@ export async function abrirOrcamento(env, usuario, id) {
     contato: { nome: o.contato_nome, whatsapp: o.contato_whatsapp },
     pessoaId: dono ? o.pessoa_id : null,
     passageiros: { adultos: o.adultos, criancas: o.criancas, bebes: o.bebes },
-    pedido: o.pedido, observacao: o.observacao, skyscanner: o.skyscanner || '', faltando: JSON.parse(o.faltando || '[]'),
+    pedido: o.pedido, observacao: o.observacao, skyscanner: o.skyscanner || '', sky: JSON.parse(o.sky || '[]'), faltando: JSON.parse(o.faltando || '[]'),
     origem: o.origem, textoOriginal: o.texto_original, audio: !!o.audio, criadoEm: o.criado_em,
     trechos: trechos.map((t) => ({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]'), roteiro: t.roteiro })),
     conferencia: conferencia.map((c) => ({ ...c, feito: !!c.feito })),

@@ -56,8 +56,8 @@ KVTelas['orcamento'] = function () {
     return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${dono ? O.trilha(o, 'pesquisa') : ''}
       <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.id}${dono && o.pessoaId ? ' · <span style="color:var(--orange)">é cliente</span>' : ''}</span>
         <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1>
-        <div class="kpis"><span class="kpi"><b>${O.dataCurta(o.trechos[0].data)}</b><span>${o.trechos.length > 1 ? `a ${O.dataCurta(o.trechos[o.trechos.length - 1].data)}` : 'só ida'}</span></span>
-          ${o.trechos.some((t) => t.outrasDatas.length) ? `<span class="kpi dias-pedidos"><b>+ ${o.trechos.filter((t) => t.outrasDatas.length).map((t) => (o.trechos.length > 1 ? `${t.de}→${t.para} ` : '') + t.outrasDatas.map(O.dataCurta).join(' e ')).join(' · ')}</b><span>também olhar</span></span>` : ''}
+        <div class="kpis"><span class="kpi"><b>${O.dataCurta(o.trechos[0].data)}</b><span>${o.trechos.some((t) => t.data !== o.trechos[0].data) ? `a ${O.dataCurta(o.trechos.map((t) => t.data).sort().pop())}` : 'só ida'}</span></span>
+          ${o.trechos.some((t) => t.outrasDatas.length) ? `<span class="kpi dias-pedidos"><b>+ ${o.trechos.filter((t) => t.outrasDatas.length).map((t) => (o.trechos.length > 1 ? `${esc(t.de)}→${esc(t.para)} ` : '') + O.diasTexto(t.outrasDatas)).join('<br>')}</b><span>também olhar</span></span>` : ''}
           <span class="kpi"><b>${pessoas()}</b><span>${pessoas() > 1 ? 'pessoas' : 'pessoa'}</span></span><span class="kpi ${dono && o.etapa === 'pesquisado' ? 'destaque' : ''}"><b>${o.opcoes.length}</b><span>opções</span></span></div>
         <div class="linha-acoes">${o.pedido ? `<span class="pedido-pilula"><i data-lucide="message-square-quote"></i>${esc(o.pedido)}</span>` : ''}
           <button class="btn" data-conf><i data-lucide="list-checks"></i>Conferência ${feitos}/${o.conferencia.length}</button>
@@ -71,7 +71,8 @@ KVTelas['orcamento'] = function () {
     const dias = [...new Set(opsDo(ti).map((x) => x.data))].sort();
     const cab = `<div class="secao"><h2>Opções de voo</h2><span class="n">${opsDo(ti).length} neste trecho</span></div>`;
     const varios = o.trechos.length > 1;
-    return cab + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>${O.roteiros(o).length > 1 ? KVProp.nomeTrecho(o, i, true) : `Trecho ${i + 1}`}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
+    // o Skyscanner é a base de preço do orçamento (não é de um trecho): fica acima das abas dos trechos
+    return cab + KVSky.html(o, podeLancar()) + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>${O.roteiros(o).length > 1 ? KVProp.nomeTrecho(o, i, true) : `Trecho ${i + 1}`}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
       + (dias.length > 1 || (o.trechos.length > 1 && o.opcoes.length) ? filtroDias(ti, dias) : '');
   }
   // ---------- filtro de dias: a fita de dias, com o mês em cada dia e o ano contornando os dias dele ----------
@@ -132,7 +133,7 @@ KVTelas['orcamento'] = function () {
   function menuOp(op) {
     const it = (attrs, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" ${attrs}><i data-lucide="${icone}"></i>${texto}</button>`;
     if (confirmarApagar === op.id) return `<div class="menu-orc" role="menu"><p>Apagar a opção ${esc(op.site)} das ${op.sai}?</p>${it(`data-del="${op.id}"`, 'trash-2', 'Sim, apagar', 'perigo')}${it('data-cancela', 'x', 'Não')}</div>`;
-    return `<div class="menu-orc" role="menu">${op.link ? it(`data-link="${esc(op.link)}"`, 'external-link', 'Abrir o link do preço') : ''}${podeLancar() ? it(`data-editar-op="${op.id}"`, 'pencil', 'Editar') + it(`data-dup="${op.id}"`, 'copy', 'Repetir com outros dados') + it(`data-pede-del="${op.id}"`, 'trash-2', 'Apagar', 'perigo') : ''}</div>`;
+    return `<div class="menu-orc" role="menu">${op.link ? it(`data-link="${esc(op.link)}"`, 'external-link', 'Abrir o link do preço') : ''}${podeLancar() ? it(`data-editar-op="${op.id}"`, 'pencil', 'Editar') + (o.trechos.length > 1 ? it(`data-mover-op="${op.id}"`, 'move', 'Mover pra outro trecho') : '') + it(`data-dup="${op.id}"`, 'copy', 'Repetir com outros dados') + it(`data-pede-del="${op.id}"`, 'trash-2', 'Apagar', 'perigo') : ''}</div>`;
   }
   function cartaoOp(op, cheio) {
     const fora = foraDoPedido(op);
@@ -316,6 +317,19 @@ KVTelas['orcamento'] = function () {
         try { await navigator.clipboard.writeText(txt); b.innerHTML = '<i data-lucide="check"></i>Copiado'; KVShell.icones(); }
         catch (_) { KVShell.aviso('Não deu pra copiar sozinho; selecione o texto e copie', { erro: true }); }
       };
+    } else if (j === 'mover' && podeLancar()) {
+      // a opção vai pra outro trecho (ida ↔ volta, ou outro roteiro)
+      const op = o.opcoes.find((x) => x.id === +KVShell.param('op')); if (!op) { fecharJanela(); return; }
+      const nome = (i) => (o.trechos.length > 1 ? KVProp.nomeTrecho(o, i, true) : 'Trecho 1');
+      dlg.innerHTML = cab('Mover pra outro trecho', `${esc(op.site)} · ${O.dataCurta(op.data)} · ${op.sai} → ${op.chega} · hoje em ${esc(nome(op.trecho))}`) + `<div class="corpo" style="display:grid;gap:8px;padding-bottom:14px">
+        ${o.trechos.map((t, i) => `<button class="mover-l" data-pra="${i}" aria-pressed="${i === op.trecho}" ${i === op.trecho ? 'disabled' : ''}>
+          <span><small>${esc(nome(i))}${i === op.trecho ? ' · onde está' : ''}</small><b>${esc(t.de)} → ${esc(t.para)}</b><small>${O.dataCurta(t.data)} · ${opsDo(i).length} opções</small></span>${i === op.trecho ? '<i data-lucide="check"></i>' : '<i data-lucide="arrow-right"></i>'}</button>`).join('')}</div>`;
+      dlg.querySelectorAll('[data-pra]').forEach((b) => b.onclick = async () => {
+        dlg.querySelectorAll('[data-pra]').forEach((x) => { x.disabled = true; });
+        const pra = +b.dataset.pra;
+        if (await fazer('op.mover', { orcamento: o.id, id: op.id, trecho: pra })) { fecharJanela(); render(); KVShell.aviso(`Opção movida pra ${nome(pra)}`); }
+        else { fecharJanela(); render(); }
+      });
     } else if (j === 'pesquisado') {
       const falta = o.conferencia.filter((c) => !c.feito), semOp = o.trechos.map((t, i) => ({ t, i })).filter(({ i }) => !opsDo(i).length), tudo = !falta.length && !semOp.length;
       dlg.innerHTML = cab('Marcar como pesquisado?', 'Vai pro dono revisar e montar a proposta') + `<div class="corpo" style="display:grid;gap:10px;padding-bottom:14px">
@@ -332,6 +346,7 @@ KVTelas['orcamento'] = function () {
 
   // ---------- ações ----------
   function ligarEventos() {
+    KVSky.ligar(app, () => o, (e) => KVShell.aviso(e.message, { erro: true }));
     // menu das 3 barras nas opções
     app.addEventListener('click', async (e) => {
       const m = e.target.closest('[data-menu]');
@@ -342,6 +357,8 @@ KVTelas['orcamento'] = function () {
       const ed = e.target.closest('[data-editar-op]');
       if (ed) { e.stopImmediatePropagation(); const op = o.opcoes.find((x) => x.id === +ed.dataset.editarOp); editando = op.id; menuAberto = null;
         rascunho = paraForm(op); render(); KVShell.irPara({ janela: 'nova' }); sincJanela(); return; }
+      const mv = e.target.closest('[data-mover-op]');
+      if (mv) { e.stopImmediatePropagation(); menuAberto = null; render(); KVShell.irPara({ janela: 'mover', op: mv.dataset.moverOp }); sincJanela(); return; }
       if (e.target.closest('[data-dup], [data-del]')) { menuAberto = confirmarApagar = null; editando = null; return; }
       if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmarApagar = null; render(); }
     }, true);

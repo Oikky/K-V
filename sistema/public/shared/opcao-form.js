@@ -18,7 +18,7 @@
     const escalas = r.escalasOnde || [];
     const depoisDe = (n) => { const d = new Date(dia + 'T12:00:00'); d.setDate(d.getDate() + n); return O.dataCurta(O.isoDia(d)); };
     return `<h3 class="form-grupo">Voo</h3>
-      <div class="duas">${campo('f-site', 'Site', `<select id="f-site" data-f="site">${O.sites.map((x) => `<option ${x.id === s ? 'selected' : ''}>${x.id}</option>`).join('')}</select>`)}
+      <div class="duas">${campo('f-site', 'Site', `<select id="f-site" data-f="site">${O.sites.filter((x) => x.id !== 'Skyscanner' || x.id === s).map((x) => `<option ${x.id === s ? 'selected' : ''}>${x.id}</option>`).join('')}</select>`)}
         ${campo('f-data', 'Dia', entrada('data', 'type="date"', dia))}</div>
       <div class="duas">${campo('f-cia', 'Companhia aérea', entrada('cia', 'placeholder="Latam, GOL, Azul…" list="l-cias" autocomplete="off"', r.cia))}${campo('f-voo', 'Voo', entrada('voo', 'placeholder="LA 8084"', r.voo))}</div>
       <datalist id="l-cias">${CIAS.map((c) => `<option value="${c}">`).join('')}</datalist>

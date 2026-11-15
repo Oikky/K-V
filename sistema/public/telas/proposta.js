@@ -111,19 +111,26 @@ KVTelas['proposta'] = function () {
     return `${c.vezes}x de ${fmt.brl(Math.round(c.parcelado / c.vezes))} · ${dif >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do à vista (${dif >= 0 ? '+' : '−'}${String(Math.abs(pct)).replace('.', ',')}%)`;
   }
   function resultado(c) {
-    const t = P.teto(o, P.rotDaCombo(o, c)).valor, calc = P.precoCalc(o, c), dif = c.livre != null ? c.livre - calc : 0;
+    const t = P.tetoCombo(o, c).valor, calc = P.precoCalc(o, c), dif = c.livre != null ? c.livre - calc : 0;
     const avisos = [t && venda(c) > t && '<span class="etiqueta warn">acima do preço em dinheiro</span>', Math.abs(dif) >= 100 && `<span class="etiqueta">${dif > 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do calculado</span>`].filter(Boolean).join('');
-    return `${avisos}<span class="pp">${fmt.brl(Math.round(venda(c) / Math.max(1, O.pagantes(o))))} por pessoa</span>`;
+    return `${avisos}<span class="pp">${fmt.brl(Math.round(venda(c) / Math.max(1, O.pagantes(o))))} por pessoa</span>${skyRef(c)}`;
+  }
+  // Skyscanner do roteiro perto do preço, só pra comparar (não vai na mensagem); misturada não tem um roteiro só pra comparar
+  function skyRef(c) {
+    const r = P.rotDaCombo(o, c), s = r < 0 ? {} : KVSky.de(o, r);
+    if (!s.valor && !s.texto) return '';
+    const d = s.valor ? Math.round(venda(c) / Math.max(1, O.pagantes(o))) - s.valor : 0;
+    return `<span class="sky-ref"><span>Skyscanner${s.valor ? ` <b>${fmt.brl(s.valor)}</b> por pessoa · <span class="${d > 0 ? 'acima' : 'abaixo'}">${d ? `${fmt.brl(Math.abs(d))} ${d > 0 ? 'acima' : 'abaixo'}` : 'igual'}</span>` : ''}</span>${s.texto ? `<small>${esc(s.texto)}</small>` : ''}</span>`;
   }
   function cartaoCombo(c, i) {
     const ops = P.opsDaCombo(o, c);
     const titulo = renomeando === c._k ? `<input data-nome="${c._k}" value="${esc(c.nome)}" aria-label="Nome da combinação" maxlength="28">` : `<span>${esc(c.nome)}</span>`;
-    const aceitaEsta = o.aceita != null && o.aceita === c.id;
+    const aceitaEsta = o.aceita != null && o.aceita === c.id, mist = P.rotDaCombo(o, c) < 0;
     return `<article class="cartao-ref combina ${aceitaEsta ? 'aceita' : ''}" data-cb="${c._k}">
       ${editavel() ? `<span class="canto"><button data-menu="${c._k}" aria-haspopup="menu" aria-expanded="${menuAberto === c._k}" aria-label="Ações da combinação"><i data-lucide="menu"></i></button></span>${menuAberto === c._k ? menuCombo(c) : ''}` : ''}
       <div class="grande"><span class="nro" aria-label="Opção ${i + 1}">${i + 1}</span>${titulo}${aceitaEsta ? '<span class="etiqueta ok">aceita</span>' : ''}</div>
       ${ops.map((x) => { const tag = editavel() ? 'button' : 'div';
-        return `<${tag} class="tr" ${editavel() ? `data-trocar="${c._k}" data-t="${x.trecho}" aria-label="Trocar ${P.nomeTrecho(o, x.trecho)}"` : ''}><span><small>${P.nomeTrecho(o, x.trecho)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></small><b>${hora(x)}</b><small>${detalhe(x)} · ${valorOp(x)}</small></span>${editavel() ? '<span class="troca"><i data-lucide="arrow-left-right"></i></span>' : ''}</${tag}>`; }).join('')}
+        return `<${tag} class="tr" ${editavel() ? `data-trocar="${c._k}" data-t="${x.trecho}" aria-label="Trocar ${P.nomeTrecho(o, x.trecho, mist)}"` : ''}><span><small>${P.nomeTrecho(o, x.trecho, mist)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></small><b>${hora(x)}</b><small>${detalhe(x)} · ${valorOp(x)}</small></span>${editavel() ? '<span class="troca"><i data-lucide="arrow-left-right"></i></span>' : ''}</${tag}>`; }).join('')}
       <div class="pe"><div class="milhas-res">${resumoMilhas(c)}</div><div class="preco-bloco" data-preco="${c._k}">${precoHtml(c)}</div>${parceladoHtml(c)}</div></article>`;
   }
   // com roteiros, uma coluna por roteiro, cada uma com as combinações dele (até 3 por roteiro)
@@ -136,8 +143,13 @@ KVTelas['proposta'] = function () {
       return `<div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${meus.map(([c, i]) => cartaoCombo(c, i)).join('')}
         ${pode ? `<button class="nova-combo" data-nova="${r}"><span class="mais"><i data-lucide="plus"></i></span>Outra combinação<span class="faint" style="font-weight:600;font-size:13px">até 3</span></button>` : ''}</div>`;
     };
-    if (rs.length === 1) return cab + grade(0);
-    return cab + `<div class="roteiros">${rs.map((idx, r) => `<section class="roteiro-col"><h3 class="rot-cab"><span class="rot-letra">${O.letra(r)}</span>${O.cidades(o, idx).map(esc).join(' → ')}</h3>${grade(r)}</section>`).join('')}</div>`;
+    // Skyscanner (base de preço, só pra equipe) acima das combinações
+    const sky = KVSky.html(o, editavel());
+    if (rs.length === 1) return cab + sky + grade(0);
+    // as misturadas (ida de um roteiro, volta de outro) ganham uma coluna só delas
+    const mistas = o.combos.map((c, i) => [c, i]).filter(([c]) => P.rotDaCombo(o, c) < 0);
+    return cab + sky + `<div class="roteiros">${rs.map((idx, r) => `<section class="roteiro-col"><h3 class="rot-cab"><span class="rot-letra">${O.letra(r)}</span>${O.cidades(o, idx).map(esc).join(' → ')}</h3>${grade(r)}</section>`).join('')}
+      ${mistas.length ? `<section class="roteiro-col"><h3 class="rot-cab"><span class="rot-letra"><i data-lucide="shuffle"></i></span>Misturando os roteiros</h3><div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${mistas.map(([c, i]) => cartaoCombo(c, i)).join('')}</div></section>` : ''}</div>`;
   }
 
   // ---------- mensagem ----------
@@ -222,17 +234,25 @@ KVTelas['proposta'] = function () {
   const passaFiltro = (x) => ({ todas: true, direto: x.escalas === 0, mala: x.bagagem, pontos: O.site(x.site).forma === 'pontos', dinheiro: O.site(x.site).forma === 'dinheiro' })[filtroTroca];
   function painelTroca(c, ti) {
     const atual = P.op(o, c.escolha[ti]), base = O.custo(atual, o);
-    const l = P.opsDo(o, ti).filter(passaFiltro).sort((a, b) => O.custoPessoa(a) - O.custoPessoa(b));
+    // com roteiros, dá pra trocar pelo voo do mesmo trecho de outro roteiro (ida pra Lisboa → ida pro Porto)
+    const eqs = P.equivalentes(o, ti), varios = eqs.length > 1;
+    const l = eqs.flatMap((k) => P.opsDo(o, k)).filter(passaFiltro).sort((a, b) => O.custoPessoa(a) - O.custoPessoa(b));
     const t = o.trechos[ti];
     dlg.className = 'janela lateral';
-    dlg.innerHTML = cab(`Trocar a ${P.nomeTrecho(o, ti).toLowerCase()}`, `${esc(c.nome)} · ${t.de} → ${t.para} · ${P.opsDo(o, ti).length} opções`) + `<div class="corpo">
+    dlg.innerHTML = cab(`Trocar a ${P.nomeTrecho(o, ti).toLowerCase()}`, `${esc(c.nome)} · ${varios ? 'qualquer roteiro' : `${t.de} → ${t.para}`} · ${eqs.reduce((n, k) => n + P.opsDo(o, k).length, 0)} opções`) + `<div class="corpo">
       <div class="filtro-op">${FILTROS_TROCA.map(([k, n]) => `<button class="pilula" data-ft="${k}" aria-pressed="${filtroTroca === k}">${n}</button>`).join('')}</div>
       <div class="lista-op">${l.length ? l.map((x) => { const d = O.custo(x, o) - base;
         return `<button class="item-op" data-escolher="${x.id}" aria-pressed="${x.id === atual.id}"><b>${hora(x)}</b>
-          <small>${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span> · ${detalhe(x)}</small>
+          <small>${varios ? `Roteiro ${O.letra(P.rotDoTrecho(o, x.trecho))} · ${esc(o.trechos[x.trecho].de)} → ${esc(o.trechos[x.trecho].para)} · ` : ''}${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span> · ${detalhe(x)}</small>
           <span class="dif">${x.id === atual.id ? '<strong>escolhida</strong>' : `<strong class="${d < 0 ? 'menos' : ''}">${d < 0 ? '−' : '+'} ${fmt.brl(Math.abs(d))}</strong>`}<span>${valorOp(x)}</span></span></button>`; }).join('') : '<div class="faint" style="padding:12px 2px">Nenhuma opção com esse filtro.</div>'}</div></div>`;
     dlg.querySelectorAll('[data-ft]').forEach((b) => b.onclick = () => { filtroTroca = b.dataset.ft; painelTroca(c, ti); KVShell.icones(); });
-    dlg.querySelectorAll('[data-escolher]').forEach((b) => b.onclick = () => { c.escolha[ti] = +b.dataset.escolher; marcarSujo(); fechar(); render(); });
+    dlg.querySelectorAll('[data-escolher]').forEach((b) => b.onclick = () => {
+      const x = P.op(o, +b.dataset.escolher);
+      eqs.forEach((k) => { c.escolha[k] = null; }); c.escolha[x.trecho] = x.id;
+      // a numeração segue a ordem da mensagem (A, B..., misturadas)
+      o.combos.sort((a, b2) => P.ordemRot(o, a) - P.ordemRot(o, b2));
+      marcarSujo(); fechar(); render();
+    });
   }
   function janelaMilhas(c) {
     dlg.className = 'janela';
@@ -258,6 +278,7 @@ KVTelas['proposta'] = function () {
 
   // ---------- ações ----------
   function ligarEventos() {
+    KVSky.ligar(app, () => o, (e) => KVShell.aviso(e.message, { erro: true }), () => app.querySelectorAll('[data-res]').forEach((el) => { const c = comboK(el.dataset.res); if (c) el.innerHTML = resultado(c); }));
     app.addEventListener('click', async (e) => {
       const m = e.target.closest('[data-menu]');
       if (m) { menuAberto = menuAberto === m.dataset.menu ? null : m.dataset.menu; confirmarApagar = null; render(); const p = app.querySelector('.menu-orc button'); if (p) p.focus(); return; }
@@ -276,7 +297,7 @@ KVTelas['proposta'] = function () {
         // a nova entra depois da última do mesmo roteiro (a mensagem numera nessa ordem)
         const r = +b.dataset.nova || 0, base = P.sugerir(o, 1, r)[0] || o.combos.find((x) => P.rotDaCombo(o, x) === r); if (!base) return;
         const c = chavear(P.novaCombo({ nome: `Opção ${o.combos.length + 1}`, escolha: [...base.escolha] }));
-        const depois = o.combos.reduce((k, x, i) => (P.rotDaCombo(o, x) <= r ? i + 1 : k), 0);
+        const depois = o.combos.reduce((k, x, i) => (P.ordemRot(o, x) <= r ? i + 1 : k), 0);
         o.combos.splice(depois, 0, c); renomeando = c._k; marcarSujo(); render();
       }
       else if (b.dataset.trocar) { filtroTroca = 'todas'; KVShell.irPara({ janela: 'trocar', c: b.dataset.trocar, t: b.dataset.t }); sinc(); }
