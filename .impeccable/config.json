@@ -47,6 +47,12 @@
         ],
         "createdAt": "2026-11-15T15:55:26.389Z",
         "reason": "Claude: bolinha vem do orcamentos.css do sistema (ponto ligado, dado ao vivo); os rascunhos v2 nem usam"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "sora",
+        "createdAt": "2026-11-15T18:39:08.066Z",
+        "reason": "Fonte da folha do recibo-kv atual; o usuário pediu o PDF igual ao de hoje, então a folha usa a fonte dele (só dentro do recibo)"
       }
     ]
   }

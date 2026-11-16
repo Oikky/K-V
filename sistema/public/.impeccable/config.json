@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/5958-1794754248/content/orcamentos-jeitos.html"
+        ],
+        "createdAt": "2026-11-15T14:51:30.663Z",
+        "reason": "Claude: miniatura de wireframe em escala reduzida no brainstorm, não é tela real"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/5958-1794754248/content/cards-popup.html"
+        ],
+        "createdAt": "2026-11-15T14:52:49.771Z",
+        "reason": "Claude: miniatura de wireframe no brainstorm"
+      }
+    ]
+  }
+}
