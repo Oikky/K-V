@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barra da extensão · K&amp;V (A/B/C)</title>
+<!-- RASCUNHO DESCARTÁVEL: 3 jeitos da barra lateral da extensão no estilo do redesign do PC (quadro, janela 4, voo B, passos).
+     O formulário do voo é o mesmo nas três (no sistema é um só: shared/opcao-form.js); muda só o caminho até ele. Dados fictícios. -->
+<link rel="stylesheet" href="../../sistema/public/shared/base.css">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<style>
+  body { font-size: 14px; overflow: hidden; }
+  :root { --eo: cubic-bezier(0.23, 1, 0.32, 1); --pw: 380px; }
+  svg.lucide { width: 16px; height: 16px; flex: none; }
+
+  /* ---------- a tela: site aberto na aba (de mentira) + a barra da extensão à direita ---------- */
+  .tela { display: grid; grid-template-columns: minmax(0, 1fr) var(--pw); height: 100dvh; }
+  .site { position: relative; background: #e9edf2; color: #2a3441; overflow: hidden; display: flex; flex-direction: column; }
+  .site .url { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; background: #fff; border-bottom: 1px solid #d5dbe3; font-size: 13px; color: #5b6878; }
+  .site .url span { flex: 1; height: 26px; border-radius: 13px; background: #eef1f5; display: flex; align-items: center; padding: 0 12px; }
+  .site .res { padding: 22px 28px; display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+  .site .res h2 { font-size: 18px; color: #2a3441; }
+  .site .linha { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 16px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .06); }
+  .site .linha b { font-size: 15px; } .site .linha small { color: #6b7786; } .site .linha .p { grid-row: span 2; align-self: center; font-weight: 700; }
+  .site .aviso-site { font-size: 12.5px; color: #4a5565; }
+
+  /* ---------- a barra ---------- */
+  .painel { position: relative; height: 100dvh; background: var(--bg); border-left: 1px solid var(--line); overflow: hidden; }
+  .rolo { height: 100%; overflow: auto; padding: 12px 14px 28px; display: flex; flex-direction: column; gap: 12px; }
+  .rolo > * { min-width: 0; flex: none; }
+
+  .b-topo { display: flex; align-items: center; gap: 10px; }
+  .av { position: relative; width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--surface-3); }
+  .quem b { display: block; font-size: 14px; } .quem small { color: var(--text-3); font-size: 12px; font-weight: 600; }
+  .ico { width: 34px; height: 34px; flex: none; border-radius: 10px; border: 0; background: none; color: var(--text-2); display: grid; place-items: center; cursor: pointer; }
+  .ico:hover { background: var(--surface-2); color: var(--text); }
+  /* cronômetro em pílula (o mesmo do topo do quadro), com o anel girando enquanto está ligado */
+  .cron { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 4px 0 12px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .cron b { font-size: 14px; } .cron small { font-size: 12px; color: var(--text-3); }
+  .cron.lig { border-color: rgb(60 203 139 / .45); } .cron.lig b { color: var(--ok); }
+  .cron button { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: var(--orange); color: var(--orange-ink); }
+  .cron.lig button { background: var(--ok-bg); color: var(--ok); }
+  .cron.lig button::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--ok); animation: gira 2.8s linear infinite; }
+  .cron button svg { width: 14px; height: 14px; }
+  @keyframes gira { to { rotate: 360deg; } }
+
+  .busca { position: relative; } .busca svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--text-3); }
+  .painel .busca input { appearance: none; box-shadow: none; margin: 0; width: 100%; height: 38px; padding: 0 12px 0 36px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); }
+  .busca input:focus { outline: none; border-color: var(--orange); }
+
+  .grupo-t { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-2); margin-top: 4px; }
+  .grupo-t .n { font-size: 12px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-variant-numeric: tabular-nums; }
+  .grupo-t .ic { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: var(--orange-soft); color: var(--orange); }
+  .grupo-t .ic.teal { background: var(--teal-bg); color: var(--teal-soft); }
+  .grupo-t .ic svg { width: 14px; height: 14px; }
+
+  /* cartão do quadro (versão C), mais justo pra caber na barra */
+  .ca { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 18px; background: var(--surface-1); cursor: pointer; transition: background-color .15s, transform .12s var(--eo); }
+  @media (hover: hover) and (pointer: fine) { .ca:hover { background: var(--surface-2); } }
+  .ca:active { transform: scale(.985); } .ca:focus-visible { outline: 2px solid var(--orange); }
+  .ca .l1 { display: flex; align-items: baseline; gap: 8px; } .ca .l1 b { font-size: 13.5px; } .ca .l1 small { margin-left: auto; color: var(--text-3); font-size: 12px; }
+  .ca .rota { font: 700 17px/1.2 var(--font); letter-spacing: -.01em; }
+  .ca .sub { color: var(--text-2); font-size: 12.5px; }
+  .trilho { display: flex; gap: 4px; } .trilho i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); } .trilho i.ok { background: var(--teal-soft); }
+  .trilho-t { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); }
+  .vazio { color: var(--text-3); font-size: 13px; padding: 6px 2px; }
+
+  /* cabeçalho do orçamento aberto */
+  .o-cab { display: flex; align-items: flex-start; gap: 8px; }
+  .o-cab .t { flex: 1; min-width: 0; } .o-cab .id { color: var(--text-3); font-size: 12px; font-weight: 700; }
+  .o-cab h2 { font-size: 18px; letter-spacing: -.01em; } .o-cab .sub { color: var(--text-2); font-size: 12.5px; margin-top: 2px; }
+  .faixas { display: flex; flex-direction: column; gap: 6px; }
+  .ped { padding: 9px 12px; border-radius: 12px; background: var(--warn-bg); font-size: 13px; } .ped b { color: var(--warn); font-size: 12px; margin-right: 6px; }
+  .sky { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--surface-1); font-size: 13px; }
+  .sky svg { color: var(--teal-soft); } .sky b { font-variant-numeric: tabular-nums; } .sky button { margin-left: auto; border: 0; background: none; color: var(--text-2); font-weight: 700; cursor: pointer; font-size: 12.5px; }
+  .sky button:hover { color: var(--orange); }
+
+  /* voo do trecho (voo B do quadro): abre embaixo dele mesmo */
+  .voos { display: flex; flex-direction: column; gap: 8px; }
+  .v4c { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); overflow: hidden; transition: border-color .2s ease, box-shadow .3s var(--eo); }
+  .v4c.aberto { border-color: var(--orange); box-shadow: 0 10px 24px rgb(0 0 0 / .3); }
+  .v4 { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: auto 1fr auto auto; gap: 2px 10px; align-items: center; padding: 10px 12px; cursor: pointer; }
+  .v4:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+  @media (hover: hover) and (pointer: fine) { .v4c:not(.aberto):hover { border-color: var(--text-3); } }
+  .sitec { grid-row: span 2; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--surface-3); }
+  .v4 .h { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; } .v4 .m { color: var(--text-2); font-size: 12.5px; }
+  .v4 .p { grid-row: 1 / span 2; grid-column: 3; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; } .v4 .p small { display: block; font-size: 12px; color: var(--text-2); font-weight: 600; }
+  .v4 .chev { grid-row: 1 / span 2; grid-column: 4; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--text-3); transition: transform .3s var(--eo), color .2s, background-color .2s; }
+  .v4c.aberto .chev { transform: rotate(180deg); color: var(--orange); background: var(--orange-soft); }
+  .v4c.novo { animation: pisca 1.4s var(--eo); }
+  @keyframes pisca { from { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); } }
+  .det-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s var(--eo); }
+  .aberto > .det-wrap { grid-template-rows: 1fr; } .det-wrap > div { min-height: 0; overflow: hidden; }
+  .det { padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+  .det dl { display: grid; grid-template-columns: 96px 1fr; gap: 6px 10px; margin: 0 0 10px; font-size: 13px; }
+  .det dt { color: var(--text-3); font-weight: 700; } .det dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .det dt, .det dd, .det .acoes { opacity: 0; transform: translateY(-5px); transition: opacity .12s, transform .2s var(--eo); }
+  .aberto .det dt, .aberto .det dd, .aberto .det .acoes { opacity: 1; transform: none; transition: opacity .25s ease calc(.05s + var(--i, 0) * .03s), transform .3s var(--eo) calc(.05s + var(--i, 0) * .03s); }
+  .acoes { display: flex; gap: 6px; } .acoes .perigo { margin-left: auto; color: var(--danger); }
+  .bt { height: 32px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2); font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .bt:hover { background: var(--surface-3); } .bt.pri { background: var(--orange); color: var(--orange-ink); border-color: transparent; } .bt.pri:hover { filter: brightness(1.06); }
+  .lancar { all: unset; box-sizing: border-box; height: 40px; border-radius: 12px; border: 1px dashed var(--line); color: var(--text-2); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .lancar:hover { color: var(--orange); border-color: var(--orange); } .lancar:focus-visible { outline: 2px solid var(--orange); }
+  .falta { color: var(--warn); font-size: 13px; padding: 2px; }
+
+  /* o formulário (o mesmo nas três) */
+  .form { display: flex; flex-direction: column; gap: 10px; }
+  .form .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form .campo label { font-size: 12.5px; } .form .campo input, .form .campo select { height: 40px; }
+  .form .campo textarea { min-height: 64px; }
+  .form .campo input.erro { border-color: var(--danger); }
+  .form h4 { margin: 6px 0 -2px; font-size: 12px; font-weight: 800; color: var(--text-3); display: flex; gap: 8px; } .form h4 span { font-weight: 600; }
+  .form .esc { display: grid; grid-template-columns: 1fr 90px auto; gap: 8px; align-items: end; }
+  .usar-aba { all: unset; cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--teal-soft); display: inline-flex; gap: 6px; align-items: center; }
+  .usar-aba:hover { color: var(--orange); }
+
+  /* recado que aparece e some (lançou, salvou) */
+  .recado { position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-radius: 14px; background: var(--surface-3); box-shadow: var(--shadow-pop); font-size: 13px; font-weight: 600; translate: 0 calc(100% + 20px); transition: translate .35s var(--eo); }
+  .recado:not(.on) { opacity: 0; visibility: hidden; transition: translate .35s var(--eo), opacity .2s, visibility .35s; }
+  .recado.on { translate: 0 0; } .recado svg { color: var(--ok); }
+  .v-c .recado { bottom: 76px; }
+
+  /* entrada da tela (abrir orçamento / voltar) */
+  @keyframes entra { from { opacity: 0; transform: translateX(calc(var(--dir, 1) * 14px)); } }
+  .rolo.entra > * { animation: entra .32s var(--eo) both; }
+  .rolo.entra > :nth-child(2) { animation-delay: .03s; } .rolo.entra > :nth-child(3) { animation-delay: .06s; } .rolo.entra > :nth-child(n+4) { animation-delay: .09s; }
+  @keyframes sobe { from { opacity: 0; transform: translateY(calc(var(--dir, 1) * 10px)); } }
+  .voos.entra > * { animation: sobe .3s var(--eo) both; } .voos.entra > :nth-child(2) { animation-delay: .04s; } .voos.entra > :nth-child(n+3) { animation-delay: .08s; }
+
+  /* ===== A: trechos em pílula deslizando + voos em acordeão; o formulário sobe de baixo ===== */
+  .trs { position: relative; display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-1); overflow-x: auto; scrollbar-width: none; }
+  .trs .ind { position: absolute; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 10px; background: var(--orange-soft); transition: transform .3s var(--eo), width .3s var(--eo); pointer-events: none; }
+  .tr { all: unset; position: relative; flex: 1 0 auto; display: grid; gap: 1px; padding: 7px 10px; border-radius: 10px; cursor: pointer; text-align: center; }
+  .tr b { font-size: 13.5px; white-space: nowrap; } .tr small { font-size: 11.5px; color: var(--text-3); font-weight: 700; white-space: nowrap; }
+  .tr small .ok { color: var(--ok); } .tr[aria-selected="true"] b { color: var(--orange); }
+  .tr:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+  .tr-cab { display: flex; align-items: baseline; gap: 8px; } .tr-cab b { font-size: 15px; } .tr-cab small { color: var(--text-2); font-size: 12.5px; }
+
+  .veu-p { position: absolute; inset: 0; z-index: 20; background: rgb(1 8 18 / .55); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .veu-p.on { opacity: 1; pointer-events: auto; }
+  .folha { position: absolute; left: 0; right: 0; bottom: 0; z-index: 21; max-height: 92%; display: flex; flex-direction: column; background: var(--surface-1); border-radius: 22px 22px 0 0; box-shadow: 0 -12px 32px rgb(0 0 0 / .4); translate: 0 104%; transition: translate .38s var(--eo); }
+  .folha.on { translate: 0 0; }
+  .folha .puxa { width: 40px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 8px auto 0; }
+  .folha header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 10px 16px; border-bottom: 1px solid var(--line); }
+  .folha header .t { flex: 1; } .folha header b { display: block; font-size: 15px; } .folha header small { color: var(--text-2); font-size: 12.5px; }
+  .folha .corpo { overflow: auto; padding: 12px 16px 16px; }
+  .folha footer { padding: 10px 16px 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+  .folha footer .bt { height: 42px; flex: 1; justify-content: center; font-size: 14px; }
+
+  /* ===== B: trechos como passos (igual ao fechamento): um aberto por vez, voos e formulário dentro dele ===== */
+  .pss { display: flex; flex-direction: column; gap: 8px; }
+  .ps { border-radius: 16px; background: var(--surface-1); border: 1px solid transparent; transition: border-color .2s; }
+  .ps.aberto { border-color: var(--line); }
+  .ps-bt { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 1px 10px; align-items: center; padding: 11px 12px; cursor: pointer; }
+  .ps-bt:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; border-radius: 16px; }
+  .ps .nn { grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface-3); transition: background-color .2s, color .2s; }
+  .ps .nn svg { width: 14px; height: 14px; }
+  .ps.tem .nn { background: var(--ok-bg); color: var(--ok); }
+  .ps.aberto .nn { background: var(--orange); color: var(--orange-ink); }
+  .ps-bt b { font-size: 15px; } .ps-bt small { color: var(--text-2); font-size: 12.5px; }
+  .ps-bt .chev { grid-row: span 2; color: var(--text-3); transition: transform .3s var(--eo); } .ps.aberto .ps-bt .chev { transform: rotate(180deg); color: var(--orange); }
+  .ps .dentro { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .ps .sep { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--text-3); margin-top: 4px; }
+  .ps .sep::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .ps .v4c { background: var(--surface-2); border-color: transparent; } .ps .v4c.aberto { border-color: var(--orange); }
+  .ps .lancar-b { height: 42px; justify-content: center; }
+
+  /* ===== C: formulário sempre aberto, lançadas numa gaveta, botão fixo embaixo ===== */
+  .v-c .rolo { padding-bottom: 90px; }
+  .c-topo { position: sticky; top: -12px; z-index: 5; margin: -12px -14px 0; padding: 12px 14px 10px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .c-orc { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-radius: 14px; background: var(--surface-1); cursor: pointer; }
+  .c-orc:hover { background: var(--surface-2); } .c-orc:focus-visible { outline: 2px solid var(--orange); }
+  .c-orc .t { flex: 1; min-width: 0; } .c-orc b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .c-orc small { color: var(--text-2); font-size: 12px; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .chip { all: unset; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: var(--r-pill); background: var(--surface-1); font-size: 13px; font-weight: 700; cursor: pointer; color: var(--text-2); transition: background-color .2s, color .2s; }
+  .chip .d { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-3); } .chip .d.ok { background: var(--teal-soft); }
+  .chip[aria-selected="true"] { background: var(--orange); color: var(--orange-ink); } .chip[aria-selected="true"] .d { background: var(--orange-ink); }
+  .chip:focus-visible { outline: 2px solid var(--orange); }
+  .c-linha { display: flex; gap: 8px; } .c-linha .c-orc { flex: 1; min-width: 0; }
+  .chip.lanc { height: auto; padding: 0 14px; border-radius: 14px; background: var(--surface-1); color: var(--text); }
+  .chip.lanc:hover { background: var(--surface-2); }
+  .chip.lanc .n { font-variant-numeric: tabular-nums; color: var(--orange); }
+  .c-rodape { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; padding: 10px 14px 14px; background: linear-gradient(to top, var(--bg) 70%, transparent); }
+  .c-rodape .bt { width: 100%; height: 46px; justify-content: center; font-size: 14.5px; }
+  .gaveta { position: absolute; top: 0; right: 0; bottom: 0; z-index: 21; width: 92%; display: flex; flex-direction: column; background: var(--surface-1); box-shadow: -12px 0 32px rgb(0 0 0 / .4); border-radius: 22px 0 0 22px; translate: 104% 0; transition: translate .38s var(--eo); }
+  .gaveta.on { translate: 0 0; }
+  .gaveta header { display: flex; align-items: center; gap: 8px; padding: 14px 14px 12px 16px; border-bottom: 1px solid var(--line); } .gaveta header .t { flex: 1; } .gaveta header b { font-size: 16px; } .gaveta header small { display: block; color: var(--text-2); font-size: 12.5px; }
+  .gaveta .corpo { overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 14px; }
+  .gaveta .grupo-t { margin: 0; }
+  .lista-o { display: flex; flex-direction: column; gap: 8px; }
+  .editando { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; background: var(--orange-soft); font-size: 13px; } .editando b { color: var(--orange); } .editando .bt { margin-left: auto; height: 28px; }
+
+  /* ---------- trocar de versão (fica no site, fora da barra) ---------- */
+  .versoes { position: fixed; left: 16px; bottom: 16px; z-index: 60; display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: #0B1B30; box-shadow: 0 8px 24px rgb(0 0 0 / .25); color: #F3F6FA; }
+  .versoes button { height: 36px; padding: 0 14px; border-radius: var(--r-pill); border: 0; background: none; font-weight: 700; cursor: pointer; color: #A9B8CC; }
+  .versoes button[aria-pressed="true"] { background: var(--orange); color: var(--orange-ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rolo.entra > *, .voos.entra > * { animation-name: esmaece; }
+    .trs .ind, .det-wrap, .v4 .chev, .ps-bt .chev, .folha, .gaveta, .recado { transition-duration: .01s; }
+    .folha, .gaveta { transition: opacity .2s; } .folha:not(.on), .gaveta:not(.on) { opacity: 0; }
+    .det dt, .det dd, .det .acoes { transform: none; }
+    .cron.lig button::after { animation: respira 1.6s ease-in-out infinite alternate; border-color: var(--ok); }
+  }
+  @keyframes esmaece { from { opacity: 0; } }
+  @keyframes respira { from { opacity: .25; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<div class="tela">
+  <section class="site" aria-label="Site aberto na aba (exemplo)">
+    <div class="url"><i data-lucide="lock"></i><span>site-de-milhas.exemplo/busca?de=GRU&amp;para=LIS&amp;dia=14-01</span></div>
+    <div class="res"><h2>GRU → LIS · 14 de janeiro</h2>
+      <div class="linha"><b>22:05 → 11:40 +1</b><span class="p">62.000 milhas + R$ 410</span><small>Direto · 10h35 · 1 mala</small></div>
+      <div class="linha"><b>23:30 → 13:10 +1</b><span class="p">70.000 milhas + R$ 380</span><small>Direto · 10h40 · sem mala</small></div>
+      <div class="linha"><b>16:50 → 10:15 +1</b><span class="p">58.500 milhas + R$ 455</span><small>1 parada em MAD · 13h25 · 1 mala</small></div>
+      <p class="aviso-site">Aqui fica o site que a pesquisadora está usando. A barra à direita é a extensão.</p></div>
+  </section>
+  <aside class="painel" id="painel" aria-label="Barra da extensão K&amp;V">
+    <div class="rolo" id="rolo"></div>
+    <div class="veu-p" id="veu" data-fechar></div>
+    <div class="folha" id="folha" role="dialog" aria-modal="true" aria-labelledby="folha-t" hidden></div>
+    <div class="gaveta" id="gaveta" role="dialog" aria-modal="true" aria-labelledby="gaveta-t" hidden></div>
+    <div class="recado" id="recado" role="status"></div>
+  </aside>
+</div>
+<div class="versoes" role="group" aria-label="Versão"></div>
+
+<script>
+// ---------- dados fictícios ----------
+const EU = { nome: 'Bruna', papel: 'Pesquisadora' };
+const V = (id, site, sig, dia, sai, chega, info, mi, tx, extra = {}) => ({ id, site, sig, dia, sai, chega, info, mi, tx, ...extra });
+const T = (de, para, datas, voos = []) => ({ de, para, datas, voos });
+const ORC = [
+  { id: 214, nome: 'Marina Ribeiro', resp: 'Bruna', mexido: 'hoje 10:40', pax: 2, pedido: 'só voo direto', sky: 'R$ 4.980', destino: 'Lisboa e Madri',
+    trechos: [T('GRU', 'LIS', '12 a 18/01', [V(1, 'Latam', 'LA', '14/01', '22:05', '11:40 +1', 'Direto · 1 mala', 62000, 'R$ 410,00', { voo: 'LA 8084', dur: '10h35m' }), V(2, 'Smiles', 'SM', '15/01', '23:30', '13:10 +1', 'Direto · sem mala', 70000, 'R$ 380,00', { voo: 'TP 82', dur: '10h40m' })]),
+              T('LIS', 'MAD', '19 a 21/01', [V(3, 'TudoAzul', 'AZ', '19/01', '09:15', '11:35', 'Direto · 1 mala', 9000, 'R$ 120,00', { voo: 'IB 3107', dur: '1h20m' })]),
+              T('MAD', 'GRU', '24 a 26/01')] },
+  { id: 218, nome: 'Helena Duarte', resp: 'Bruna', mexido: 'hoje 11:55', pax: 1, sky: 'R$ 1.120', destino: 'Natal', trechos: [T('CNF', 'NAT', '05 e 06/03')] },
+  { id: 213, nome: 'Paulo Teixeira', resp: 'Bruna', mexido: 'ontem 17:20', pax: 1, destino: 'Orlando',
+    trechos: [T('CNF', 'MCO', '02 a 09/02', [V(4, 'Smiles', 'SM', '03/02', '01:10', '09:55', '1 escala · 1 mala', 88000, 'R$ 520,00', { voo: 'AA 904', dur: '12h45m' })]), T('MCO', 'CNF', '16 a 23/02')] },
+  { id: 211, nome: 'Jorge Almeida', resp: 'Caio', mexido: 'hoje 08:50', pax: 2, destino: 'Buenos Aires',
+    trechos: [T('GRU', 'EZE', '14 a 20/04', [V(5, 'Smiles', 'SM', '15/04', '07:40', '10:45', 'Direto · 1 mala', 24000, 'R$ 210,00', { voo: 'G3 7460', dur: '3h05m' })]), T('EZE', 'GRU', '25 a 30/04')] },
+];
+const SITES = [['Smiles', 'SM'], ['Latam', 'LA'], ['TudoAzul', 'AZ'], ['Dinheiro', 'R$']];
+
+// ---------- estado ----------
+const q = new URLSearchParams(location.search);
+let ver = ['a', 'b', 'c'].includes(q.get('ver')) ? q.get('ver') : 'a';
+let orc = null, trecho = 0, vooAberto = null, form = {}, editando = null, camadas = [];
+let lig = true, desde = Date.now() - (2 * 3600 + 14 * 60) * 1000, acumulado = 0, proxId = 10;
+const $ = (s) => document.querySelector(s);
+const rolo = $('#rolo'), painel = $('#painel');
+const menosMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pts = (n) => n.toLocaleString('pt-BR');
+const rota = (o) => [o.trechos[0].de, ...o.trechos.map((t) => t.para)].join(' → ');
+const comVoo = (o) => o.trechos.filter((t) => t.voos.length).length;
+const icones = () => lucide.createIcons();
+
+// ---------- peças de todas as versões ----------
+const relogio = () => { const ms = acumulado + (lig ? Date.now() - desde : 0), s = Math.floor(ms / 1000); return `${Math.floor(s / 3600)}h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}min`; };
+const topo = () => `<header class="b-topo"><span class="av">${EU.nome[0]}</span><div class="quem"><b>${EU.nome}</b><small>${EU.papel}</small></div>
+  <div class="cron ${lig ? 'lig' : ''}"><span><b data-cron>${relogio()}</b> <small>hoje</small></span><button data-ponto aria-label="${lig ? 'Pausar' : 'Começar'} o cronômetro"><i data-lucide="${lig ? 'pause' : 'play'}"></i></button></div></header>`;
+const cartao = (o) => `<button class="ca" data-abrir="${o.id}">
+  <span class="l1"><b>${o.nome}</b><small>#${o.id} · ${o.mexido}</small></span>
+  <span class="rota">${rota(o)}</span><span class="sub">${o.destino} · ${o.trechos[0].datas} · ${o.pax} ${o.pax > 1 ? 'pessoas' : 'pessoa'}</span>
+  <span class="trilho">${o.trechos.map((t) => `<i class="${t.voos.length ? 'ok' : ''}"></i>`).join('')}</span>
+  <span class="trilho-t"><span>${comVoo(o)} de ${o.trechos.length} ${o.trechos.length > 1 ? 'trechos' : 'trecho'} com voo</span><span>${o.resp === EU.nome ? 'com você' : 'com ' + o.resp}</span></span></button>`;
+function telaLista() {
+  const com = ORC.filter((o) => o.resp === EU.nome), outros = ORC.filter((o) => o.resp !== EU.nome);
+  return `${topo()}<label class="busca"><i data-lucide="search"></i><input type="search" placeholder="Buscar nome, cidade ou nº" aria-label="Buscar orçamento"></label>
+    <h2 class="grupo-t"><span class="ic"><i data-lucide="search"></i></span>Em pesquisa com você <span class="n">${com.length}</span></h2>${com.map(cartao).join('')}
+    <h2 class="grupo-t"><span class="ic teal"><i data-lucide="users"></i></span>Com a equipe <span class="n">${outros.length}</span></h2>${outros.map(cartao).join('')}`;
+}
+const cabOrc = () => `<div class="o-cab"><button class="ico" data-voltar aria-label="Voltar pra lista"><i data-lucide="arrow-left"></i></button>
+  <div class="t"><span class="id">#${orc.id} · ${orc.nome} · ${orc.pax} ${orc.pax > 1 ? 'pessoas' : 'pessoa'}</span><h2>${rota(orc)}</h2></div>
+  <a class="ico" href="#" aria-label="Abrir no sistema" title="Abrir no sistema"><i data-lucide="external-link"></i></a></div>`;
+const faixas = () => `<div class="faixas">${orc.pedido ? `<p class="ped"><b>Pedido</b>${orc.pedido}</p>` : ''}
+  <div class="sky"><i data-lucide="tag"></i><span>Skyscanner ${orc.sky ? `<b>${orc.sky}</b> por pessoa` : '<span class="faint">ainda sem preço</span>'}</span><button type="button">${orc.sky ? 'Mudar' : 'Pôr'}</button></div></div>`;
+const valor = (x) => x.mi ? `${pts(x.mi)} mi<small>+ ${x.tx}</small>` : `${x.tx}<small>dinheiro</small>`;
+const linhasVoo = (x) => [['Dia', x.dia], ['Voo', x.voo || '—'], ['Horário', `${x.sai} → ${x.chega}`], ['Tempo', x.dur || '—'], ['Escalas e malas', x.info], ['Por pessoa', x.mi ? `${pts(x.mi)} milhas + ${x.tx}` : x.tx]];
+const vooHtml = (x, ti) => `<div class="v4c ${vooAberto === x.id ? 'aberto' : ''} ${x.novo ? 'novo' : ''}" data-v="${x.id}">
+  <button class="v4" data-voo="${x.id}" aria-expanded="${vooAberto === x.id}"><span class="sitec">${x.sig}</span><span class="h">${x.sai} → ${x.chega}</span><span class="m">${x.site} · ${x.dia} · ${x.info}</span><span class="p">${valor(x)}</span><span class="chev"><i data-lucide="chevron-down"></i></span></button>
+  <div class="det-wrap"><div><div class="det"><dl>${linhasVoo(x).map(([a, b], i) => `<dt style="--i:${i}">${a}</dt><dd style="--i:${i}">${b}</dd>`).join('')}</dl>
+    <div class="acoes" style="--i:6"><button class="bt" data-editar="${x.id}" data-tr="${ti}"><i data-lucide="pencil"></i>Editar</button><button class="bt" data-dup="${x.id}" data-tr="${ti}"><i data-lucide="copy"></i>Duplicar</button><button class="bt perigo" data-apagar="${x.id}" data-tr="${ti}" aria-label="Apagar"><i data-lucide="trash-2"></i></button></div></div></div></div></div>`;
+const voosDe = (ti) => { const t = orc.trechos[ti]; return t.voos.length ? t.voos.map((x) => vooHtml(x, ti)).join('') : `<p class="falta">Nenhum voo neste trecho ainda.</p>`; };
+
+// o formulário: os campos e a ordem do formulário de hoje (shared/opcao-form.js)
+function formHtml(t) {
+  const f = form, din = f.site === 'Dinheiro', esc = f.escalas || [];
+  const c = (id, rot, html, cls = '') => `<div class="campo ${cls}"><label for="f-${id}">${rot}</label>${html}</div>`;
+  const e = (id, ph, extra = '') => `<input id="f-${id}" data-f="${id}" placeholder="${ph}" value="${f[id] ?? ''}" ${extra}>`;
+  return `<div class="form" id="form">
+    <div class="duas">${c('site', 'Site', `<select id="f-site" data-f="site">${SITES.map(([s]) => `<option ${s === f.site ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}${c('dia', 'Dia', e('dia', 'dd/mm'))}</div>
+    <div class="duas">${c('cia', 'Companhia aérea', e('cia', 'Latam, GOL…'))}${c('voo', 'Voo', e('voo', 'LA 8084'))}</div>
+    <div class="duas">${c('de', 'Sai de', e('de', t.de))}${c('para', 'Chega em', e('para', t.para))}</div>
+    <div class="duas">${c('sai', 'Saída', e('sai', '07:40', 'inputmode="numeric"'))}${c('chega', 'Chegada', e('chega', '19:10', 'inputmode="numeric"'))}</div>
+    <div class="duas">${c('depois', 'Chega no dia', `<select id="f-depois" data-f="depois">${['Mesmo dia', '+1', '+2'].map((x) => `<option ${x === f.depois ? 'selected' : ''}>${x}</option>`).join('')}</select>`)}${c('dur', 'Tempo de viagem', e('dur', '7h10m'))}</div>
+    <h4>Escalas <span>${esc.length ? `${esc.length} escala${esc.length > 1 ? 's' : ''}` : 'voo direto'}</span></h4>
+    ${esc.map((x, i) => `<div class="esc">${c('el' + i, `Escala ${i + 1}`, `<input id="f-el${i}" data-esc="${i}" placeholder="MAD" value="${x}">`)}${c('et' + i, 'Tempo', `<input id="f-et${i}" placeholder="1h30m">`)}<button type="button" class="bt" data-tira-esc="${i}" aria-label="Tirar escala ${i + 1}"><i data-lucide="x"></i></button></div>`).join('')}
+    ${esc.length < 3 ? `<button type="button" class="bt" data-poe-esc style="align-self:flex-start"><i data-lucide="plus"></i>Escala</button>` : ''}
+    <h4>Malas</h4>
+    <div class="duas">${c('mao', 'Mala de mão', `<select id="f-mao"><option>Inclusa</option><option>Não inclusa</option><option>Não sei</option></select>`)}${c('bag', 'Despachada', `<select id="f-bag" data-f="bag">${['Não inclusa', '1 inclusa', '2 inclusas'].map((x) => `<option ${x === f.bag ? 'selected' : ''}>${x}</option>`).join('')}</select>`)}</div>
+    <h4>Valores, por pessoa</h4>
+    ${din ? c('preco', 'Preço em dinheiro', e('preco', 'R$', 'inputmode="decimal"')) : `<div class="duas">${c('milhas', 'Milhas', e('milhas', '45.000', 'inputmode="numeric"'))}${c('taxa', 'Taxa', e('taxa', 'R$', 'inputmode="decimal"'))}</div>`}
+    <h4>Anotações</h4>
+    ${c('destaque', 'Destaque', e('destaque', '‼️Opção mais barata‼️'))}
+    ${c('obs', 'Observações', `<textarea id="f-obs" data-f="obs" rows="2" placeholder="Ex.: taxa total pra 4 pessoas">${f.obs || ''}</textarea>`)}
+    ${c('link', 'Link do preço', e('link', 'Colar link'))}
+    ${f.link ? '' : `<button type="button" class="usar-aba" data-usar-aba><i data-lucide="link"></i>Usar o endereço da aba aberta</button>`}</div>`;
+}
+function lerForm() { document.querySelectorAll('#form [data-f]').forEach((el) => { form[el.dataset.f] = el.value; }); const es = [...document.querySelectorAll('#form [data-esc]')]; if (es.length || form.escalas) form.escalas = es.map((el) => el.value); }
+function novoForm(ti, manter = {}) { const t = orc.trechos[ti]; form = { site: 'Smiles', dia: t.datas.slice(0, 2) + t.datas.slice(-3), depois: 'Mesmo dia', bag: '1 inclusa', escalas: [], ...manter }; editando = null; }
+function lancar() {
+  lerForm();
+  const din = form.site === 'Dinheiro', faltam = ['sai', 'chega', ...(din ? ['preco'] : ['milhas', 'taxa'])].filter((k) => !String(form[k] || '').trim());
+  document.querySelectorAll('#form [data-f]').forEach((el) => el.classList.toggle('erro', faltam.includes(el.dataset.f)));
+  if (faltam.length) { const el = document.querySelector(`#form [data-f="${faltam[0]}"]`); el.focus(); return false; }
+  const t = orc.trechos[trecho], sig = (SITES.find(([s]) => s === form.site) || [])[1];
+  const dados = { site: form.site, sig, dia: form.dia, sai: form.sai, chega: form.chega + (form.depois !== 'Mesmo dia' ? ' ' + form.depois : ''), voo: form.voo, dur: form.dur,
+    info: `${form.escalas.length ? form.escalas.length + ' escala' + (form.escalas.length > 1 ? 's' : '') : 'Direto'} · ${form.bag === 'Não inclusa' ? 'sem mala' : form.bag.replace(' inclusa', ' mala').replace('s', '')}`,
+    mi: din ? null : +String(form.milhas).replace(/\D/g, ''), tx: din ? 'R$ ' + form.preco : 'R$ ' + form.taxa };
+  let txt;
+  if (editando) { Object.assign(t.voos.find((x) => x.id === editando), dados); vooAberto = editando; txt = `Alteração salva: ${dados.site} ${dados.sai} → ${dados.chega}.`; }
+  else { const id = ++proxId; t.voos.push({ id, ...dados, novo: true }); vooAberto = null; txt = `Lançada no #${orc.id}: ${dados.site} ${dados.sai} → ${dados.chega}. Site e dia continuam pra próxima.`; }
+  novoForm(trecho, { site: form.site, dia: form.dia });
+  recado(txt);
+  return true;
+}
+let recTimer;
+function recado(t) { const r = $('#recado'); r.innerHTML = `<i data-lucide="check-circle-2"></i><span>${t}</span>`; icones(); r.classList.add('on'); clearTimeout(recTimer); recTimer = setTimeout(() => r.classList.remove('on'), 3200); }
+
+// ---------- A: trechos em pílula + acordeão; formulário em folha que sobe ----------
+const trsA = () => `<div class="trs" role="tablist" aria-label="Trechos"><span class="ind" id="ind"></span>${orc.trechos.map((t, i) => `<button class="tr" role="tab" data-trecho="${i}" aria-selected="${i === trecho}"><b>${t.de} → ${t.para}</b><small>${t.voos.length ? `<span class="ok">${t.voos.length} ${t.voos.length > 1 ? 'voos' : 'voo'}</span>` : 'sem voo'}</small></button>`).join('')}</div>`;
+const ladoA = () => { const t = orc.trechos[trecho]; return `<div class="tr-cab"><b>${t.de} → ${t.para}</b><small>${t.datas}</small></div>${voosDe(trecho)}<button class="lancar" data-nova><i data-lucide="plus"></i>Lançar voo neste trecho</button>`; };
+const telaA = () => `${topo()}${cabOrc()}${faixas()}${orc.trechos.length > 1 ? trsA() : ''}<div class="voos" id="voos">${ladoA()}</div>`;
+function moverInd(animar = true) {
+  const ind = $('#ind'), b = document.querySelector('.tr[aria-selected="true"]'); if (!ind || !b) return;
+  if (!animar) ind.style.transition = 'none';
+  ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft - 4}px)`; ind.style.left = '4px';
+  if (!animar) { ind.offsetWidth; ind.style.transition = ''; }
+}
+function abrirFolha() {
+  const t = orc.trechos[trecho], f = $('#folha'), ed = editando && t.voos.find((x) => x.id === editando);
+  f.innerHTML = `<div class="puxa"></div><header><div class="t"><b id="folha-t">${ed ? 'Editar voo' : 'Lançar voo'}</b><small>#${orc.id} · ${t.de} → ${t.para} · ${t.datas}</small></div><button class="ico" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></header>
+    <div class="corpo">${formHtml(t)}</div><footer><button class="bt" data-fechar>Cancelar</button><button class="bt pri" data-lancar><i data-lucide="${ed ? 'check' : 'plus'}"></i>${ed ? 'Salvar alteração' : `Lançar no #${orc.id}`}</button></footer>`;
+  f.hidden = false; icones(); camada('folha');
+  requestAnimationFrame(() => { f.classList.add('on'); $('#veu').classList.add('on'); setTimeout(() => { const el = f.querySelector('[data-f="sai"]'); if (el) el.focus(); }, 300); });
+}
+
+// ---------- B: trechos como passos ----------
+const telaB = () => `${topo()}${cabOrc()}${faixas()}<div class="pss">${orc.trechos.map((t, i) => passoB(t, i)).join('')}</div>`;
+function passoB(t, i) {
+  const ab = i === trecho, ed = editando && t.voos.find((x) => x.id === editando);
+  return `<section class="ps ${ab ? 'aberto' : ''} ${t.voos.length ? 'tem' : ''}" data-ps="${i}">
+    <button class="ps-bt" data-passo="${i}" aria-expanded="${ab}"><span class="nn">${t.voos.length && !ab ? '<i data-lucide="check"></i>' : i + 1}</span><b>${t.de} → ${t.para}</b><span class="chev"><i data-lucide="chevron-down"></i></span>
+      <small>${t.datas} · ${t.voos.length ? `${t.voos.length} ${t.voos.length > 1 ? 'voos' : 'voo'}` : 'sem voo'}</small></button>
+    <div class="det-wrap"><div>${ab ? `<div class="dentro"><div class="voos" id="voos">${voosDe(i)}</div>
+      <div class="sep">${ed ? 'Editando' : t.voos.length ? 'Lançar outro voo' : 'Lançar voo'}</div>
+      ${ed ? `<div class="editando"><i data-lucide="pencil"></i><span>Editando <b>${ed.site} ${ed.sai}</b></span><button class="bt" data-cancelar-ed>Cancelar</button></div>` : ''}
+      ${formHtml(t)}<button class="bt pri lancar-b" data-lancar><i data-lucide="${ed ? 'check' : 'plus'}"></i>${ed ? 'Salvar alteração' : `Lançar no #${orc.id}`}</button></div>` : ''}</div></div></section>`;
+}
+
+// ---------- C: formulário sempre aberto ----------
+function telaC() {
+  const t = orc.trechos[trecho], n = t.voos.length, ed = editando && t.voos.find((x) => x.id === editando);
+  return `${topo()}<div class="c-topo"><div class="c-linha"><button class="c-orc" data-trocar-orc><div class="t"><b>${rota(orc)}</b><small>#${orc.id} · ${orc.nome} · ${orc.pax} ${orc.pax > 1 ? 'pessoas' : 'pessoa'}</small></div><i data-lucide="chevrons-up-down"></i></button>
+      <button class="chip lanc" data-lancadas aria-label="Lançadas neste trecho: ${n}"><i data-lucide="list"></i><span class="n">${n}</span></button></div>
+    <div class="chips" role="tablist" aria-label="Trechos">${orc.trechos.map((x, i) => `<button class="chip" role="tab" data-trecho="${i}" aria-selected="${i === trecho}"><span class="d ${x.voos.length ? 'ok' : ''}"></span>${x.de} → ${x.para}</button>`).join('')}</div></div>
+    ${faixas()}${ed ? `<div class="editando"><i data-lucide="pencil"></i><span>Editando <b>${ed.site} ${ed.sai}</b></span><button class="bt" data-cancelar-ed>Cancelar</button></div>` : ''}
+    ${formHtml(t)}`;
+}
+const rodapeC = () => { const ed = editando; return `<div class="c-rodape"><button class="bt pri" data-lancar><i data-lucide="${ed ? 'check' : 'plus'}"></i>${ed ? 'Salvar alteração' : `Lançar no #${orc.id} · ${orc.trechos[trecho].de} → ${orc.trechos[trecho].para}`}</button></div>`; };
+function abrirGaveta(tipo) {
+  const g = $('#gaveta'), t = orc && orc.trechos[trecho];
+  if (tipo === 'lancadas') g.innerHTML = `<header><div class="t"><b id="gaveta-t">Lançadas neste trecho</b><small>#${orc.id} · ${t.de} → ${t.para} · ${t.datas}</small></div><button class="ico" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></header><div class="corpo"><div class="voos" id="voos">${voosDe(trecho)}</div></div>`;
+  else { const com = ORC.filter((o) => o.resp === EU.nome), outros = ORC.filter((o) => o.resp !== EU.nome);
+    g.innerHTML = `<header><div class="t"><b id="gaveta-t">Trocar de orçamento</b><small>o que você digitou fica guardado</small></div><button class="ico" data-fechar aria-label="Fechar"><i data-lucide="x"></i></button></header>
+      <div class="corpo"><h2 class="grupo-t"><span class="ic"><i data-lucide="search"></i></span>Com você <span class="n">${com.length}</span></h2><div class="lista-o">${com.map(cartao).join('')}</div>
+      <h2 class="grupo-t"><span class="ic teal"><i data-lucide="users"></i></span>Com a equipe <span class="n">${outros.length}</span></h2><div class="lista-o">${outros.map(cartao).join('')}</div></div>`; }
+  g.hidden = false; icones(); camada('gaveta');
+  requestAnimationFrame(() => { g.classList.add('on'); $('#veu').classList.add('on'); g.querySelector('[data-fechar]').focus(); });
+}
+
+// ---------- desenhar ----------
+function desenhar({ entra = false, dir = 1 } = {}) {
+  document.body.className = 'v-' + ver;
+  document.querySelectorAll('.versoes button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.ver === ver));
+  rolo.innerHTML = !orc ? telaLista() : ver === 'a' ? telaA() : ver === 'b' ? telaB() : telaC();
+  painel.querySelector('.c-rodape')?.remove();
+  if (orc && ver === 'c') painel.insertAdjacentHTML('beforeend', rodapeC());
+  rolo.style.setProperty('--dir', dir);
+  rolo.classList.toggle('entra', entra && !menosMov()); if (entra) setTimeout(() => rolo.classList.remove('entra'), 500);
+  icones(); moverInd(false);
+}
+function trocarVoos(dir) { // só a parte dos voos muda; a pílula desliza por baixo
+  const vs = $('#voos'); vs.innerHTML = ver === 'a' ? ladoA() : voosDe(trecho); vs.style.setProperty('--dir', dir);
+  vs.classList.remove('entra'); vs.offsetWidth; vs.classList.add('entra'); icones();
+}
+
+// ---------- camadas e voltar (Esc e o voltar do mouse/navegador fecham uma por vez) ----------
+function camada(nome) { camadas.push(nome); history.pushState({ n: camadas.length }, ''); }
+function fecharTopo() {
+  const c = camadas.pop();
+  if (c === 'folha' || c === 'gaveta') { const el = $('#' + c); el.classList.remove('on'); $('#veu').classList.remove('on'); setTimeout(() => { el.hidden = true; }, menosMov() ? 0 : 380); if (c === 'folha') editando = null; }
+  else if (c === 'voo') { const el = document.querySelector('.v4c.aberto'); if (el) { el.classList.remove('aberto'); el.querySelector('.v4').setAttribute('aria-expanded', 'false'); } vooAberto = null; }
+  else if (c === 'orc') { lerForm(); orc = null; vooAberto = null; desenhar({ entra: true, dir: -1 }); }
+}
+addEventListener('popstate', () => { if (camadas.length) fecharTopo(); });
+const voltar = () => history.back();
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && camadas.length && !e.defaultPrevented) { e.preventDefault(); voltar(); } });
+
+function abrirOrc(id) {
+  orc = ORC.find((o) => o.id === id); trecho = Math.max(0, orc.trechos.findIndex((t) => !t.voos.length)); vooAberto = null; novoForm(trecho);
+  camadas = camadas.filter((c) => c === 'orc'); if (!camadas.length) camada('orc');
+  desenhar({ entra: true });
+}
+
+// ---------- cliques ----------
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button, a, [data-fechar]'); if (!b) return;
+  if (b.tagName === 'A') e.preventDefault();
+  const d = b.dataset;
+  if (d.ver) { lerForm(); ver = d.ver; history.replaceState(null, '', '?ver=' + ver); camadas = camadas.filter((c) => c === 'orc'); ['folha', 'gaveta'].forEach((x) => { $('#' + x).classList.remove('on'); $('#' + x).hidden = true; }); $('#veu').classList.remove('on'); return desenhar(); }
+  if (d.fechar != null) return voltar();
+  if (d.ponto != null) { if (lig) acumulado += Date.now() - desde; else desde = Date.now(); lig = !lig; return desenhar(); }
+  if (d.abrir) { if (camadas.at(-1) === 'gaveta') { camadas.pop(); history.back(); const g = $('#gaveta'); g.classList.remove('on'); $('#veu').classList.remove('on'); setTimeout(() => { g.hidden = true; }, 380); } return abrirOrc(+d.abrir); }
+  if (d.voltar != null) { while (camadas.length > 1) camadas.pop(); return voltar(); }
+  if (d.trecho != null) {
+    const novo = +d.trecho; if (novo === trecho) return; lerForm(); const dir = novo > trecho ? 1 : -1; trecho = novo; vooAberto = null; novoForm(trecho, { site: form.site }); camadas = camadas.filter((c) => c !== 'voo');
+    document.querySelectorAll('[data-trecho]').forEach((x) => x.setAttribute('aria-selected', +x.dataset.trecho === trecho));
+    if (ver === 'a') { moverInd(); trocarVoos(dir); } else desenhar();
+    return;
+  }
+  if (d.passo != null) { // B: abre um passo e fecha o outro
+    const i = +d.passo; lerForm(); vooAberto = null; editando = null;
+    if (i === trecho) { const el = b.closest('.ps'); el.classList.toggle('aberto'); b.setAttribute('aria-expanded', el.classList.contains('aberto')); return; }
+    trecho = i; novoForm(trecho);
+    const st = rolo.scrollTop; desenhar(); rolo.scrollTop = st;
+    const el = document.querySelector(`[data-ps="${trecho}"]`); el.classList.remove('aberto'); el.offsetWidth; el.classList.add('aberto'); // abre animando
+    setTimeout(() => el.scrollIntoView({ block: 'start', behavior: menosMov() ? 'auto' : 'smooth' }), 120);
+    return;
+  }
+  if (d.voo) { // acordeão do voo: só troca a classe, pra animar
+    const id = +d.voo, el = b.closest('.v4c'), ja = el.classList.contains('aberto');
+    document.querySelectorAll('.v4c.aberto').forEach((x) => { x.classList.remove('aberto'); x.querySelector('.v4').setAttribute('aria-expanded', 'false'); });
+    if (camadas.at(-1) === 'voo') { camadas.pop(); history.replaceState({ n: camadas.length }, ''); }
+    if (!ja) { el.classList.add('aberto'); b.setAttribute('aria-expanded', 'true'); vooAberto = id; camada('voo'); } else { vooAberto = null; }
+    return;
+  }
+  if (d.nova != null) { novoForm(trecho, { site: form.site, dia: form.dia }); return abrirFolha(); }
+  if (d.editar || d.dup) {
+    const ti = +d.tr, x = orc.trechos[ti].voos.find((v) => v.id === +(d.editar || d.dup));
+    trecho = ti; form = { site: x.site, dia: x.dia, cia: '', voo: x.voo, sai: x.sai, chega: x.chega.replace(/ \+\d$/, ''), depois: (/ (\+\d)$/.exec(x.chega) || [, 'Mesmo dia'])[1], dur: x.dur, bag: /sem mala/.test(x.info) ? 'Não inclusa' : '1 inclusa', escalas: [], milhas: x.mi ? pts(x.mi) : '', taxa: x.mi ? x.tx.replace('R$ ', '') : '', preco: x.mi ? '' : x.tx.replace('R$ ', '') };
+    editando = d.editar ? x.id : null;
+    if (ver === 'a') { while (camadas.at(-1) === 'voo') camadas.pop(); return abrirFolha(); }
+    if (ver === 'c') { while (camadas.at(-1) === 'gaveta' || camadas.at(-1) === 'voo') { camadas.pop(); history.back(); } const g = $('#gaveta'); g.classList.remove('on'); $('#veu').classList.remove('on'); setTimeout(() => { g.hidden = true; }, 380); }
+    desenhar(); const el = document.querySelector('#form [data-f="sai"]'); el.focus(); el.scrollIntoView({ block: 'center', behavior: menosMov() ? 'auto' : 'smooth' }); return;
+  }
+  if (d.apagar) { const t = orc.trechos[+d.tr]; t.voos = t.voos.filter((v) => v.id !== +d.apagar); vooAberto = null; while (camadas.at(-1) === 'voo') camadas.pop(); if (ver === 'c') $('#voos').innerHTML = voosDe(trecho); else desenhar(); icones(); return recado('Voo apagado. (No sistema: com Desfazer.)'); }
+  if (d.cancelarEd != null) { novoForm(trecho, { site: form.site }); return desenhar(); }
+  if (d.lancar != null) {
+    if (!lancar()) return;
+    if (ver === 'a') { voltar(); setTimeout(() => { desenhar(); const vs = document.querySelectorAll('.v4c'); vs[vs.length - 1]?.scrollIntoView({ block: 'nearest' }); }, 60); }
+    else { desenhar(); const el = document.querySelector('#form [data-f="sai"]'); if (el && ver === 'c') { rolo.scrollTo({ top: 0, behavior: menosMov() ? 'auto' : 'smooth' }); el.focus({ preventScroll: true }); } }
+    return;
+  }
+  if (d.lancadas != null) return abrirGaveta('lancadas');
+  if (d.trocarOrc != null) { lerForm(); return abrirGaveta('orcs'); }
+  if (d.poeEsc != null) { lerForm(); form.escalas.push(''); return redesenharForm(); }
+  if (d.tiraEsc != null) { lerForm(); form.escalas.splice(+d.tiraEsc, 1); return redesenharForm(); }
+  if (d.usarAba != null) { lerForm(); form.link = 'site-de-milhas.exemplo/busca?de=GRU&para=LIS&dia=14-01'; return redesenharForm(); }
+});
+function redesenharForm() { const f = $('#form'); f.outerHTML = formHtml(orc.trechos[trecho]); icones(); }
+document.addEventListener('change', (e) => { if (e.target.dataset.f === 'site') { lerForm(); redesenharForm(); } });
+document.addEventListener('submit', (e) => e.preventDefault());
+
+// cronômetro andando
+setInterval(() => document.querySelectorAll('[data-cron]').forEach((el) => { el.textContent = relogio(); }), 1000);
+addEventListener('resize', () => moverInd(false));
+
+document.querySelector('.versoes').innerHTML = [['a', 'A · janela'], ['b', 'B · passos'], ['c', 'C · formulário aberto']].map(([k, n]) => `<button data-ver="${k}" aria-pressed="${k === ver}">${n}</button>`).join('');
+if (q.get('orc')) { abrirOrc(+q.get('orc')); } else desenhar();
+</script>
+</body>
+</html>
