@@ -69,3 +69,5 @@
   [data-tela="orcamentos"] .trilho i.ok { background: var(--teal-soft); }
   [data-tela="orcamentos"] .trilho-t { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-2); margin-top: -3px; }
   [data-tela="orcamentos"] .lista .ca .grupos { align-items: center; margin-top: 0; padding-top: 0; }
+/* celular: as colunas ficam uma embaixo da outra */
+@media (max-width: 760px) { [data-tela="orcamentos"] .colunas { grid-template-columns: 1fr; } [data-tela="orcamentos"] .topo { flex-wrap: wrap; } }
