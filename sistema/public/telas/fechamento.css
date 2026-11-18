@@ -100,3 +100,21 @@
   .receb-prev { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 14px; }
   .receb-prev input { height: 44px; border-radius: var(--r-field); border: 1px solid var(--line); background: var(--surface-2); padding: 0 14px; font-size: 16px; }
   .receb-prev .faint { font-size: 13px; }
+
+/* ---------- fechamento na janela: passos à esquerda, um passo por vez à direita (rascunho v2/proposta.html, fv=1) ---------- */
+.fx { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; align-items: start; }
+.f-passos { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; }
+.f-ps { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1px 10px; align-items: center; padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: background-color .2s; }
+.f-ps b { font-size: 14.5px; } .f-ps small { color: var(--text-2); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f-ps:hover { background: var(--surface-1); } .f-ps[aria-selected="true"] { background: var(--orange-soft); } .f-ps:focus-visible { outline: 2px solid var(--orange); }
+.f-n { grid-row: span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--surface-3); transition: background-color .2s, color .2s; }
+.f-n.ok { background: var(--ok-bg); color: var(--ok); } .f-n svg { width: 14px; }
+.f-ps[aria-selected="true"] .f-n:not(.ok) { background: var(--orange); color: var(--orange-ink); }
+.f-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.f-sec { animation: kv-sobe-f .3s var(--eo) both; }
+.f-sec > .secao:first-child { margin-top: 0; }
+.f-prox { margin-top: 16px; }
+.f-lado .barra-acao { position: static; margin: 0; }
+@keyframes kv-sobe-f { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .f-sec { animation: none; } }
+@media (max-width: 760px) { .fx { grid-template-columns: 1fr; } .f-passos { position: static; } }
