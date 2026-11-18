@@ -6,9 +6,11 @@ const todos = async (db, sql, ...args) => (await db.prepare(sql).bind(...args).a
 
 export async function listarOrcamentos(env, usuario) {
   const db = env.DB, dono = ehDono(usuario);
-  const filtro = dono ? '' : "WHERE o.etapa IN ('novo', 'pesquisa')";
-  // as duas leituras saem juntas
-  const [linhas, trechos] = await Promise.all([todos(db, `
+  // quem pesquisa também vê os que ele já marcou como pesquisados (3ª coluna do quadro)
+  const filtro = dono ? '' : "WHERE o.etapa IN ('novo', 'pesquisa') OR (o.etapa = 'pesquisado' AND o.responsavel = ?)";
+  const args = dono ? [] : [usuario.email];
+  // as leituras saem juntas
+  const [linhas, trechos, porTrecho] = await Promise.all([todos(db, `
     SELECT o.id, o.contato_nome, o.contato_whatsapp, o.etapa, o.responsavel, o.adultos, o.criancas, o.bebes,
            o.pedido, o.observacao, o.faltando, o.origem, o.audio, o.criado_em,
            (SELECT COUNT(*) FROM opcoes p WHERE p.orcamento_id = o.id) AS n_opcoes,
@@ -16,11 +18,17 @@ export async function listarOrcamentos(env, usuario) {
            (SELECT COUNT(*) FROM conferencia c WHERE c.orcamento_id = o.id AND c.feito = 1) AS n_feitos,
            (SELECT MAX(e.quando) FROM eventos e WHERE e.entidade = 'orcamento' AND e.entidade_id = CAST(o.id AS TEXT)
               AND e.texto = 'Marcou como pesquisado') AS pesquisado_em
-    FROM orcamentos o ${filtro} ORDER BY o.id`),
+    FROM orcamentos o ${filtro} ORDER BY o.id`, ...args),
   todos(db, `SELECT t.orcamento_id, t.de, t.para, t.data, t.janela, t.outras_datas, t.roteiro FROM trechos t
-    JOIN orcamentos o ON o.id = t.orcamento_id ${filtro} ORDER BY t.orcamento_id, t.ordem`)]);
+    JOIN orcamentos o ON o.id = t.orcamento_id ${filtro} ORDER BY t.orcamento_id, t.ordem`, ...args),
+  // quantos voos cada trecho tem (o trilho do cartão); opcoes.trecho é a posição do trecho no orçamento
+  todos(db, `SELECT p.orcamento_id, p.trecho, COUNT(*) AS n FROM opcoes p
+    JOIN orcamentos o ON o.id = p.orcamento_id ${filtro} GROUP BY p.orcamento_id, p.trecho`, ...args)]);
+  const nVoos = {};
+  for (const x of porTrecho) nVoos[x.orcamento_id + ':' + x.trecho] = x.n;
   const porOrc = {};
-  for (const t of trechos) (porOrc[t.orcamento_id] ||= []).push({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]'), roteiro: t.roteiro });
+  for (const t of trechos) { const l = (porOrc[t.orcamento_id] ||= []);
+    l.push({ de: t.de, para: t.para, data: t.data, janela: !!t.janela, outrasDatas: JSON.parse(t.outras_datas || '[]'), roteiro: t.roteiro, nVoos: nVoos[t.orcamento_id + ':' + l.length] || 0 }); }
 
   return linhas.map((o) => ({
     id: o.id,
