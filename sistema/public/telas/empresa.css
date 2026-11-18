@@ -1,0 +1,10 @@
+/* Estilo da tela empresa (só vale enquanto ela está aberta). */
+.emp { display: grid; gap: 14px; max-width: 720px; }
+.emp-logo { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.emp-img { width: 88px; height: 88px; border-radius: 18px; background: var(--surface-2); display: grid; place-items: center; overflow: hidden; flex: none; font: 800 20px var(--font-brand); color: var(--text-3); }
+.emp-img img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.emp-logo-bt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.emp-logo-bt label.btn { cursor: pointer; }
+.emp-pe { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+.emp .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .emp .duas { grid-template-columns: 1fr; } }

@@ -110,6 +110,7 @@
     },
     orcamentos: () => obter('/api/orcamentos'),
     ponto: () => obter('/api/ponto'),
+    empresa: () => obter('/api/empresa'),
     pessoas: () => obter('/api/pessoas'),
     clientes: () => obter('/api/clientes'),
     financeiro: () => obter('/api/financeiro'),

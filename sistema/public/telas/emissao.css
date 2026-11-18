@@ -81,3 +81,32 @@
 .e-topo .kpi b { font-size: 20px; } .e-topo .kpi b svg { width: 20px !important; height: 20px !important; }
 @media (prefers-reduced-motion: reduce) { .f-sec { animation: none; } }
 @media (max-width: 760px) { .fx { grid-template-columns: 1fr; } .f-passos { position: static; } }
+
+/* ---------- passo Recibo (rascunho v2/proposta.html): formulário à esquerda, a folha à direita ---------- */
+.f-sec:has(.r-grid) { max-width: none; }
+.r-grid { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.r-esq { display: flex; flex-direction: column; gap: 10px; }
+.r-cab { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; } .r-cab h3 { margin: 0; font-size: 17px; } .r-cab small { color: var(--text-3); }
+.r-refaz { height: 30px; padding: 0 10px; font-size: 12.5px; margin-left: auto; }
+.r-aviso { color: var(--warn); font-size: 12.5px; }
+.r-g { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); min-width: 0; }
+.r-g legend { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-weight: 700; font-size: 13.5px; } .r-g legend .btn-x { width: 26px; height: 26px; margin: 0; } .r-g legend .btn-x svg { width: 14px; }
+.r-full { grid-column: 1 / -1; }
+.r-c { display: grid; gap: 4px; min-width: 0; } .r-c > span { font-size: 12px; font-weight: 700; color: var(--text-3); }
+.r-c input, .r-c textarea, .r-c select { width: 100%; min-width: 0; border-radius: 10px; background: var(--surface-2); border: 1px solid transparent; padding: 8px 10px; font: inherit; font-size: 13.5px; color: var(--text); resize: vertical; }
+.r-c input, .r-c select { height: 36px; padding-block: 0; } .r-c input:focus, .r-c textarea:focus, .r-c select:focus { outline: none; border-color: var(--orange); }
+.r-add { align-self: flex-start; }
+.r-dir { position: sticky; top: 0; display: grid; gap: 8px; min-width: 0; }
+.r-barra { display: flex; align-items: center; gap: 8px; } .r-barra .btn.primario { margin-left: auto; } .r-barra .btn[disabled] { opacity: .6; }
+.r-prev { height: calc(100dvh - 300px); min-height: 360px; overflow: auto; border-radius: 16px; background: #060f18; border: 1px solid var(--line); padding: 12px; }
+.r-folha { display: flex; justify-content: center; } .r-folha > #recibo { flex: none; }
+/* bloco de pagamento na folha (cores do próprio recibo): faixa azul com linhas pontilhadas */
+#recibo .pg-d { background: var(--r-primary, #193F72) !important; border-color: var(--r-primary, #193F72) !important; padding: 14px 18px; color: #fff; }
+#recibo .pg-d-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+#recibo .pg-rot { font-size: 10px; font-weight: 600; letter-spacing: .08em; color: rgba(255,255,255,.6); }
+#recibo .pg-selo { padding: 3px 10px; border-radius: 99px; background: #EA9940; color: #fff; font-size: 11px; font-weight: 700; } #recibo .pg-selo.ok { background: #6CA3A2; }
+#recibo .pg-l { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; font-size: 12px; color: rgba(255,255,255,.75); }
+#recibo .pg-l i { flex: 1; border-bottom: 1px dotted rgba(255,255,255,.3); } #recibo .pg-l b { color: #fff; font-weight: 600; }
+#recibo .pg-d-tot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.2); }
+#recibo .pg-d-tot b { font-size: 24px; font-weight: 700; }
+@media (max-width: 1100px) { .r-grid { grid-template-columns: 1fr; } .r-dir { position: static; } }

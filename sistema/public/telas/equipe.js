@@ -12,7 +12,7 @@ KVTelas['equipe'] = function () {
 
   // abas das configurações (Programas fica na própria tela dele)
   const abas = () => `<div class="seg" role="tablist" aria-label="Configurações" style="margin-bottom:18px">
-    <button role="tab" data-ir="programas.html" aria-pressed="false">Programas</button><button role="tab" aria-pressed="true">Equipe</button></div>`;
+    <button role="tab" data-ir="programas.html" aria-pressed="false">Programas</button><button role="tab" aria-pressed="true">Equipe</button><button role="tab" data-ir="empresa.html" aria-pressed="false">Empresa</button></div>`;
 
   function linha(u) {
     const travado = u.papel === 'admin' && !souAdmin();

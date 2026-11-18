@@ -17,6 +17,7 @@ import { contasCompletas, contaDetalhe, movimentoDetalhe } from './contas.js';
 import './acoes/base.js';
 import './acoes/orcamentos.js';
 import './acoes/cartoes.js';
+import './acoes/empresa.js';
 
 const json = (dados, status = 200) => new Response(JSON.stringify(dados), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
@@ -38,8 +39,10 @@ export default {
         }
         if (url.pathname === '/api/ponto' && req.method === 'GET') return json(await lerPonto(env, usuario));
         // só o dono: cadastro de pessoas e contas de pontos
-        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta', '/api/movimento', '/api/clientes', '/api/financeiro'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
+        if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta', '/api/movimento', '/api/clientes', '/api/financeiro', '/api/empresa'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
         if (url.pathname === '/api/clientes' && req.method === 'GET') return json(await clientes(env));
+        // dados da empresa pro recibo (ficam no banco: o repositório é público)
+        if (url.pathname === '/api/empresa' && req.method === 'GET') { const e = await env.DB.prepare('SELECT dados, logo FROM empresa WHERE id = 1').first(); return json(e ? { ...JSON.parse(e.dados), logo: e.logo } : {}); }
         if (url.pathname === '/api/financeiro' && req.method === 'GET') { const [custos, gastos] = await Promise.all([custosPontos(env), gastosCartao(env)]); return json({ custos, gastos }); }
         if (url.pathname === '/api/pessoas' && req.method === 'GET') return json(await listarPessoas(env));
         if (url.pathname === '/api/pessoas/juntos' && req.method === 'GET') return json(await viajaCom(env, Number(url.searchParams.get('id'))));

@@ -23,6 +23,7 @@
        folha            Folha do ponto (pagamento das semanas) (quem vê: dono)  →  telas/folha.js e telas/folha.css
        programas        Configurações dos programas (quem vê: dono)  →  telas/programas.js e telas/programas.css
        equipe           Configurações › Equipe: nível de acesso e acesso liberado de cada pessoa (quem vê: dono)  →  telas/equipe.js e telas/equipe.css
+       empresa          Configurações › Empresa: CNPJ, telefone, Instagram, e-mail e logo que saem no recibo (quem vê: dono)  →  telas/empresa.js e telas/empresa.css
        extensao         Instalar a extensão do Chrome (quem vê: todos, pelo menu da foto)  →  telas/extensao.js e telas/extensao.css
 
      Fora da página única: barra.html (+ barra.js, barra.css) é a barra da pesquisa que aparece dentro da extensão.
@@ -43,6 +44,8 @@
        combo.js        lista longa vira busca
        pessoa-form.js  janela de nova pessoa / editar dados
        opcao-form.js   formulário da opção de voo (tela de pesquisa e barra da extensão usam o mesmo)
+       recibo-folha.js a folha do recibo (desenho e PDF do recibo-kv, sem os dados da empresa, que vêm do banco)
+       recibo.js       o passo Recibo da emissão: monta os dados do orçamento, formulário, prévia e Baixar PDF
      O servidor (o que grava e o que cada papel pode ver) fica em sistema/src/. -->
 <html lang="pt-BR" data-theme="escuro">
 <head>
@@ -57,7 +60,7 @@
 <link rel="stylesheet" href="telas/orcamento.css?r=12" data-tela="orcamento" media="not all">
 <link rel="stylesheet" href="telas/proposta.css?r=4" data-tela="proposta" media="not all">
 <link rel="stylesheet" href="telas/fechamento.css?r=4" data-tela="fechamento" media="not all">
-<link rel="stylesheet" href="telas/emissao.css?r=4" data-tela="emissao" media="not all">
+<link rel="stylesheet" href="telas/emissao.css?r=5" data-tela="emissao" media="not all">
 <link rel="stylesheet" href="telas/contas.css?r=1" data-tela="contas" media="not all">
 <link rel="stylesheet" href="telas/conta.css?r=2" data-tela="conta" media="not all">
 <link rel="stylesheet" href="telas/entrada.css?r=1" data-tela="entrada" media="not all">
@@ -69,12 +72,13 @@
 <link rel="stylesheet" href="telas/folha.css?r=2" data-tela="folha" media="not all">
 <link rel="stylesheet" href="telas/programas.css?r=1" data-tela="programas" media="not all">
 <link rel="stylesheet" href="telas/equipe.css?r=1" data-tela="equipe" media="not all">
+<link rel="stylesheet" href="telas/empresa.css?r=1" data-tela="empresa" media="not all">
 <link rel="stylesheet" href="telas/extensao.css?r=1" data-tela="extensao" media="not all">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 <script src="shared/rota.js?r=3"></script>
-<script src="shared/api.js?r=12"></script>
+<script src="shared/api.js?r=13"></script>
 <script src="shared/orc.js?r=9"></script>
 <script src="shared/proposta.js?r=9"></script>
 <script src="shared/resumo.js?r=7"></script>
@@ -87,6 +91,8 @@
 <script src="shared/pessoa-form.js?r=3"></script>
 <script src="shared/opcao-form.js?r=5"></script>
 <script src="shared/sky.js?r=2"></script>
+<script src="shared/recibo-folha.js?r=1"></script>
+<script src="shared/recibo.js?r=1"></script>
 <script src="telas/painel.js?r=3"></script>
 <script src="telas/agenda.js?r=2"></script>
 <script src="telas/financeiro.js?r=2"></script>
@@ -105,8 +111,9 @@
 <script src="telas/pessoa.js?r=1"></script>
 <script src="telas/ponto.js?r=1"></script>
 <script src="telas/folha.js?r=2"></script>
-<script src="telas/programas.js?r=2"></script>
-<script src="telas/equipe.js?r=1"></script>
+<script src="telas/programas.js?r=3"></script>
+<script src="telas/equipe.js?r=2"></script>
+<script src="telas/empresa.js?r=1"></script>
 <script src="telas/extensao.js?r=3"></script>
 <script>KVRota.iniciar();</script>
 </body>

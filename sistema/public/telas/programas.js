@@ -123,7 +123,7 @@ KVTelas['programas'] = function () {
     B() {
       const id = KVShell.param('aba') || 'smiles';
       app.innerHTML = topo('Um programa por vez. Use − e + pro ajuste fino, ou toque no valor e digite.') + `
-        <div class="seg" role="tablist" aria-label="Configurações" style="margin:0 0 12px"><button role="tab" aria-pressed="true">Programas</button><button role="tab" data-ir="programas-equipe" aria-pressed="false">Equipe</button></div>
+        <div class="seg" role="tablist" aria-label="Configurações" style="margin:0 0 12px"><button role="tab" aria-pressed="true">Programas</button><button role="tab" data-ir="equipe.html" aria-pressed="false">Equipe</button><button role="tab" data-ir="empresa.html" aria-pressed="false">Empresa</button></div>
         <div class="seg" role="tablist" aria-label="Programa" style="margin-bottom:18px">${progs.map((p) => `<button role="tab" data-aba="${p.id}" aria-pressed="${p.id === id}">${p.nome}</button>`).join('')}</div>
         <section class="card painel-um">
           <div><div class="faint" style="font-size:13px;margin-bottom:8px">Valor da milha · ${KV.programa(id).nome}</div>
@@ -136,7 +136,7 @@ KVTelas['programas'] = function () {
             <div class="campo"><label for="reg">Como as vagas voltam</label><select id="reg" data-regra="${id}">${Object.entries(REGRAS).map(([k, t]) => `<option value="${k}" ${k === valores[id].regra ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>
           ${id === 'azul' ? '<button class="btn" data-niveis style="justify-self:start"><i data-lucide="layers"></i>Ver os níveis da Azul</button>' : ''}
         </section>`;
-      app.querySelector('[data-ir]').onclick = () => KVRota.ir('equipe.html');
+      app.querySelectorAll('[data-ir]').forEach((b) => { b.onclick = () => KVRota.ir(b.dataset.ir); });
       app.querySelectorAll('[data-aba]').forEach((b) => b.onclick = () => { if (b.dataset.aba !== id) { KVShell.irPara({ aba: b.dataset.aba }); render(); } });
       ligar(app, barraSalvar);
     },
