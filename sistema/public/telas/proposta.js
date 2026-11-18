@@ -343,7 +343,7 @@ KVTelas['proposta'] = function () {
       if (!(est.eu.papel === 'dono' || est.eu.papel === 'admin')) { KVRota.trocar(`orcamento.html?id=${id}`); return; }
       P.usarProgramas(est.programas);
       document.querySelector('.carregando').remove();
-      app = KVShell.montar('orcamentos', { dono: true });
+      app = KVShell.montar('orcamentos', { dono: true, janela: { o, aba: 'proposta' } });
       ligarEventos();
       // primeira vez na proposta: o sistema já sugere 2 combinações e guarda
       if (o.etapa === 'pesquisado' && !o.combos.length) { o.combos = P.sugerir(o, 2).map(chavear); if (o.combos.length) marcarSujo(); }

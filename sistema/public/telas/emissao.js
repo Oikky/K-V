@@ -261,7 +261,7 @@ KVTelas['emissao'] = function () {
       KV.usarCartoes(est.cartoes);
       await carregar();
       document.querySelector('.carregando').remove();
-      app = KVShell.montar('orcamentos', { dono: true });
+      app = KVShell.montar('orcamentos', { dono: true, janela: { o, aba: 'emissao' } });
       ligarEventos();
       render(); sinc();
       KVShell.aoVoltar(() => { render(); sinc(); });

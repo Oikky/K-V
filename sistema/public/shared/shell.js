@@ -17,7 +17,7 @@
 
   // Monta a tela: o menu fica sempre o mesmo (só muda o item ativo) e a área da tela é trocada por uma nova.
   // A tela de antes some aqui, no instante em que a nova já tem o que mostrar.
-  function montar(ativo, { dono = false } = {}) {
+  function montar(ativo, { dono = false, janela = null } = {}) {
     const itens = ITENS.filter((i) => dono || (!i.soDono && i.id !== 'painel')).map((i) => ({ ...i, href: dono && i.hrefDono ? i.hrefDono : i.href }));
     const admin = !!window.KVAdmin, eu = window.KVEu || null, vendo = !!(eu && eu.admin);
     let shell = document.querySelector('.shell');
@@ -47,9 +47,17 @@
       modoMenu(modoAtual());
     }
     shell.querySelectorAll('.rail [data-item]').forEach((a) => { if (a.dataset.item === ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-    const velho = shell.querySelector('#app'), novo = document.createElement('main');
-    novo.className = 'area'; novo.id = 'app';
-    velho.replaceWith(novo);
+    const velho = shell.querySelector('#app');
+    let novo;
+    if (janela) novo = montarJanela(shell, velho, janela, dono);
+    else {
+      const veu = shell.querySelector('.veu-orc'); if (veu) veu.remove();
+      const fundo = shell.querySelector('.area.fundo'); if (fundo) fundo.remove();
+      document.documentElement.classList.remove('com-janela');
+      novo = document.createElement('main'); novo.className = 'area'; novo.id = 'app'; novo.dataset.tela = ativo;
+      // saindo da janela, o #app de antes era o miolo dela (já saiu junto): a tela nova entra logo depois do menu
+      if (velho.isConnected) velho.replaceWith(novo); else shell.querySelector('.rail').after(novo);
+    }
     if (window.KVRota) KVRota.aplicarCss();
     if (window.lucide) lucide.createIcons();
     return novo;
@@ -74,6 +82,55 @@
     e.preventDefault();
     const m = modoAtual();
     if (m === 'fora') modoMenu(antesDeEsconder); else { antesDeEsconder = m; modoMenu('fora'); }
+  });
+
+  // ---------- janela do orçamento (redesign v2): abre por cima do quadro, com as abas Pesquisa · Proposta · Fechamento · Emissão ----------
+  // Cada aba continua sendo uma tela (orcamento.html, proposta.html…); trocar de aba troca a tela sem virar passo do voltar.
+  // O quadro que estava aberto fica parado no fundo; fechar (X, Esc, clicar fora) volta pra ele.
+  const ICONE_ABA = { pesquisa: 'search', proposta: 'send', fechamento: 'handshake', emissao: 'ticket' };
+  function montarJanela(shell, velho, { o, aba }, dono) {
+    let veu = shell.querySelector('.veu-orc');
+    // o quadro aberto vira o fundo (só na primeira vez; trocando de aba ele continua lá)
+    if (!veu) {
+      const doQuadro = velho.dataset.tela === 'orcamentos';
+      let fundo = velho;
+      if (doQuadro) { velho.removeAttribute('id'); velho.classList.add('fundo'); velho.inert = true; }
+      else { fundo = document.createElement('main'); fundo.className = 'area fundo'; velho.replaceWith(fundo); }
+      veu = document.createElement('div'); veu.className = 'veu-orc'; veu.dataset.doQuadro = doQuadro ? '1' : '';
+      fundo.after(veu);
+      // entra animada só quando abre (trocar de aba não anima de novo)
+      requestAnimationFrame(() => veu.classList.add('aberto'));
+      veu.addEventListener('click', (e) => { if (e.target === veu) fecharJanela(); });
+    } else if (velho.isConnected && !velho.classList.contains('fundo') && !veu.contains(velho)) velho.remove();
+    document.documentElement.classList.add('com-janela');
+    const pessoas = o.passageiros.adultos + o.passageiros.criancas + o.passageiros.bebes;
+    const ini = primeiro(o.contato.nome).slice(0, 1).toUpperCase() + (String(o.contato.nome).trim().split(/\s+/)[1] || '').slice(0, 1).toUpperCase();
+    const passos = KVOrc.passos(o).filter((p) => dono || p.id === 'pesquisa');
+    veu.innerHTML = `<div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc">
+      <div class="j-topo"><span class="avc">${esc(ini)}</span><div class="j-tit"><h2 id="t-orc">${esc(o.contato.nome)} <span>#${o.id}</span></h2>
+        <div class="sub">${esc(KVOrc.rota(o))} · ${esc(KVOrc.destino(o))} · ${pessoas} ${pessoas > 1 ? 'pessoas' : 'pessoa'} · ${KVOrc.etapa(o.etapa).nome}</div></div>
+        <button class="btn-x" type="button" data-fechar-orc aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-lucide="x"></i></button></div>
+      ${passos.length > 1 ? `<nav class="abas" aria-label="Etapas do orçamento">${passos.map((p) => p.ok
+        ? `<a class="aba" href="${p.href}?id=${o.id}" data-trocar ${p.id === aba ? 'aria-current="page"' : ''}>${p.feito ? '<span class="ok"><i data-lucide="check"></i></span>' : `<i data-lucide="${ICONE_ABA[p.id]}"></i>`}${p.nome}</a>`
+        : `<span class="aba bloq" title="Ainda não chegou aqui"><i data-lucide="${ICONE_ABA[p.id]}"></i>${p.nome}</span>`).join('')}<span class="risca"></span></nav>` : ''}
+      <main class="j-corpo" id="app" data-aba="${aba}"></main></div>`;
+    veu.querySelector('[data-fechar-orc]').onclick = fecharJanela;
+    requestAnimationFrame(() => {
+      const r = veu.querySelector('.abas .risca'), b = veu.querySelector('.aba[aria-current]');
+      if (r && b) { r.style.transform = `translateX(${b.offsetLeft}px)`; r.style.width = b.offsetWidth + 'px'; }
+    });
+    return veu.querySelector('#app');
+  }
+  // volta pro quadro: se a janela abriu dele e nada foi empilhado depois, é só voltar no histórico
+  function fecharJanela() {
+    const veu = document.querySelector('.veu-orc'); if (!veu) return;
+    if (veu.dataset.doQuadro && history.state && history.state.kvTela) history.back();
+    else KVRota.ir('orcamentos.html');
+  }
+  // Esc fecha a janela, se ninguém de dentro (menu, voo aberto) usou o Esc antes
+  addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !document.querySelector('.veu-orc') || document.querySelector('dialog[open]')) return;
+    setTimeout(() => { if (!e.defaultPrevented && !document.querySelector('dialog[open]')) fecharJanela(); });
   });
 
   // ---------- perfil: foto no canto; o admin troca de pessoa por aqui ----------
@@ -199,5 +256,5 @@
     });
   }
 
-  window.KVShell = { montar, confirmar, verComo, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
+  window.KVShell = { montar, fecharJanela, confirmar, verComo, irPara, desfazer, aoVoltar, param, aviso, icones: () => window.lucide && lucide.createIcons() };
 })();

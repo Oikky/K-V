@@ -38,7 +38,9 @@
   let cssPendente = null;
   function aplicarCss() {
     if (!cssPendente) return;
-    document.querySelectorAll('link[data-tela]').forEach((l) => { l.media = l.dataset.tela === cssPendente ? 'all' : 'not all'; });
+    // com a janela do orçamento aberta, o quadro parado no fundo continua com o estilo dele
+    const fundo = document.querySelector('.area.fundo[data-tela]');
+    document.querySelectorAll('link[data-tela]').forEach((l) => { l.media = l.dataset.tela === cssPendente || (fundo && l.dataset.tela === fundo.dataset.tela) ? 'all' : 'not all'; });
     cssPendente = null;
     document.querySelectorAll('.kv-ocupado').forEach((e) => e.classList.remove('kv-ocupado'));
     scrollTo(0, 0);
@@ -62,7 +64,7 @@
     // o que foi tocado já mostra que está indo (some quando a tela nova desenha)
     const tocado = a.closest('tr, .cartao-ref') || a;
     tocado.classList.add('kv-ocupado'); setTimeout(() => tocado.classList.remove('kv-ocupado'), 8000);
-    ir(url.href);
+    ir(url.href, { trocar: a.hasAttribute('data-trocar') });
   });
   // voltar/avançar: se mudou a tela, troca; se é a mesma tela, quem cuida é ela (janelas, abas, filtros)
   addOrig.call(window, 'popstate', () => {

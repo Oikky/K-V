@@ -396,7 +396,7 @@ KVTelas['orcamento'] = function () {
       eu = est.eu; dono = eu.papel === 'dono' || eu.papel === 'admin';
       O.usarProgramas(est.programas);
       document.querySelector('.carregando').remove();
-      app = KVShell.montar('orcamentos', { dono });
+      app = KVShell.montar('orcamentos', { dono, janela: { o, aba: 'pesquisa' } });
       ligarEventos();
       render(); sincJanela();
       KVShell.aoVoltar(() => { render(); sincJanela(); });

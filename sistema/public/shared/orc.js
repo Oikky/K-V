@@ -122,6 +122,8 @@
   const alcance = (o) => (o.etapa === 'cancelado' ? 5 : o.etapa === 'perdido' ? ORDEM.indexOf(o.antesDePerder || 'enviado') : ORDEM.indexOf(o.etapa));
   // a tela certa pra abrir o orçamento, conforme a etapa (o dono vai direto pro que falta fazer)
   const telaDa = (o) => ({ pesquisado: 'proposta.html', enviado: 'proposta.html', fechado: 'emissao.html', emitido: 'emissao.html', cancelado: 'emissao.html' })[o.etapa] || 'orcamento.html';
+  // as abas da janela do orçamento: liberada (chegou ali) e feita (já passou dela)
+  const passos = (o) => PASSOS.map((p) => ({ ...p, ok: alcance(o) >= ORDEM.indexOf(p.desde), feito: ({ pesquisa: 2, proposta: 3, fechamento: 4, emissao: 5 })[p.id] <= alcance(o) }));
   function trilha(o, atual) {
     return `<nav class="trilha" aria-label="Caminho do orçamento">${PASSOS.map((p, i) => {
       const ok = alcance(o) >= ORDEM.indexOf(p.desde), feito = ({ pesquisa: 2, proposta: 3, fechamento: 4, emissao: 5 })[p.id] <= alcance(o);
@@ -133,5 +135,5 @@
 
   window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc, roteiros, letra, cidades, diasTexto,
     sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
-    usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, telaDa };
+    usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, passos, telaDa };
 })();

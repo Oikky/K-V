@@ -257,7 +257,7 @@ KVTelas['fechamento'] = function () {
       P.usarProgramas(est.programas);
       await carregarJuntos();
       document.querySelector('.carregando').remove();
-      app = KVShell.montar('orcamentos', { dono: true });
+      app = KVShell.montar('orcamentos', { dono: true, janela: { o, aba: 'fechamento' } });
       ligarEventos();
       // o que o sistema já preencheu sozinho (combinação única, contato que é cliente) fica guardado
       if (preencheu) marcarSujo();
