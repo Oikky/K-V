@@ -56,6 +56,31 @@ h3 { font-size: 15px; font-weight: 700; }
 .rail a:hover .dica { opacity: 1; }
 .rail .baixo { margin-top: auto; }
 .area { padding: 28px 32px 120px; min-width: 0; }
+/* menu do PC com 3 modos (redesign v2): cheio (ícone + nome), só ícones, escondido. O botão do topo alterna; Ctrl+B esconde/mostra. */
+.rail .cab-m, .rail .abre-menu, .abre-menu { display: none; }
+@media (min-width: 761px) {
+  .shell { --mw: 76px; grid-template-columns: var(--mw) minmax(0, 1fr); transition: grid-template-columns .28s cubic-bezier(.16,1,.3,1); }
+  [data-menu-modo="cheio"] .shell { --mw: 208px; }
+  [data-menu-modo="fora"] .shell { --mw: 0px; }
+  .rail { overflow: hidden; align-items: stretch; padding: 14px 12px; }
+  [data-menu-modo="fora"] .rail { visibility: hidden; border: 0; padding-inline: 0; }
+  .rail > .marca { display: none; }
+  .rail .cab-m { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 14px; }
+  .rail .cab-m .logo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .rail .cab-m img { flex: none; width: 40px; height: 40px; border-radius: 11px; object-fit: cover; }
+  .rail .cab-m b { font: 800 17px/1 var(--font-brand); white-space: nowrap; } .rail .cab-m b i { color: var(--orange); font-style: normal; }
+  .rail .cab-m small { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 3px; white-space: nowrap; }
+  :root:not([data-menu-modo="cheio"]) .rail .cab-m { flex-direction: column; align-items: center; }
+  :root:not([data-menu-modo="cheio"]) .rail .cab-m .txt { display: none; }
+  .bt-menu { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 0; background: none; color: var(--text-2); display: grid; place-items: center; cursor: pointer; }
+  .bt-menu:hover { background: var(--surface-2); color: var(--text); } .bt-menu svg { width: 18px; }
+  .rail a { width: 52px; align-self: center; }
+  [data-menu-modo="cheio"] .rail a { width: auto; align-self: stretch; height: 44px; display: flex; gap: 12px; padding: 0 14px; border-radius: 12px; font-weight: 600; color: var(--text-2); }
+  [data-menu-modo="cheio"] .rail a .dica { position: static; opacity: 1; background: none; padding: 0; font-size: 14px; color: inherit; }
+  [data-menu-modo="cheio"] .rail a#perfil { padding-left: 6px; }
+  [data-menu-modo="fora"] .area { padding-left: 68px; }
+  [data-menu-modo="fora"] .abre-menu { display: grid; position: fixed; top: 14px; left: 10px; z-index: 31; background: var(--surface-1); border: 1px solid var(--line); }
+}
 .topo { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .topo .acoes { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 

@@ -27,11 +27,13 @@
       shell.dataset.assinatura = assinatura;
       shell.innerHTML = `<nav class="rail" aria-label="Menu">
           <div class="marca">K<b>&amp;</b>V</div>
+          <div class="cab-m"><span class="logo"><img src="shared/logo.png" alt=""><span class="txt"><b>K<i>&amp;</i>V</b><small>Easy Traveling</small></span></span><button class="bt-menu" type="button" data-menu-acao></button></div>
           ${itens.map((i) => `<a href="${i.href || '#'}" data-item="${i.id}" ${i.href ? '' : 'aria-disabled="true"'} aria-label="${i.nome}">
             <i data-lucide="${i.icone}"></i><span class="dica">${i.nome}${i.href ? '' : ' (em breve)'}</span></a>`).join('')}
           <a href="#" class="baixo" id="tema" aria-label="Trocar tema"><i data-lucide="sun-moon"></i><span class="dica">Trocar tema</span></a>
           ${eu ? `<a href="#" id="perfil" class="${vendo ? 'vendo' : ''}" aria-label="${vendo ? `Vendo como ${esc(eu.nome)}` : 'Seu perfil'}">${avatar(eu)}<span class="dica">${vendo ? `Vendo como ${esc(eu.nome)} · trocar` : esc(eu.nome)}</span></a>` : ''}
         </nav><main class="area" id="app"></main>
+        <button class="bt-menu abre-menu" type="button" data-menu-acao="cheio" aria-label="Mostrar o menu (Ctrl+B)" title="Mostrar o menu (Ctrl+B)" aria-keyshortcuts="Control+B"><i data-lucide="panel-left-open"></i></button>
         ${vendo ? `<button class="vendo-faixa" type="button" data-voltar-eu>${avatar(eu)}<span>Vendo como <b>${esc(primeiro(eu.nome))}</b></span><span class="sair">Voltar pra mim</span></button>` : ''}
         <dialog class="janela perfil-janela" aria-label="Perfil"></dialog>`;
       shell.querySelectorAll('[aria-disabled="true"]').forEach((a) => a.addEventListener('click', (e) => e.preventDefault()));
@@ -41,6 +43,8 @@
       const vf = shell.querySelector('[data-voltar-eu]');
       if (vf) vf.addEventListener('click', () => verComo(''));
       document.body.classList.toggle('vendo-como', vendo);
+      shell.querySelectorAll('[data-menu-acao]').forEach((bt) => bt.addEventListener('click', () => modoMenu(bt.dataset.menuAcao || PROX[modoAtual()])));
+      modoMenu(modoAtual());
     }
     shell.querySelectorAll('.rail [data-item]').forEach((a) => { if (a.dataset.item === ativo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     const velho = shell.querySelector('#app'), novo = document.createElement('main');
@@ -50,6 +54,27 @@
     if (window.lucide) lucide.createIcons();
     return novo;
   }
+
+  // ---------- menu: cheio → só ícones → escondido → cheio (fica lembrado neste computador) ----------
+  const MENU_KEY = 'kv-menu', PROX = { cheio: 'icones', icones: 'fora', fora: 'cheio' };
+  const ROT = { cheio: ['panel-left-close', 'Diminuir o menu'], icones: ['panel-left-dashed', 'Esconder o menu (Ctrl+B)'] };
+  const modoAtual = () => document.documentElement.dataset.menuModo || 'cheio';
+  try { document.documentElement.dataset.menuModo = localStorage.getItem(MENU_KEY) || 'cheio'; } catch (e) { document.documentElement.dataset.menuModo = 'cheio'; }
+  function modoMenu(m) {
+    document.documentElement.dataset.menuModo = m;
+    try { localStorage.setItem(MENU_KEY, m); } catch (e) {}
+    const b = document.querySelector('.rail [data-menu-acao]');
+    if (b && ROT[m]) { b.innerHTML = `<i data-lucide="${ROT[m][0]}"></i>`; b.setAttribute('aria-label', ROT[m][1]); b.title = ROT[m][1]; if (window.lucide) lucide.createIcons(); }
+    if (m === 'fora') { const ab = document.querySelector('.abre-menu'); if (ab && b && b.contains(document.activeElement)) ab.focus(); }
+  }
+  // Ctrl+B mostra/esconde (volta pro modo de antes de esconder); ligado antes de qualquer tela, então vale sempre
+  let antesDeEsconder = 'cheio';
+  addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b' || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const m = modoAtual();
+    if (m === 'fora') modoMenu(antesDeEsconder); else { antesDeEsconder = m; modoMenu('fora'); }
+  });
 
   // ---------- perfil: foto no canto; o admin troca de pessoa por aqui ----------
   const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
