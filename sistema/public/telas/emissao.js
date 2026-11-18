@@ -49,15 +49,13 @@ KVTelas['emissao'] = function () {
     const s = P.situacao(o);
     const pax = o.passageirosLista;
     const falta = O.total(o) - pax.length;
-    return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'emissao')}
-      ${KVShell.param('fechou') && o.etapa === 'fechado' ? `<div class="aviso ok aviso-acoes" style="margin-bottom:14px"><span>Orçamento fechado. Agora é emitir cada voo.</span>${o.emissoes.length ? '' : '<span class="acoes"><button class="btn pequeno" data-reabrir><i data-lucide="undo-2"></i>Desfazer fechamento</button></span>'}</div>` : ''}
-      <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.id} · ${esc(P.aceita(o).nome)}</span>
-        <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1>
+    return `${KVShell.param('fechou') && o.etapa === 'fechado' ? `<div class="aviso ok aviso-acoes" style="margin-bottom:14px"><span>Orçamento fechado. Agora é emitir cada voo.</span>${o.emissoes.length ? '' : '<span class="acoes"><button class="btn pequeno" data-reabrir><i data-lucide="undo-2"></i>Desfazer fechamento</button></span>'}</div>` : ''}
+      <div class="e-topo"><span class="quem">${esc(P.aceita(o).nome)}</span>
         <div class="kpis"><span class="kpi ${feitos < nVoos ? 'destaque' : ''}"><b>${feitos}/${nVoos}</b><span>voos emitidos</span></span>
           <span class="kpi"><b>${fmt.brl(P.valorFinal(o) || 0).replace(',00', '')}</b><span>venda${o.receb.forma === 'parcelado' && P.aceita(o).parcelado ? ' parcelada' : ''}</span></span>
           ${s ? `<span class="kpi"><b>${s.falta ? fmt.brl(s.falta).replace(',00', '') : '<i data-lucide="check" style="width:30px;height:30px;stroke-width:3;color:var(--ok)"></i>'}</b><span>${s.falta ? 'a receber' : 'recebido'}</span></span>` : ''}</div>
         <div class="pax">${pax.map((p) => `<span class="etiqueta"><span class="ava">${esc(iniciais(p.nome))}</span>${esc(p.nome.split(' ').slice(0, 2).join(' '))}</span>`).join('')}
-          ${falta > 0 ? `<a class="etiqueta warn" href="fechamento.html?id=${o.id}" style="text-decoration:none">Faltam ${falta} passageiro${falta > 1 ? 's' : ''} →</a>` : ''}</div></div>`;
+          ${falta > 0 ? `<a class="etiqueta warn" href="fechamento.html?id=${o.id}" data-trocar style="text-decoration:none">Faltam ${falta} passageiro${falta > 1 ? 's' : ''} →</a>` : ''}</div></div>`;
   }
 
   // ---------- um cartão por voo ----------
@@ -117,18 +115,35 @@ KVTelas['emissao'] = function () {
     if (o.etapa !== 'emitido' && o.etapa !== 'cancelado') return '';
     if (o.etapa === 'cancelado') return `<div class="fim cancelado"><i data-lucide="ban" style="color:var(--danger);width:24px;height:24px"></i><span><b>Viagem cancelada.</b><br><span class="muted" style="font-size:13.5px">Todas as passagens foram canceladas.</span></span></div>`;
     return `<div class="fim"><i data-lucide="circle-check-big" style="color:var(--ok);width:24px;height:24px"></i><span><b>Tudo emitido.</b><br><span class="muted" style="font-size:13.5px">As saídas de pontos já estão nas contas.</span></span>
-      <span class="acoes"><button class="btn" disabled title="Vem depois, a partir do modelo atual" style="opacity:.55"><i data-lucide="file-text"></i>Recibo (em breve)</button></span></div>`;
+      ${passoE === voosE().length ? '' : `<span class="acoes"><button class="btn primario" data-passo-e="${voosE().length}"><i data-lucide="file-text"></i>Montar o recibo</button></span>`}</div>`;
   }
+  // ---------- voos à esquerda (como os passos do fechamento), um por vez à direita; o recibo é o último passo ----------
+  let passoE = null;
+  const voosE = () => P.trechosVoo(o);
+  const primeiroAEmitir = () => { const k = voosE().findIndex((ti) => !emissao(ti)); return k < 0 ? voosE().length : k; };
+  function passosE() {
+    if (passoE == null || passoE > voosE().length) passoE = primeiroAEmitir();
+    const vs = voosE(), feitoV = (ti) => !!emissao(ti), nFeitos = vs.filter(feitoV).length;
+    const num = (ok, n) => `<span class="f-n ${ok ? 'ok' : ''}">${ok ? '<i data-lucide="check"></i>' : n}</span>`;
+    const itens = vs.map((ti, k) => { const x = opDo(ti), t = o.trechos[ti], e = emissao(ti);
+      return `<button class="f-ps" role="tab" data-passo-e="${k}" aria-selected="${passoE === k}">${num(!!e && !e.cancelada, k + 1)}<b>${esc(t.de)} → ${esc(t.para)}</b><small>${e ? (e.cancelada ? 'cancelada' : `emitido · ${esc(e.localizador)}`) : `${P.diaSem(x.data)} ${O.dataCurta(x.data)} · ${esc(x.site)}`}</small></button>`; }).join('');
+    const rec = `<button class="f-ps" role="tab" data-passo-e="${vs.length}" aria-selected="${passoE === vs.length}">${num(false, '<i data-lucide="file-text"></i>')}<b>Recibo</b><small>${nFeitos === vs.length ? 'pronto pra montar' : `depois dos ${vs.length} voos`}</small></button>`;
+    const lado = passoE < vs.length ? cartaoVoo(vs[passoE]) + (passoE < vs.length - 1 || nFeitos === vs.length ? `<button class="btn f-prox" data-passo-e="${passoE + 1}">${passoE < vs.length - 1 ? `Próximo voo: ${esc(o.trechos[vs[passoE + 1]].de)} → ${esc(o.trechos[vs[passoE + 1]].para)}` : 'Recibo'}<i data-lucide="arrow-right"></i></button>` : '')
+      : (window.KVRecibo ? KVRecibo.passo(o) : '<div class="vazio">O recibo entra aqui.</div>');
+    return `<div class="fx"><aside class="f-passos" role="tablist" aria-orientation="vertical" aria-label="Voos pra emitir">${itens}${rec}</aside><div class="f-lado"><div class="f-sec">${lado}</div>${fim()}</div></div>`;
+  }
+
   function render() {
-    const y = scrollY;
+    const y = app.scrollTop;
     if (!P.aceita(o) || !['fechado', 'emitido', 'cancelado'].includes(o.etapa)) {
-      app.innerHTML = `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'emissao')}<div class="vazio">Feche o orçamento antes de emitir. <a href="fechamento.html?id=${o.id}" style="color:var(--orange)">Ir pro fechamento</a></div>`;
+      app.innerHTML = `<div class="vazio">Feche o orçamento antes de emitir. <a href="fechamento.html?id=${o.id}" data-trocar style="color:var(--orange)">Ir pro fechamento</a></div>`;
       KVShell.icones(); return;
     }
-    app.innerHTML = topo() + `<div class="secao"><h2>Voos</h2><span class="n">um registro por voo</span></div><div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))">${P.trechosVoo(o).map((i) => cartaoVoo(i)).join('')}</div>` + fim();
+    app.innerHTML = topo() + passosE();
+    if (window.KVRecibo && passoE === voosE().length) KVRecibo.ligar(app, o);
     document.title = `Emissão #${o.id} ${O.destino(o)} · K&V`;
     KVShell.icones();
-    scrollTo(0, y);
+    app.scrollTop = y;
   }
 
   // ---------- janela: escolher a conta ----------
@@ -221,6 +236,7 @@ KVTelas['emissao'] = function () {
       if (b && b.dataset.menu) { menuAberto = menuAberto === +b.dataset.menu ? null : +b.dataset.menu; confirmar = null; render(); const p = app.querySelector('.menu-orc button'); if (p) p.focus(); return; }
       if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmar = null; render(); if (!b) return; }
       if (!b || b.disabled) return;
+      if (b.dataset.passoE != null) { passoE = +b.dataset.passoE; render(); const f = app.querySelector(`.f-ps[data-passo-e="${passoE}"]`); if (f) f.focus(); return; }
       if (b.dataset.corrigir || b.dataset.cancelar) { menuAberto = null; render(); KVShell.irPara({ janela: b.dataset.corrigir ? 'corrigir' : 'cancelar', e: b.dataset.corrigir || b.dataset.cancelar }); sinc(); }
       else if (b.dataset.pedeDesfazer) { confirmar = +b.dataset.pedeDesfazer; render(); const p = app.querySelector('[data-desfazer]'); if (p) p.focus(); }
       else if (b.hasAttribute('data-nao')) { menuAberto = confirmar = null; render(); }
@@ -243,7 +259,8 @@ KVTelas['emissao'] = function () {
           KV.lembrarCartao(cartao);
           const r = await KVApi.acao('emi.registrar', { orcamento: o.id, trecho: ti, conta: emPontos(ti) ? escolha(ti).contaId : null, localizador: loc, obs: escolha(ti).obs, cartao, pago });
           delete escolhas[ti];
-          await carregar(); render();
+          // registrou: vai sozinho pro próximo voo que falta (ou pro recibo)
+          await carregar(); passoE = primeiroAEmitir(); render(); KVShell.janelaCab(o);
           KVShell.aviso(r.tudo ? 'Tudo emitido' : 'Voo registrado', { desfazer: async () => { await KVApi.acao('emi.desfazer', { id: r.id }); await carregar(); render(); KVShell.aviso('Emissão desfeita. Os pontos voltaram pra conta.'); } });
         } catch (err) { KVShell.aviso(err.message, { erro: true }); b.disabled = false; }
       }
