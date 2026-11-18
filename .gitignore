@@ -23,3 +23,6 @@ _rascunhos/.impeccable/
 _rascunhos/dados/
 __pycache__/
 .superpowers/
+
+# cópia do banco (tem dado de cliente)
+sistema/backup-*.sql
