@@ -36,45 +36,39 @@ KVTelas['orcamento'] = function () {
     finally { ocupado = false; }
   }
 
-  // ---------- topo: a rota grande e poucas coisas ----------
+  // ---------- barra de cima da janela: conferência, resumo e o que dá pra fazer agora ----------
   function topo() {
-    const cidades = O.cidades(o);
     const feitos = o.conferencia.filter((c) => c.feito).length;
     let acoes = '';
     if (dono) acoes = `<label class="sel-pilula solta"><span class="escondido">Pesquisador</span><select id="passar">${[['', 'Na fila'], ...pesquisadores().map((u) => [u.email, `${u.nome.split(' ')[0]} pesquisa`])].map(([v, t]) => `<option value="${esc(v)}" ${(o.responsavel || '') === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
         <label class="sel-pilula solta"><span class="escondido">Etapa</span><select id="etapa">${O.etapas.map((e) => `<option value="${e.id}" ${e.id === o.etapa ? 'selected' : ''}>${e.nome}</option>`).join('')}</select></label>
         ${o.etapa === 'novo' && eu.pesquisa ? '<button class="btn" data-pegar><i data-lucide="hand"></i>Pegar</button>' : ''}
-        ${o.etapa === 'pesquisa' && o.responsavel === eu.email ? '<button class="btn" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>' : ''}
-        ${['pesquisado', 'enviado'].includes(o.etapa) ? `<a class="btn primario" href="proposta.html?id=${o.id}"><i data-lucide="send"></i>${o.etapa === 'pesquisado' ? 'Montar proposta' : 'Proposta'}</a>` : ''}`;
-    else if (o.etapa === 'novo') acoes = '<button class="btn primario" data-pegar><i data-lucide="hand"></i>Pegar</button>';
+        ${o.etapa === 'pesquisa' && o.responsavel === eu.email ? '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>' : ''}`;
+    else if (o.etapa === 'novo') acoes = '<button class="btn primario" data-pegar><i data-lucide="hand"></i>Pegar pra mim</button>';
     else if (o.etapa === 'pesquisa' && o.responsavel === eu.email) acoes = '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>';
     else if (o.etapa === 'pesquisa' && o.responsavel) acoes = `<span class="etiqueta">com ${esc(nomeDe(o.responsavel))}</span><button class="btn primario" data-assumir><i data-lucide="hand"></i>Assumir</button>`;
-    else acoes = `<span class="etiqueta">${O.etapa(o.etapa).nome}</span>`;
     // todos editam o pedido e falam com o cliente (2026-11-14)
-    acoes = `<a class="btn" href="novo-orcamento.html?editar=${o.id}"><i data-lucide="pencil"></i>Editar pedido</a>` + acoes
-      + (o.contato.whatsapp ? `<a class="btn redondo" href="https://wa.me/${o.contato.whatsapp.length <= 11 ? '55' : ''}${o.contato.whatsapp}" target="_blank" rel="noopener" title="Abrir a conversa no WhatsApp" aria-label="WhatsApp"><i data-lucide="message-circle"></i></a>` : '');
-    return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${dono ? O.trilha(o, 'pesquisa') : ''}
-      <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.id}${dono && o.pessoaId ? ' · <span style="color:var(--orange)">é cliente</span>' : ''}</span>
-        <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1>
-        <div class="kpis"><span class="kpi"><b>${O.dataCurta(o.trechos[0].data)}</b><span>${o.trechos.some((t) => t.data !== o.trechos[0].data) ? `a ${O.dataCurta(o.trechos.map((t) => t.data).sort().pop())}` : 'só ida'}</span></span>
-          ${o.trechos.some((t) => t.outrasDatas.length) ? `<span class="kpi dias-pedidos"><b>+ ${o.trechos.filter((t) => t.outrasDatas.length).map((t) => (o.trechos.length > 1 ? `${esc(t.de)}→${esc(t.para)} ` : '') + O.diasTexto(t.outrasDatas)).join('<br>')}</b><span>também olhar</span></span>` : ''}
-          <span class="kpi"><b>${pessoas()}</b><span>${pessoas() > 1 ? 'pessoas' : 'pessoa'}</span></span><span class="kpi ${dono && o.etapa === 'pesquisado' ? 'destaque' : ''}"><b>${o.opcoes.length}</b><span>opções</span></span></div>
-        <div class="linha-acoes">${o.pedido ? `<span class="pedido-pilula"><i data-lucide="message-square-quote"></i>${esc(o.pedido)}</span>` : ''}
-          <button class="btn" data-conf><i data-lucide="list-checks"></i>Conferência ${feitos}/${o.conferencia.length}</button>
-          <button class="btn" data-resumo><i data-lucide="file-text"></i>Resumo escrito</button>
-          <span class="acoes">${acoes}</span></div></div>`;
+    return `<div class="pq-barra">
+        <button class="btn" data-conf><i data-lucide="list-checks"></i>Conferência ${feitos}/${o.conferencia.length}</button>
+        <button class="btn" data-resumo><i data-lucide="file-text"></i>Resumo escrito</button>
+        <a class="btn" href="novo-orcamento.html?editar=${o.id}"><i data-lucide="pencil"></i>Editar pedido</a>
+        ${o.contato.whatsapp ? `<a class="btn redondo" href="https://wa.me/${o.contato.whatsapp.length <= 11 ? '55' : ''}${o.contato.whatsapp}" target="_blank" rel="noopener" title="Abrir a conversa no WhatsApp" aria-label="WhatsApp"><i data-lucide="message-circle"></i></a>` : ''}
+        <span class="acoes">${acoes}</span></div>`;
   }
 
-  // ---------- opções: filtro por trecho e por dia, cartões ----------
-  function filtros() {
-    const ti = trechoSel();
-    const dias = [...new Set(opsDo(ti).map((x) => x.data))].sort();
-    const cab = `<div class="secao"><h2>Opções de voo</h2><span class="n">${opsDo(ti).length} neste trecho</span></div>`;
-    const varios = o.trechos.length > 1;
-    // o Skyscanner é a base de preço do orçamento (não é de um trecho): fica acima das abas dos trechos
-    return cab + KVSky.html(o, podeLancar()) + (varios ? `<div class="fa-abas" role="tablist" aria-label="Trecho">${o.trechos.map((t, i) => `<button role="tab" data-t="${i}" aria-pressed="${i === ti}"><small>${O.roteiros(o).length > 1 ? KVProp.nomeTrecho(o, i, true) : `Trecho ${i + 1}`}</small><b>${t.de} → ${t.para}</b><span>${opsDo(i).length} opções</span></button>`).join('')}</div>` : '')
-      + (dias.length > 1 || (o.trechos.length > 1 && o.opcoes.length) ? filtroDias(ti, dias) : '');
+  // ---------- à esquerda: os trechos (a pílula laranja vai até o escolhido) e o que o cliente pediu ----------
+  function trechos() {
+    const ti = trechoSel(), varios = O.roteiros(o).length > 1;
+    return `<aside class="pq-lado">
+      <div class="trs" role="tablist" aria-label="Trechos" aria-orientation="vertical"><span class="ind" aria-hidden="true"></span>${o.trechos.map((t, i) => { const n = opsDo(i).length;
+        return `<button class="tr4" role="tab" aria-selected="${i === ti}" data-t="${i}"><span class="i ${n ? 'ok' : ''}">${i + 1}</span><b>${esc(t.de)} → ${esc(t.para)}</b><span class="n">${n || '—'}</span>
+          <small>${varios ? esc(KVProp.nomeTrecho(o, i, true)) + ' · ' : ''}${O.diaCurto(t.data)} ${O.dataCurta(t.data)}${t.outrasDatas.length ? ` · também ${esc(O.diasTexto(t.outrasDatas))}` : ''}</small></button>`; }).join('')}</div>
+      <p class="pq-info">${O.etapa(o.etapa).nome} · ${o.responsavel ? `com ${esc(o.responsavel === eu.email ? 'você' : nomeDe(o.responsavel))}` : 'sem ninguém'} · ${O.fmtPax(o.passageiros)} · ${O.idade(o.criadoEm)}${dono && o.pessoaId ? ' · <span style="color:var(--orange)">é cliente</span>' : ''}</p>
+      ${o.pedido ? `<div class="ped"><b>Pedido especial</b>${esc(o.pedido)}</div>` : ''}
+      ${doBot()}
+      <div class="pq-sky">${KVSky.html(o, podeLancar())}</div></aside>`;
   }
+
   // ---------- filtro de dias: a fita de dias, com o mês em cada dia e o ano contornando os dias dele ----------
   // os dias de um trecho podem se espalhar por um mês ou mais e virar o ano (dez/2026 e jan/2027 não se misturam)
   const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -130,53 +124,85 @@ KVTelas['orcamento'] = function () {
   }
 
   let menuAberto = null, confirmarApagar = null, editando = null;
-  function menuOp(op) {
-    const it = (attrs, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" ${attrs}><i data-lucide="${icone}"></i>${texto}</button>`;
-    if (confirmarApagar === op.id) return `<div class="menu-orc" role="menu"><p>Apagar a opção ${esc(op.site)} das ${op.sai}?</p>${it(`data-del="${op.id}"`, 'trash-2', 'Sim, apagar', 'perigo')}${it('data-cancela', 'x', 'Não')}</div>`;
-    return `<div class="menu-orc" role="menu">${op.link ? it(`data-link="${esc(op.link)}"`, 'external-link', 'Abrir o link do preço') : ''}${podeLancar() ? it(`data-editar-op="${op.id}"`, 'pencil', 'Editar') + (o.trechos.length > 1 ? it(`data-mover-op="${op.id}"`, 'move', 'Mover pra outro trecho') : '') + it(`data-dup="${op.id}"`, 'copy', 'Repetir com outros dados') + it(`data-pede-del="${op.id}"`, 'trash-2', 'Apagar', 'perigo') : ''}</div>`;
+  const vooAberto = () => +KVShell.param('voo') || null;
+  const nomePor = (email) => { const u = est.usuarios.find((x) => x.email === email); return u ? u.nome.split(' ')[0] : email || ''; };
+  // o detalhe do voo: as linhas entram em cascata e embaixo fica o que dá pra fazer com ele
+  function detalheOp(op) {
+    const fora = foraDoPedido(op), onde = (op.escalasOnde || []).filter((e) => e[0]).map((e) => (e[1] ? `${e[0]} (${e[1]})` : e[0])).join(', ');
+    const linhas = [
+      ['Dia e horário', `${O.diaCurto(op.data)} ${O.dataCurta(op.data)} · ${op.sai} → ${esc(op.chega)}${op.duracao ? ` · ${esc(op.duracao)}` : ''}`],
+      ['Voo', [op.voo, op.cia, op.cabine].filter(Boolean).map(esc).join(' · ')],
+      ['Escalas', `${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'}${onde ? ` · ${esc(onde)}` : ''}`],
+      ['Bagagem', op.bagagem ? `${op.bagagem > 1 ? `${op.bagagem} malas` : '1 mala'}${op.milhas_mala ? ` (+ ${fmt.pts(op.milhas_mala)} pts)` : ''}` : 'sem mala despachada'],
+      eDinheiro(op.site) ? ['Preço', `${fmt.brl(op.preco)} por pessoa`] : ['Milhas e taxa', `${fmt.pts(op.milhas)} pts + ${fmt.brl(op.taxa)} por pessoa`],
+      dono ? ['Custo total', fmt.brl(O.custo(op, o))] : null,
+      fora.length ? ['Fora do pedido', `<span class="warn-t">${fora.join(' · ')}</span>`] : null,
+      op.destaque ? ['Destaque', esc(op.destaque)] : null,
+      op.obs ? ['Obs.', esc(op.obs)] : null,
+      ['Site', `${esc(op.site)}${op.link ? ` · <button class="link-b" type="button" data-link="${esc(op.link)}">abrir o preço no site</button>` : ''}`],
+      op.criada_por ? ['Lançado por', esc(nomePor(op.criada_por))] : null,
+    ].filter((l) => l && l[1]);
+    const acoes = confirmarApagar === op.id
+      ? `<span class="pergunta">Apagar este voo?</span><button class="btn perigo" data-del="${op.id}"><i data-lucide="trash-2"></i>Sim, apagar</button><button class="btn" data-cancela>Não</button>`
+      : podeLancar() ? `<button class="btn" data-editar-op="${op.id}"><i data-lucide="pencil"></i>Editar</button>${o.trechos.length > 1 ? `<button class="btn" data-mover-op="${op.id}"><i data-lucide="move-right"></i>Mover pra outro trecho</button>` : ''}<button class="btn" data-dup="${op.id}"><i data-lucide="copy"></i>Repetir com outros dados</button><button class="btn perigo fim" data-pede-del="${op.id}"><i data-lucide="trash-2"></i>Apagar</button>` : '';
+    return `<dl class="linhas">${linhas.map(([r, v], i) => `<dt style="--i:${i}">${r}</dt><dd style="--i:${i}">${v}</dd>`).join('')}</dl>${acoes ? `<div class="acoes-v" style="--i:${linhas.length}">${acoes}</div>` : ''}`;
   }
-  function cartaoOp(op, cheio) {
-    const fora = foraDoPedido(op);
-    return `<article class="cartao-ref op ${cheio ? 'cheio' : ''} ${op.id === ultimaNova ? 'nova' : ''}">
-      <span class="canto"><button data-menu="${op.id}" aria-haspopup="menu" aria-expanded="${menuAberto === op.id}" aria-label="Ações da opção"><i data-lucide="menu"></i></button></span>${menuAberto === op.id ? menuOp(op) : ''}
-      <span class="site" data-s="${esc(op.site)}">${esc(op.site)}${cheio ? ' · menor custo' : ''}</span>
-      <span class="hora">${op.sai} → ${op.chega.replace(/ \+\d$/, '')}${/\+\d$/.test(op.chega) ? `<small>${op.chega.slice(-2)}</small>` : ''}</span>
-      <span class="pq">${[`${O.diaCurto(op.data)} ${O.dataCurta(op.data)}`, op.voo, op.voo && op.cia !== op.voo.split(' ')[0] && op.cia].filter(Boolean).map(esc).join(' · ')}</span>
-      <div class="rodape tags-op"><span class="etiqueta">${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'}</span>${op.bagagem ? `<span class="etiqueta"><i data-lucide="luggage"></i>${op.bagagem > 1 ? `${op.bagagem} malas` : 'mala'}</span>` : ''}${op.cabine ? `<span class="etiqueta">${esc(op.cabine)}</span>` : ''}${op.destaque ? `<span class="etiqueta">${esc(op.destaque)}</span>` : ''}${fora.map((f) => `<span class="etiqueta warn">${f}</span>`).join('')}</div>
-      <div class="pe-op"><div class="valor">${eDinheiro(op.site) ? `<b>${fmt.brl(op.preco)}</b><span>em dinheiro, por pessoa</span>` : `<b>${fmt.pts(op.milhas)} <small>pts</small></b><span>+ ${fmt.brl(op.taxa)} de taxa, por pessoa</span>`}${dono ? `<span class="custo">custo total ${fmt.brl(O.custo(op, o))}</span>` : ''}</div>
-        </div></article>`;
+  function cartaoOp(op, melhor) {
+    const on = vooAberto() === op.id, dinheiro = eDinheiro(op.site);
+    return `<div class="v4c ${on ? 'aberto' : ''} ${op.id === ultimaNova ? 'nova' : ''}" data-k="${op.id}">
+      <button class="v4 ${melhor ? 'menor' : ''}" data-voo="${op.id}" aria-expanded="${on}">
+        <span class="site" data-s="${esc(op.site)}">${esc(op.site)}</span>
+        <span class="h">${O.diaCurto(op.data)} ${O.dataCurta(op.data)} · ${op.sai} → ${esc(op.chega.replace(/ \+\d$/, ''))}${/\+\d$/.test(op.chega) ? `<small>${op.chega.slice(-2)}</small>` : ''}</span>
+        <span class="p">${dinheiro ? fmt.brl(op.preco) : `${fmt.pts(op.milhas)} <small class="u">pts</small>`}<small>${dinheiro ? 'em dinheiro' : `+ ${fmt.brl(op.taxa)}`}</small></span>
+        <span class="m">${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'} · ${op.bagagem ? (op.bagagem > 1 ? `${op.bagagem} malas` : '1 mala') : 'sem mala'}${op.voo ? ` · ${esc(op.voo)}` : ''}${melhor ? `<span class="melhor">${dono ? 'menor custo' : 'menos milhas'}</span>` : ''}${foraDoPedido(op).length ? '<span class="fora">fora do pedido</span>' : ''}</span>
+        <span class="chev"><i data-lucide="chevron-down"></i></span></button>
+      <div class="det-wrap" ${on ? '' : 'inert'}><div><div class="det">${detalheOp(op)}</div></div></div></div>`;
   }
   function opcoes() {
-    const dia = KVShell.param('dia');
-    const l = opsDo(trechoSel()).filter((x) => !dia || x.data === dia)
+    const ti = trechoSel(), t = o.trechos[ti], dia = KVShell.param('dia'), n = opsDo(ti).length;
+    const dias = [...new Set(opsDo(ti).map((x) => x.data))].sort();
+    const l = opsDo(ti).filter((x) => !dia || x.data === dia)
       .sort(dono ? (a, b) => O.custoPessoa(a) - O.custoPessoa(b) : (a, b) => a.data.localeCompare(b.data) || (a.milhas || 1e9) - (b.milhas || 1e9));
-    // o lugar do próximo cartão, tracejado: tocar nele lança mais um voo (igual à "Outra combinação" da proposta)
-    const t = o.trechos[trechoSel()];
-    const mais = podeLancar() ? `<button class="nova-op" data-nova><span class="mais"><i data-lucide="plus"></i></span>${opsDo(trechoSel()).length ? 'Mais um voo' : 'Lançar o primeiro voo'}<span class="sub">${esc(t.de)} → ${esc(t.para)}<kbd>N</kbd></span></button>` : '';
-    if (!l.length && !mais) return `<div class="vazio">Nenhuma opção${dia ? ' nesse dia' : ' neste trecho'} ainda.</div>`;
-    return `<div class="grade-ref">${l.map((op, i) => cartaoOp(op, dono && i === 0)).join('')}${mais}</div>`;
+    const melhor = l.length > 1 ? maisBarata(l) : null;
+    const mais = podeLancar() ? `<button class="lancar" data-nova><i data-lucide="plus"></i>${n ? 'Lançar outro voo' : 'Lançar o primeiro voo'} em ${esc(t.de)} → ${esc(t.para)}<kbd>N</kbd></button>` : '';
+    return `<h3>${esc(t.de)} → ${esc(t.para)}<small>${O.diaCurto(t.data)} ${O.dataCurta(t.data)} · ${n} ${n === 1 ? 'voo' : 'voos'}</small></h3>
+      ${dias.length > 1 || (o.trechos.length > 1 && o.opcoes.length) ? filtroDias(ti, dias) : ''}
+      ${l.length ? l.map((op) => cartaoOp(op, op === melhor)).join('') : `<p class="vazio-t">Nenhum voo${dia ? ' nesse dia' : ' neste trecho'} ainda.</p>`}${mais}`;
   }
 
-  // etiquetas que não cabem numa linha: andam devagar de um lado pro outro; arrastar ou rolar para no ponto escolhido
-  const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function ligarRolos() {
-    app.querySelectorAll('.tags-op').forEach((r) => {
-      const cabe = r.scrollWidth <= r.clientWidth + 2;
-      r.classList.toggle('nao-cabe', !cabe);
-      if (cabe) return;
-      let pos = null, dir = 1, pausa = 1500, ultimo = null, parado = false, x0 = 0, s0 = 0, apertado = false;
-      const passo = (t) => {
-        if (!r.isConnected || parado) return;
-        const dt = ultimo == null ? 16 : Math.min(64, t - ultimo); ultimo = t;
-        if (pausa > 0) pausa -= dt; else { pos = (pos ?? r.scrollLeft) + dir * dt * 0.03; r.scrollLeft = pos; const fim = r.scrollWidth - r.clientWidth; if ((dir > 0 && pos >= fim) || (dir < 0 && pos <= 0)) { pos = Math.max(0, Math.min(fim, pos)); dir *= -1; pausa = 1500; } }
-        requestAnimationFrame(passo);
-      };
-      if (!calmo) requestAnimationFrame(passo);
-      r.addEventListener('pointerdown', (e) => { apertado = true; x0 = e.clientX; s0 = r.scrollLeft; r.setPointerCapture(e.pointerId); });
-      r.addEventListener('pointermove', (e) => { if (!apertado) return; const dx = e.clientX - x0; if (Math.abs(dx) > 4) parado = true; if (parado) r.scrollLeft = s0 - dx; });
-      r.addEventListener('pointerup', () => { apertado = false; });
-      r.addEventListener('wheel', () => { parado = true; }, { passive: true });
+  // ---------- pílula laranja dos trechos: desliza até o escolhido ----------
+  const calmo = matchMedia('(prefers-reduced-motion: reduce)');
+  // o endereço sem o voo aberto, como estava no último desenho: voltar que só fecha o voo não redesenha
+  const semVoo = () => { const p = new URLSearchParams(location.search); p.delete('voo'); return p.toString(); };
+  let desenhado = '';
+  function moverInd(sem) {
+    const ind = app.querySelector('.trs .ind'), b = app.querySelector('.tr4[aria-selected="true"]'); if (!ind || !b) return;
+    if (sem) ind.style.transition = 'none';
+    ind.style.transform = `translateY(${b.offsetTop}px)`; ind.style.height = b.offsetHeight + 'px';
+    if (sem) { void ind.offsetWidth; ind.style.transition = ''; }
+  }
+  // troca o trecho sem redesenhar a esquerda: a pílula anda e os voos entram vindo do lado pra onde a pessoa foi
+  function trocarTrecho(n) {
+    const antes = trechoSel();
+    const p = new URLSearchParams(location.search); p.set('t', n); p.delete('dia'); p.delete('voo');
+    history.replaceState(history.state, '', '?' + p); desenhado = semVoo();
+    app.querySelectorAll('[data-t]').forEach((b) => b.setAttribute('aria-selected', +b.dataset.t === n));
+    moverInd();
+    const lado = app.querySelector('.pq-voos');
+    lado.innerHTML = opcoes(); lado.scrollTop = 0;
+    lado.style.setProperty('--dir', n > antes ? 1 : -1);
+    lado.classList.remove('entra'); void lado.offsetWidth; lado.classList.add('entra');
+    KVShell.icones();
+  }
+  // abre/fecha o detalhe do voo sem redesenhar, pra animação correr (e poder ser interrompida)
+  function syncVoo() {
+    const v = vooAberto();
+    app.querySelectorAll('.v4c').forEach((c) => {
+      const on = +c.dataset.k === v;
+      c.classList.toggle('aberto', on); c.querySelector('.v4').setAttribute('aria-expanded', on); c.querySelector('.det-wrap').inert = !on;
     });
+    const c = v && app.querySelector(`.v4c[data-k="${v}"]`);
+    if (c) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: calmo.matches ? 'auto' : 'smooth' }), 300);
   }
   // pedido que veio pelo bot do Telegram: o que o dono disse, o que falta perguntar e observações
   function doBot() {
@@ -187,11 +213,14 @@ KVTelas['orcamento'] = function () {
       ${o.faltando.length ? `<div class="aviso warn">Falta perguntar ao cliente: ${o.faltando.map(esc).join('; ')}</div>` : ''}</div>`;
   }
   function render() {
-    app.innerHTML = topo() + doBot() + filtros() + opcoes();
+    const lado = app.querySelector('.pq-voos'), st = lado ? lado.scrollTop : 0;
+    app.innerHTML = topo() + `<div class="pq-meio">${trechos()}<div class="pq-voos" role="tabpanel">${opcoes()}</div></div>`;
+    app.querySelector('.pq-voos').scrollTop = st;
+    // a pílula mede o trecho escolhido; mede de novo quando o tamanho muda (estilo chegando, letra carregando, janela mudando)
+    new ResizeObserver(() => moverInd(true)).observe(app.querySelector('.trs'));
     document.title = `#${o.id} ${O.destino(o)} · K&V`;
     KVShell.icones();
-    ligarRolos();
-    ultimaNova = null;
+    ultimaNova = null; desenhado = semVoo();
   }
 
   // ---------- janelas: conferência, nova opção (lateral), marcar como pesquisado ----------
@@ -337,7 +366,7 @@ KVTelas['orcamento'] = function () {
         ${semOp.map(({ t }) => `<div class="aviso danger">${t.de} → ${t.para} está sem nenhuma opção.</div>`).join('')}
         ${falta.length ? `<div class="aviso warn">Falta conferir:<ul style="margin:6px 0 0;padding-left:18px">${falta.map((c) => `<li>${esc(c.texto)}</li>`).join('')}</ul></div>` : ''}</div>
         <footer><button class="btn" data-x>${tudo ? 'Cancelar' : 'Voltar e conferir'}</button><button class="btn primario" data-ok><i data-lucide="check-check"></i>${tudo ? 'Marcar como pesquisado' : 'Marcar mesmo assim'}</button></footer>`;
-      dlg.querySelector('[data-ok]').onclick = async (e) => { e.currentTarget.disabled = true; if (await fazer('orc.pesquisado', { id: o.id })) { fecharJanela(); render(); KVShell.aviso('Pronto: foi pro dono revisar'); } else e.currentTarget.disabled = false; };
+      dlg.querySelector('[data-ok]').onclick = async (e) => { e.currentTarget.disabled = true; if (await fazer('orc.pesquisado', { id: o.id })) { fecharJanela(); render(); KVShell.janelaCab(o); KVShell.aviso('Pronto: foi pro dono revisar'); } else e.currentTarget.disabled = false; };
     } else { if (dlg.open) dlg.close(); return; }
     dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fecharJanela);
     if (!dlg.open) dlg.showModal();
@@ -347,11 +376,15 @@ KVTelas['orcamento'] = function () {
   // ---------- ações ----------
   function ligarEventos() {
     KVSky.ligar(app, () => o, (e) => KVShell.aviso(e.message, { erro: true }));
-    // menu das 3 barras nas opções
+    // o que fica no detalhe do voo aberto
     app.addEventListener('click', async (e) => {
-      const m = e.target.closest('[data-menu]');
-      if (m) { e.stopImmediatePropagation(); const mid = +m.dataset.menu; menuAberto = menuAberto === mid ? null : mid; confirmarApagar = null; render(); const pri = app.querySelector('.menu-orc button'); if (pri) pri.focus(); return; }
-      const l = e.target.closest('[data-link]'); if (l) { e.stopImmediatePropagation(); window.open(l.dataset.link, '_blank', 'noopener'); menuAberto = null; render(); return; }
+      const v = e.target.closest('[data-voo]');
+      if (v) { e.stopImmediatePropagation(); const k = +v.dataset.voo, aberto = vooAberto(); confirmarApagar = null;
+        if (aberto === k) { KVShell.desfazer({ voo: 1 }, syncVoo); return; }
+        if (aberto) { const p = new URLSearchParams(location.search); p.set('voo', k); history.replaceState(history.state, '', '?' + p); }
+        else KVShell.irPara({ voo: k });
+        syncVoo(); return; }
+      const l = e.target.closest('[data-link]'); if (l) { e.stopImmediatePropagation(); window.open(l.dataset.link, '_blank', 'noopener'); return; }
       const pd = e.target.closest('[data-pede-del]'); if (pd) { e.stopImmediatePropagation(); confirmarApagar = +pd.dataset.pedeDel; render(); return; }
       if (e.target.closest('[data-cancela]')) { e.stopImmediatePropagation(); confirmarApagar = null; render(); return; }
       const ed = e.target.closest('[data-editar-op]');
@@ -359,31 +392,31 @@ KVTelas['orcamento'] = function () {
         rascunho = paraForm(op); render(); KVShell.irPara({ janela: 'nova' }); sincJanela(); return; }
       const mv = e.target.closest('[data-mover-op]');
       if (mv) { e.stopImmediatePropagation(); menuAberto = null; render(); KVShell.irPara({ janela: 'mover', op: mv.dataset.moverOp }); sincJanela(); return; }
-      if (e.target.closest('[data-dup], [data-del]')) { menuAberto = confirmarApagar = null; editando = null; return; }
-      if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmarApagar = null; render(); }
+      if (e.target.closest('[data-dup], [data-del]')) { confirmarApagar = null; editando = null; }
     }, true);
-    addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto && !dlg.open) { const mid = menuAberto; menuAberto = confirmarApagar = null; render(); const b = app.querySelector(`[data-menu="${mid}"]`); if (b) b.focus(); } });
+    // Esc fecha o voo aberto antes de fechar a janela
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && vooAberto() && !dlg.open && !conf.open) { e.preventDefault(); KVShell.desfazer({ voo: 1 }, syncVoo); } });
     app.addEventListener('click', async (e) => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;
-      if (b.dataset.t != null) { if (+b.dataset.t !== trechoSel()) { rascunho = null; KVShell.irPara({ t: b.dataset.t, dia: null }); render(); } }
+      if (b.dataset.t != null) { const n = +b.dataset.t; if (n === trechoSel()) return; rascunho = null; if (vooAberto()) { KVShell.desfazer({ voo: 1 }, () => {}); setTimeout(() => trocarTrecho(n), 0); } else trocarTrecho(n); }
       else if (b.dataset.dia != null) { if (b.dataset.dia !== (KVShell.param('dia') || '')) { KVShell.irPara({ dia: b.dataset.dia || null }); render(); } }
       else if (b.hasAttribute('data-abre-cal')) { KVShell.irPara({ janela: 'cal' }); sincJanela(); }
       else if (b.hasAttribute('data-nova')) { salvasAgora = 0; editando = null; rascunho = rascunho && { site: rascunho.site, data: rascunho.data }; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
       else if (b.dataset.dup) { const op = o.opcoes.find((x) => x.id === +b.dataset.dup); rascunho = paraForm(op); salvasAgora = 0; KVShell.irPara({ janela: 'nova' }); sincJanela(); }
-      else if (b.dataset.del) { if (await fazer('op.apagar', { orcamento: o.id, id: +b.dataset.del })) KVShell.aviso('Opção apagada'); render(); }
+      else if (b.dataset.del) { if (await fazer('op.apagar', { orcamento: o.id, id: +b.dataset.del })) { KVShell.aviso('Voo apagado'); KVShell.desfazer({ voo: 1 }, () => {}); } render(); }
       else if (b.hasAttribute('data-resumo')) { KVShell.irPara({ janela: 'resumo' }); sincJanela(); }
       else if (b.hasAttribute('data-conf')) { KVShell.irPara({ janela: 'conf' }); sincJanela(); }
       else if (b.hasAttribute('data-pesquisado')) { KVShell.irPara({ janela: 'pesquisado' }); sincJanela(); }
-      else if (b.hasAttribute('data-pegar')) { b.disabled = true; await fazer('orc.pegar', { id: o.id }); render(); }
+      else if (b.hasAttribute('data-pegar')) { b.disabled = true; await fazer('orc.pegar', { id: o.id }); render(); KVShell.janelaCab(o); }
       else if (b.hasAttribute('data-assumir')) {
         const quem = esc(nomeDe(o.responsavel));
         if (!await KVShell.confirmar({ titulo: `Assumir o #${o.id}?`, texto: `Esse orçamento está com ${quem}. Se você assumir, ele passa pra você e sai da lista de ${quem}. As opções que já foram lançadas continuam.`, sim: 'Assumir', icone: 'hand' })) return;
-        b.disabled = true; await fazer('orc.pegar', { id: o.id, assumir: true }); render();
+        b.disabled = true; await fazer('orc.pegar', { id: o.id, assumir: true }); render(); KVShell.janelaCab(o);
       }
     });
     app.addEventListener('change', async (e) => {
       if (e.target.id === 'passar') { await fazer('orc.passar', { id: o.id, email: e.target.value || null }); render(); }
-      if (e.target.id === 'etapa') { await fazer('orc.etapa', { id: o.id, etapa: e.target.value }); render(); }
+      if (e.target.id === 'etapa') { await fazer('orc.etapa', { id: o.id, etapa: e.target.value }); render(); KVShell.janelaCab(o); }
     });
     // atalho: N abre "Nova opção" (quando não está digitando)
     addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.target.closest('input, textarea, select') && !dlg.open && podeLancar()) { e.preventDefault(); app.querySelector('[data-nova]').click(); } });
@@ -399,7 +432,7 @@ KVTelas['orcamento'] = function () {
       app = KVShell.montar('orcamentos', { dono, janela: { o, aba: 'pesquisa' } });
       ligarEventos();
       render(); sincJanela();
-      KVShell.aoVoltar(() => { render(); sincJanela(); });
+      KVShell.aoVoltar(() => { if (semVoo() === desenhado) syncVoo(); else render(); sincJanela(); });
       // quando volta pra aba, traz o que outra pessoa pode ter lançado
       document.addEventListener('visibilitychange', async () => { if (!document.hidden && !dlg.open && !ocupado) { try { o = await KVApi.orcamento(id); render(); } catch (_) {} } });
     } catch (e) {
