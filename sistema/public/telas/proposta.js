@@ -7,7 +7,7 @@ KVTelas['proposta'] = function () {
   const O = KVOrc, P = KVProp, { esc, fmt } = KVOrc;
   const id = Number(KVShell.param('id'));
   let o = null, app = null;
-  let livreAberto = null, editandoMsg = false, menuAberto = null, confirmarApagar = null, renomeando = null, copiado = false, filtroTroca = 'todas';
+  let editandoMsg = false, menuAberto = null, confirmarApagar = null, renomeando = null, copiado = false;
   const editavel = () => ['pesquisado', 'enviado'].includes(o.etapa);
   const lerNum = (t) => { const n = +String(t || '').replace(/[^\d,]/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? n : null; };
   const numCampo = (c) => c == null ? '' : (c / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
@@ -46,110 +46,93 @@ KVTelas['proposta'] = function () {
     catch (e) { KVShell.aviso(e.message, { erro: true }); await recarregar(); return null; }
   }
 
-  // ---------- topo ----------
-  function topo() {
-    const cidades = O.cidades(o);
+  // ---------- resumo de cima: milhas na mais econômica, quantas opções, o Skyscanner e "Tudo salvo" ----------
+  function resumo() {
     const menos = o.combos.length ? Math.min(...o.combos.map((c) => P.milhasCombo(o, c))) : 0;
     const t = teto();
-    return `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'proposta')}
-      <div class="topo-orc"><span class="quem">${esc(o.contato.nome)} · #${o.id} · ${O.fmtPax(o.passageiros)}</span>
-        <h1 style="--n:${cidades.join(' → ').length}">${cidades.map(esc).join(' <span class="seta">→</span> ')}</h1>
-        <div class="kpis">${menos ? `<span class="kpi"><b>${fmt.pts(menos)}</b><span>milhas na mais econômica</span></span>` : ''}
-          <span class="kpi"><b>${t.valor ? fmt.brl(t.valor).replace(',00', '') : '—'}</b><span>${t.valor ? 'em dinheiro' : 'sem preço em dinheiro'}</span></span>
-          <span class="kpi"><b>${o.opcoes.length}</b><span>opções pesquisadas</span></span></div></div>`;
+    return `<div class="resumo">${menos ? `<span><b>${fmt.pts(menos)}</b> milhas na mais econômica</span>` : ''}
+        <span><b>${o.opcoes.length}</b> opções pesquisadas</span>${t.valor ? `<span><b>${fmt.brl(t.valor).replace(',00', '')}</b> em dinheiro</span>` : ''}
+        ${editavel() ? '<span class="salvo" data-salvo>Tudo salvo</span>' : ''}</div>
+      <div class="sky-wrap">${KVSky.html(o, editavel())}</div>`;
   }
 
-  // ---------- combinações ----------
+  // ---------- combinações: comparativo, os rótulos ficam uma vez só na coluna da esquerda ----------
   function menuCombo(c) {
     const it = (attrs, icone, texto, cls = '') => `<button role="menuitem" class="${cls}" ${attrs}><i data-lucide="${icone}"></i>${texto}</button>`;
     if (confirmarApagar === c._k) return `<div class="menu-orc" role="menu"><p>Tirar "${esc(c.nome)}" da proposta?</p>${it(`data-del="${c._k}"`, 'trash-2', 'Sim, tirar', 'perigo')}${it('data-cancela', 'x', 'Não')}</div>`;
     return `<div class="menu-orc" role="menu">${it(`data-renomear="${c._k}"`, 'pencil', 'Renomear')}${o.combos.length < 3 ? it(`data-dup="${c._k}"`, 'copy', 'Duplicar') : ''}${o.combos.length > 1 && o.aceita !== c.id ? it(`data-pede-del="${c._k}"`, 'trash-2', 'Tirar da proposta', 'perigo') : ''}</div>`;
   }
   const vm = (v) => (v / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-  // no cartão: só o resumo das milhas por programa e o botão que abre a janela de valores
-  function resumoMilhas(c) {
+  // um voo por trecho; clicar abre as outras opções do trecho embaixo dele (com roteiros, também as do mesmo trecho dos outros)
+  const trocaAberta = () => KVShell.param('tr');
+  // dia curto, sem o ano: "qua 10/03"
+  const diaM = (d) => `${P.diaSem(d)} ${d.slice(8)}/${d.slice(5, 7)}`;
+  function trechoCel(c, x, mist) {
+    if (!x) return '<div class="trv vazio-cel"></div>';
+    const k = `${c._k}:${x.trecho}`, on = trocaAberta() === k, base = O.custo(x, o);
+    const tit = `<small>${diaM(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span>${mist || O.roteiros(o).length > 1 ? ` · ${esc(o.trechos[x.trecho].de)} → ${esc(o.trechos[x.trecho].para)}` : ''}</small><b>${hora(x)}</b><small>${detalhe(x)} · ${valorOp(x)}</small>`;
+    if (!editavel()) return `<div class="trv"><div class="tr-l">${tit}</div></div>`;
+    const eqs = P.equivalentes(o, x.trecho);
+    const outras = eqs.flatMap((t) => P.opsDo(o, t)).filter((y) => y.id !== x.id).sort((a, b) => O.custoPessoa(a) - O.custoPessoa(b));
+    return `<div class="trv ${on ? 'aberto' : ''}" data-tr="${k}"><button class="tr-l" data-troca="${k}" aria-expanded="${on}" aria-label="Trocar a ${esc(P.nomeTrecho(o, x.trecho, mist).toLowerCase())} de ${esc(c.nome)}">${tit}<span class="troca"><i data-lucide="arrow-left-right"></i></span></button>
+      <div class="alts-w" ${on ? '' : 'inert'}><div><div class="alts"><span class="mini">${outras.length ? 'Trocar por' : 'Não tem outra opção neste trecho'}</span>${outras.map((y, i) => { const d = O.custo(y, o) - base;
+        return `<button class="alt" style="--i:${Math.min(i, 8)}" data-escolher="${c._k}:${y.id}"><b>${diaM(y.data)} · ${hora(y)}</b><span class="dif ${d < 0 ? 'menos' : ''}">${d < 0 ? '−' : '+'} ${fmt.brl(Math.abs(d))}</span>
+          <small>${eqs.length > 1 ? `Roteiro ${O.letra(P.rotDoTrecho(o, y.trecho))} · ` : ''}<span class="sitio" data-s="${esc(y.site)}">${esc(y.site)}</span> · ${detalhe(y)} · ${valorOp(y)}</small></button>`; }).join('')}</div></div></div></div>`;
+  }
+  // milhas por programa, com o valor da milha desta combinação (− e + de 0,0005, ou digitado)
+  function milhasCel(c) {
     const gs = P.porPrograma(o, c);
-    if (!gs.length) return '';
-    return gs.map((g) => `<div class="pl-top"><span class="prog" data-p="${g.programa}">${esc(P.progNome(g.programa))}</span><b class="mil">${fmt.pts(g.milhas)}</b><small>milhas</small></div>
-        <span class="pl-vm">R$ ${vm(g.valor)} por milha${g.valor !== g.padrao ? ' <span class="etiqueta">mudou</span>' : ''}</span>`).join('')
-      + (editavel() ? `<button class="btn pequeno" data-milhas="${c._k}"><i data-lucide="sliders-horizontal"></i>Alterar valor das milhas</button>` : '');
+    if (!gs.length) return '<div class="mil"><span class="faint">sem milhas</span></div>';
+    return `<div class="mil">${gs.map((g) => { const k = `${c._k}|${g.programa}`, nome = esc(P.progNome(g.programa)), mudou = g.valor !== g.padrao;
+      return `<div class="ml"><span class="prog" data-p="${g.programa}">${nome}</span><span class="q">${fmt.pts(g.milhas)}<small>mi</small></span>
+        ${editavel() ? `<span class="stp ${mudou ? 'mudou' : ''}"><button data-vm="${k}" data-passo="-500" aria-label="Diminuir valor da milha ${nome}"><i data-lucide="minus"></i></button><input data-vmi="${k}" inputmode="decimal" autocomplete="off" value="${vm(g.valor)}" aria-label="Valor da milha ${nome}" title="${mudou ? `padrão ${vm(g.padrao)}` : 'padrão das configurações'}"><button data-vm="${k}" data-passo="500" aria-label="Aumentar valor da milha ${nome}"><i data-lucide="plus"></i></button></span>`
+          : `<span class="stp"><span>R$ ${vm(g.valor)}</span></span>`}
+        <span class="eq" data-eq="${k}">${fmt.brl(g.reais)}${mudou && editavel() ? ` · <button class="link" data-vm-padrao="${k}">padrão</button>` : ''}</span></div>`; }).join('')}</div>`;
   }
-  // na janela: − e + de 0,0005 (ou digitado) pra cada programa, com o valor em R$ e o preço da combinação na hora
-  function blocoMilhas(c) {
-    return P.porPrograma(o, c).map((g) => {
-      const k = `${c._k}|${g.programa}`, mudou = g.valor !== g.padrao, nome = esc(P.progNome(g.programa));
-      return `<div class="prog-l"><div class="pl-top"><span class="prog" data-p="${g.programa}">${nome}</span><b class="mil">${fmt.pts(g.milhas)}</b><small>milhas</small></div>
-        <div class="vm"><button class="btn icone" data-vm="${k}" data-passo="-500" aria-label="Diminuir valor da milha ${nome}"><i data-lucide="minus"></i></button>
-          <label class="vm-in"><span>R$</span><input data-vmi="${k}" inputmode="decimal" autocomplete="off" value="${vm(g.valor)}" aria-label="Valor da milha ${nome}"></label>
-          <button class="btn icone" data-vm="${k}" data-passo="500" aria-label="Aumentar valor da milha ${nome}"><i data-lucide="plus"></i></button></div>
-        <div class="vm-pe"><span class="padrao">${mudou ? `padrão ${vm(g.padrao)} · <button class="link" data-vm-padrao="${k}">voltar pro padrão</button>` : 'padrão das configurações'}</span><b data-eq="${k}">${fmt.brl(g.reais)}</b></div></div>`;
-    }).join('');
+  // preço à vista: começa no calculado (milhas × valor da milha + taxas) e o dono digita o que vai cobrar por cima
+  const calcTxt = (c) => { if (c.livre == null) return 'calculado pelas milhas'; const calc = P.precoCalc(o, c), d = c.livre - calc;
+    return `${d >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(d))} do calculado${editavel() ? ` · <button class="link" data-calc="${c._k}">voltar pra ${fmt.brl(calc)}</button>` : ''}`; };
+  function ppHtml(c) {
+    const pp = Math.round(venda(c) / Math.max(1, O.pagantes(o))), t = P.tetoCombo(o, c).valor;
+    const r = P.rotDaCombo(o, c), s = r < 0 ? {} : KVSky.de(o, r), d = s.valor ? pp - s.valor : 0;
+    return `<b>${fmt.brl(pp)} <small>por pessoa</small></b>${s.valor ? `<span class="${d > 0 ? 'acima' : 'abaixo'}">${d ? `${d > 0 ? '+' : '−'} ${fmt.brl(Math.abs(d))}` : 'igual ao'} vs. Skyscanner</span>` : ''}${t && venda(c) > t ? '<span class="acima">acima do preço em dinheiro</span>' : ''}`;
   }
-  function precoHtml(c) {
-    const calc = P.precoCalc(o, c);
-    const linhas = `${P.taxas(o, c) ? `<div class="linha-custo"><span>Taxas</span><b>${fmt.brl(P.taxas(o, c))}</b></div>` : ''}${P.dinheiro(o, c) ? `<div class="linha-custo"><span>Trechos em dinheiro</span><b>${fmt.brl(P.dinheiro(o, c))}</b></div>` : ''}`;
-    if (c.livre != null || livreAberto === c._k) return `${linhas}<div class="venda"><label for="v-${c._k}">À vista, Pix ou dinheiro (digitado)</label>
-        <div class="caixa"><span>R$</span><input id="v-${c._k}" data-venda="${c._k}" inputmode="decimal" autocomplete="off" placeholder="${numCampo(calc)}" value="${numCampo(c.livre)}" ${editavel() ? '' : 'readonly'}></div>
-        ${editavel() ? `<button class="link" data-calc="${c._k}">Voltar pro calculado: <span data-calcv="${c._k}">${fmt.brl(calc)}</span></button>` : ''}</div>
-      <div class="resultado" data-res="${c._k}">${resultado(c)}</div>`;
-    return `${linhas}<div class="preco-f"><span class="rot">À vista, Pix ou dinheiro</span><b data-pf="${c._k}">${fmt.brl(calc)}</b>
-        ${editavel() ? `<button class="link" data-livre="${c._k}">Digitar outro valor</button>` : ''}</div>
-      <div class="resultado" data-res="${c._k}">${resultado(c)}</div>`;
-  }
+  const precoCel = (c) => `<div class="preco"><label class="caixa v-in ${c.livre != null ? 'livre' : ''}"><span>R$</span><input data-venda="${c._k}" inputmode="decimal" autocomplete="off" value="${numCampo(venda(c))}" aria-label="Preço à vista de ${esc(c.nome)}" ${editavel() ? '' : 'readonly'}></label>
+      <small class="calc" data-calcl="${c._k}">${calcTxt(c)}</small><span class="pp" data-pp="${c._k}">${ppHtml(c)}</span></div>`;
   // parcelado: outro preço, digitado à mão, com o número de vezes; vai na mensagem como "em até 10x de ..."
-  function parceladoHtml(c) {
-    const ed = editavel();
-    if (!ed && !c.parcelado) return '';
-    return `<div class="parc"><label class="rot" for="p-${c._k}">Parcelado</label>
-      <div class="parc-linha"><div class="caixa pq-caixa"><span>R$</span><input id="p-${c._k}" data-parc="${c._k}" inputmode="decimal" autocomplete="off" placeholder="valor total parcelado" value="${numCampo(c.parcelado)}" ${ed ? '' : 'readonly'}></div>
-        <label class="sel-pilula vezes"><span class="escondido">Vezes</span><select data-vezes="${c._k}" data-combo="nao" ${ed ? '' : 'disabled'}>${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option value="${n}" ${n === c.vezes ? 'selected' : ''}>em ${n}x</option>`).join('')}</select></label></div>
-      <span class="parc-info" data-pinfo="${c._k}">${parcInfo(c)}</span></div>`;
-  }
+  const parcCel = (c) => { const ed = editavel(); if (!ed && !c.parcelado) return '<div class="parc"><small>não oferece parcelado</small></div>';
+    return `<div class="parc"><label class="caixa"><span>R$</span><input data-parc="${c._k}" inputmode="decimal" autocomplete="off" placeholder="parcelado" value="${numCampo(c.parcelado)}" aria-label="Valor total parcelado de ${esc(c.nome)}" ${ed ? '' : 'readonly'}></label>
+      <select data-vezes="${c._k}" data-combo="nao" aria-label="Vezes" ${ed ? "" : "disabled"}>${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option value="${n}" ${n === c.vezes ? 'selected' : ''}>${n}x</option>`).join('')}</select>
+      <small data-pinfo="${c._k}">${parcInfo(c)}</small></div>`; };
   function parcInfo(c) {
-    if (!c.parcelado) return 'Valor total no cartão. Vazio = não oferece parcelado.';
+    if (!c.parcelado) return 'Vazio = não oferece parcelado';
     const v = venda(c), dif = c.parcelado - v, pct = Math.round((dif / v) * 1000) / 10;
-    return `${c.vezes}x de ${fmt.brl(Math.round(c.parcelado / c.vezes))} · ${dif >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do à vista (${dif >= 0 ? '+' : '−'}${String(Math.abs(pct)).replace('.', ',')}%)`;
+    return `${c.vezes}x de ${fmt.brl(Math.round(c.parcelado / c.vezes))} · ${dif >= 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} (${dif >= 0 ? '+' : '−'}${String(Math.abs(pct)).replace('.', ',')}%)`;
   }
-  function resultado(c) {
-    const t = P.tetoCombo(o, c).valor, calc = P.precoCalc(o, c), dif = c.livre != null ? c.livre - calc : 0;
-    const avisos = [t && venda(c) > t && '<span class="etiqueta warn">acima do preço em dinheiro</span>', Math.abs(dif) >= 100 && `<span class="etiqueta">${dif > 0 ? '+' : '−'} ${fmt.brl(Math.abs(dif))} do calculado</span>`].filter(Boolean).join('');
-    return `${avisos}<span class="pp">${fmt.brl(Math.round(venda(c) / Math.max(1, O.pagantes(o))))} por pessoa</span>${skyRef(c)}`;
+  function colunaCombo(c, i, n) {
+    const ops = P.opsDaCombo(o, c), mist = P.rotDaCombo(o, c) < 0, aceitaEsta = o.aceita != null && o.aceita === c.id;
+    const titulo = renomeando === c._k ? `<input data-nome="${c._k}" value="${esc(c.nome)}" aria-label="Nome da combinação" maxlength="28">` : `<b>${esc(c.nome)}</b>`;
+    return `<article class="cb ${aceitaEsta ? 'aceita' : ''}" data-cb="${c._k}"><header><span class="nro">${i + 1}</span>${titulo}${aceitaEsta ? '<span class="etiqueta ok">aceita</span>' : ''}
+        ${editavel() ? `<button class="bt-mais" data-menu="${c._k}" aria-haspopup="menu" aria-expanded="${menuAberto === c._k}" aria-label="Ações de ${esc(c.nome)}"><i data-lucide="ellipsis"></i></button>${menuAberto === c._k ? menuCombo(c) : ''}` : ''}</header>
+      ${Array.from({ length: n }, (_, k) => trechoCel(c, ops[k], mist)).join('')}${milhasCel(c)}${precoCel(c)}${parcCel(c)}</article>`;
   }
-  // Skyscanner do roteiro perto do preço, só pra comparar (não vai na mensagem); misturada não tem um roteiro só pra comparar
-  function skyRef(c) {
-    const r = P.rotDaCombo(o, c), s = r < 0 ? {} : KVSky.de(o, r);
-    if (!s.valor && !s.texto) return '';
-    const d = s.valor ? Math.round(venda(c) / Math.max(1, O.pagantes(o))) - s.valor : 0;
-    return `<span class="sky-ref"><span>Skyscanner${s.valor ? ` <b>${fmt.brl(s.valor)}</b> por pessoa · <span class="${d > 0 ? 'acima' : 'abaixo'}">${d ? `${fmt.brl(Math.abs(d))} ${d > 0 ? 'acima' : 'abaixo'}` : 'igual'}</span>` : ''}</span>${s.texto ? `<small>${esc(s.texto)}</small>` : ''}</span>`;
+  // um comparativo por roteiro (A, B…) e um pras misturadas; cada um com as linhas: trechos, milhas, à vista, parcelado
+  function grupo(lista, r, titulo) {
+    const rs = O.roteiros(o), idx = r >= 0 ? rs[r] : null;
+    const n = idx ? idx.length : Math.max(1, ...lista.map(([c]) => P.opsDaCombo(o, c).length));
+    const pode = r >= 0 && editavel() && lista.length < 3 && idx.every((ti) => P.opsDo(o, ti).length);
+    if (!lista.length && !pode) return `<section class="grupo">${titulo}<div class="vazio">Falta opção de voo em algum trecho${rs.length > 1 ? ' deste roteiro' : ''}. <a href="orcamento.html?id=${o.id}" data-trocar style="color:var(--orange)">Voltar pra pesquisa</a></div></section>`;
+    const rotT = (k) => idx ? `<b>${esc(P.nomeTrecho(o, idx[k]))}</b><small>${esc(o.trechos[idx[k]].de)} → ${esc(o.trechos[idx[k]].para)}</small>` : `<b>Trecho ${k + 1}</b>`;
+    const rot = ['', ...Array.from({ length: n }, (_, k) => rotT(k)), '<b>Milhas</b><small>e valor da milha</small>', '<b>À vista</b><small>Pix ou dinheiro</small>', '<b>Parcelado</b><small>no cartão</small>'];
+    return `<section class="grupo">${titulo}<div class="combos g2" style="--nl:${n + 4};--nc:${Math.max(2, lista.length + (pode ? 1 : 0))}"><div class="rotulos">${rot.map((x) => `<span>${x}</span>`).join('')}</div>
+      ${lista.map(([c, i]) => colunaCombo(c, i, n)).join('')}${pode ? `<button class="nova" data-nova="${r}"><i data-lucide="plus"></i>Outra combinação<small>até 3</small></button>` : ''}</div></section>`;
   }
-  function cartaoCombo(c, i) {
-    const ops = P.opsDaCombo(o, c);
-    const titulo = renomeando === c._k ? `<input data-nome="${c._k}" value="${esc(c.nome)}" aria-label="Nome da combinação" maxlength="28">` : `<span>${esc(c.nome)}</span>`;
-    const aceitaEsta = o.aceita != null && o.aceita === c.id, mist = P.rotDaCombo(o, c) < 0;
-    return `<article class="cartao-ref combina ${aceitaEsta ? 'aceita' : ''}" data-cb="${c._k}">
-      ${editavel() ? `<span class="canto"><button data-menu="${c._k}" aria-haspopup="menu" aria-expanded="${menuAberto === c._k}" aria-label="Ações da combinação"><i data-lucide="menu"></i></button></span>${menuAberto === c._k ? menuCombo(c) : ''}` : ''}
-      <div class="grande"><span class="nro" aria-label="Opção ${i + 1}">${i + 1}</span>${titulo}${aceitaEsta ? '<span class="etiqueta ok">aceita</span>' : ''}</div>
-      ${ops.map((x) => { const tag = editavel() ? 'button' : 'div';
-        return `<${tag} class="tr" ${editavel() ? `data-trocar="${c._k}" data-t="${x.trecho}" aria-label="Trocar ${P.nomeTrecho(o, x.trecho, mist)}"` : ''}><span><small>${P.nomeTrecho(o, x.trecho, mist)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></small><b>${hora(x)}</b><small>${detalhe(x)} · ${valorOp(x)}</small></span>${editavel() ? '<span class="troca"><i data-lucide="arrow-left-right"></i></span>' : ''}</${tag}>`; }).join('')}
-      <div class="pe"><div class="milhas-res">${resumoMilhas(c)}</div><div class="preco-bloco" data-preco="${c._k}">${precoHtml(c)}</div>${parceladoHtml(c)}</div></article>`;
-  }
-  // com roteiros, uma coluna por roteiro, cada uma com as combinações dele (até 3 por roteiro)
   function combos() {
-    const rs = O.roteiros(o), cab = `<div class="secao"><h2>O que vai pro cliente</h2><span class="n">${o.combos.length} ${o.combos.length > 1 ? 'combinações' : 'combinação'}</span>${editavel() ? '<span class="faint" data-salvo style="margin-left:auto;font-size:13px">Tudo salvo</span>' : ''}</div>`;
-    const grade = (r) => {
-      const meus = o.combos.map((c, i) => [c, i]).filter(([c]) => P.rotDaCombo(o, c) === r);
-      const pode = editavel() && meus.length < 3 && rs[r].every((ti) => P.opsDo(o, ti).length);
-      if (!meus.length && !pode) return `<div class="vazio">Falta opção de voo em algum trecho${rs.length > 1 ? ' deste roteiro' : ''}. <a href="orcamento.html?id=${o.id}" style="color:var(--orange)">Voltar pra pesquisa</a></div>`;
-      return `<div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${meus.map(([c, i]) => cartaoCombo(c, i)).join('')}
-        ${pode ? `<button class="nova-combo" data-nova="${r}"><span class="mais"><i data-lucide="plus"></i></span>Outra combinação<span class="faint" style="font-weight:600;font-size:13px">até 3</span></button>` : ''}</div>`;
-    };
-    // Skyscanner (base de preço, só pra equipe) acima das combinações
-    const sky = KVSky.html(o, editavel());
-    if (rs.length === 1) return cab + sky + grade(0);
-    // as misturadas (ida de um roteiro, volta de outro) ganham uma coluna só delas
-    const mistas = o.combos.map((c, i) => [c, i]).filter(([c]) => P.rotDaCombo(o, c) < 0);
-    return cab + sky + `<div class="roteiros">${rs.map((idx, r) => `<section class="roteiro-col"><h3 class="rot-cab"><span class="rot-letra">${O.letra(r)}</span>${O.cidades(o, idx).map(esc).join(' → ')}</h3>${grade(r)}</section>`).join('')}
-      ${mistas.length ? `<section class="roteiro-col"><h3 class="rot-cab"><span class="rot-letra"><i data-lucide="shuffle"></i></span>Misturando os roteiros</h3><div class="grade-ref" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${mistas.map(([c, i]) => cartaoCombo(c, i)).join('')}</div></section>` : ''}</div>`;
+    const rs = O.roteiros(o), com = (f) => o.combos.map((c, i) => [c, i]).filter(([c]) => f(P.rotDaCombo(o, c)));
+    if (rs.length === 1) return grupo(com((r) => r === 0), 0, '');
+    const mistas = com((r) => r < 0);
+    return rs.map((idx, r) => grupo(com((x) => x === r), r, `<h3 class="rot-cab"><span class="rot-letra">${O.letra(r)}</span>${O.cidades(o, idx).map(esc).join(' → ')}</h3>`)).join('')
+      + (mistas.length ? grupo(mistas, -1, '<h3 class="rot-cab"><span class="rot-letra"><i data-lucide="shuffle"></i></span>Misturando os roteiros</h3>') : '');
   }
 
   // ---------- mensagem ----------
@@ -172,8 +155,8 @@ KVTelas['proposta'] = function () {
     : `<div class="msg" data-msg>${formatar(P.texto(o))}</div>`;
   const msgBotoes = () => `<div class="msg-acoes">${editandoMsg ? '<button class="btn" data-msg-pronto><i data-lucide="check"></i>Pronto</button>' : '<button class="btn fantasma" data-msg-editar><i data-lucide="pencil"></i>Editar o texto</button>'}
     ${o.mensagem ? '<span class="faint">Editada à mão: mudar as combinações não muda o texto.</span><button class="btn fantasma" data-msg-auto><i data-lucide="rotate-ccw"></i>Voltar pro texto automático</button>' : ''}</div>`;
-  const mensagemHtml = () => `<div class="secao"><h2>Mensagem</h2><span class="n">vai só o preço, sem milhas</span></div>
-    <div class="msg-wrap"><div><div data-msg-caixa>${msgCaixa()}</div><div data-msg-botoes>${msgBotoes()}</div></div><div class="lado" data-lado>${lado()}</div></div>`;
+  const mensagemHtml = () => `<aside class="msg-l"><h3>Mensagem <small>vai só o preço, sem milhas</small></h3>
+    <div data-msg-caixa>${msgCaixa()}</div><div data-msg-botoes>${msgBotoes()}</div><div class="lado" data-lado>${lado()}</div></aside>`;
   const redesenharMsg = () => { app.querySelector('[data-msg-caixa]').innerHTML = msgCaixa(); app.querySelector('[data-msg-botoes]').innerHTML = msgBotoes(); copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); };
   // grava o texto um instante depois de parar de digitar
   let timerMsg = null;
@@ -181,90 +164,48 @@ KVTelas['proposta'] = function () {
 
   function render() {
     if (['novo', 'pesquisa'].includes(o.etapa)) {
-      app.innerHTML = `<a class="voltar" href="orcamentos.html"><i data-lucide="arrow-left"></i>Orçamentos</a>${O.trilha(o, 'proposta')}
-        <div class="vazio">Esse orçamento ainda está em pesquisa. <a href="orcamento.html?id=${o.id}" style="color:var(--orange)">Ver a pesquisa</a></div>`;
+      app.innerHTML = `<div class="vazio">Esse orçamento ainda está em pesquisa. <a href="orcamento.html?id=${o.id}" data-trocar style="color:var(--orange)">Ver a pesquisa</a></div>`;
       KVShell.icones(); return;
     }
-    app.innerHTML = topo() + combos() + mensagemHtml();
+    const st = app.scrollTop;
+    app.innerHTML = `<div class="prop">${resumo()}<div class="prop-combos">${combos()}</div>${mensagemHtml()}</div>`;
+    app.scrollTop = st; desenhado = semTr();
     document.title = `Proposta #${o.id} ${O.destino(o)} · K&V`;
     KVShell.icones();
     const r = app.querySelector('[data-nome]'); if (r) { r.focus(); r.select(); }
     if (sujo || salvando) estadoSalvo('Salvando…');
   }
   // digitar o valor da milha ou o preço atualiza as contas e a mensagem sem redesenhar a tela (o cursor fica onde está)
-  function atualizarPreco(c) {
-    const pf = app.querySelector(`[data-pf="${c._k}"]`); if (pf) pf.textContent = fmt.brl(P.precoCalc(o, c));
-    const cv = app.querySelector(`[data-calcv="${c._k}"]`); if (cv) cv.textContent = fmt.brl(P.precoCalc(o, c));
-    app.querySelector(`[data-res="${c._k}"]`).innerHTML = resultado(c);
+  function atualizarPreco(c, { campo = true } = {}) {
+    const v = app.querySelector(`[data-venda="${c._k}"]`);
+    if (v) { v.closest('.caixa').classList.toggle('livre', c.livre != null); if (campo && document.activeElement !== v) v.value = numCampo(venda(c)); }
+    app.querySelector(`[data-calcl="${c._k}"]`).innerHTML = calcTxt(c);
+    app.querySelector(`[data-pp="${c._k}"]`).innerHTML = ppHtml(c);
     const pi = app.querySelector(`[data-pinfo="${c._k}"]`); if (pi) pi.textContent = parcInfo(c);
     const m = app.querySelector('[data-msg]'); if (m) m.innerHTML = formatar(P.texto(o));
     copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones();
     marcarSujo();
   }
 
-  // ---------- janelas: trocar voo, valor das milhas, desistiu ----------
-  const dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg);
-  const fechar = () => KVShell.desfazer({ janela: 1, c: 1, t: 1 }, sinc);
-  const progK = (k) => k.split('|')[1], comboDe = (k) => comboK(k.split('|')[0]);
-  function milhasMudou(c, foco) {
-    marcarSujo(); render();
-    if (KVShell.param('janela') === 'milhas') { janelaMilhas(c); dlg.querySelectorAll('[data-x]').forEach((b) => b.onclick = fechar); KVShell.icones(); const f = foco && dlg.querySelector(foco); if (f) f.focus(); }
+  // ---------- trocar voo: abre embaixo do próprio voo, sem redesenhar (a animação corre e pode ser interrompida) ----------
+  const semTr = () => { const p = new URLSearchParams(location.search); p.delete('tr'); return p.toString(); };
+  let desenhado = '';
+  function syncTroca() {
+    app.querySelectorAll('[data-tr]').forEach((el) => { const on = el.dataset.tr === trocaAberta(); el.classList.toggle('aberto', on); el.querySelector('.tr-l').setAttribute('aria-expanded', on); el.querySelector('.alts-w').inert = !on; });
   }
-  dlg.addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.vm) { const c = comboDe(b.dataset.vm), p = progK(b.dataset.vm); c.milha[p] = Math.max(500, P.valorMilha(c, p) + +b.dataset.passo); if (c.milha[p] === O.valorMilhaPadrao(p)) delete c.milha[p]; milhasMudou(c, `[data-vm="${b.dataset.vm}"][data-passo="${b.dataset.passo}"]`); }
-    else if (b.dataset.vmPadrao) { const c = comboDe(b.dataset.vmPadrao); delete c.milha[progK(b.dataset.vmPadrao)]; milhasMudou(c, `[data-vmi="${b.dataset.vmPadrao}"]`); }
-  });
-  dlg.addEventListener('input', (e) => {
-    const k = e.target.dataset.vmi; if (!k) return;
-    const c = comboDe(k), n = lerNum(e.target.value.replace('.', ','));
-    if (!(n && n < 1)) return;
-    c.milha[progK(k)] = Math.round(n * 1e6);
-    const g = P.porPrograma(o, c).find((x) => x.programa === progK(k));
-    dlg.querySelector(`[data-eq="${k}"]`).textContent = fmt.brl(g.reais);
-    dlg.querySelector('[data-pj]').textContent = fmt.brl(P.precoCalc(o, c));
-    atualizarPreco(c);
-  });
-  dlg.addEventListener('focusout', (e) => { const k = e.target.dataset.vmi; if (k) e.target.value = vm(P.valorMilha(comboDe(k), progK(k))); });
-  dlg.addEventListener('keydown', (e) => { if (e.target.dataset.vmi && e.key === 'Enter') { e.preventDefault(); milhasMudou(comboDe(e.target.dataset.vmi)); } });
+  // valor da milha: − e + mudam e redesenham; digitar muda as contas sem perder o cursor
+  const progK = (k) => k.split('|')[1], comboDe = (k) => comboK(k.split('|')[0]);
+  function milhasMudou(c, foco) { marcarSujo(); render(); const f = foco && app.querySelector(foco); if (f) f.focus(); }
+
+  // ---------- janela: desistiu ----------
+  const dlg = document.createElement('dialog'); dlg.className = 'janela'; document.body.append(dlg);
+  const fechar = () => KVShell.desfazer({ janela: 1 }, sinc);
   dlg.addEventListener('cancel', (e) => { e.preventDefault(); fechar(); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) fechar(); });
   const cab = (t, sub) => `<header><div style="flex:1"><h2>${t}</h2><div class="sub">${sub}</div></div><button class="btn icone" data-x aria-label="Fechar"><i data-lucide="x"></i></button></header>`;
-  const FILTROS_TROCA = [['todas', 'Todas'], ['direto', 'Diretas'], ['mala', 'Com mala'], ['pontos', 'Em pontos'], ['dinheiro', 'Em dinheiro']];
-  const passaFiltro = (x) => ({ todas: true, direto: x.escalas === 0, mala: x.bagagem, pontos: O.site(x.site).forma === 'pontos', dinheiro: O.site(x.site).forma === 'dinheiro' })[filtroTroca];
-  function painelTroca(c, ti) {
-    const atual = P.op(o, c.escolha[ti]), base = O.custo(atual, o);
-    // com roteiros, dá pra trocar pelo voo do mesmo trecho de outro roteiro (ida pra Lisboa → ida pro Porto)
-    const eqs = P.equivalentes(o, ti), varios = eqs.length > 1;
-    const l = eqs.flatMap((k) => P.opsDo(o, k)).filter(passaFiltro).sort((a, b) => O.custoPessoa(a) - O.custoPessoa(b));
-    const t = o.trechos[ti];
-    dlg.className = 'janela lateral';
-    dlg.innerHTML = cab(`Trocar a ${P.nomeTrecho(o, ti).toLowerCase()}`, `${esc(c.nome)} · ${varios ? 'qualquer roteiro' : `${t.de} → ${t.para}`} · ${eqs.reduce((n, k) => n + P.opsDo(o, k).length, 0)} opções`) + `<div class="corpo">
-      <div class="filtro-op">${FILTROS_TROCA.map(([k, n]) => `<button class="pilula" data-ft="${k}" aria-pressed="${filtroTroca === k}">${n}</button>`).join('')}</div>
-      <div class="lista-op">${l.length ? l.map((x) => { const d = O.custo(x, o) - base;
-        return `<button class="item-op" data-escolher="${x.id}" aria-pressed="${x.id === atual.id}"><b>${hora(x)}</b>
-          <small>${varios ? `Roteiro ${O.letra(P.rotDoTrecho(o, x.trecho))} · ${esc(o.trechos[x.trecho].de)} → ${esc(o.trechos[x.trecho].para)} · ` : ''}${P.diaSem(x.data)} ${O.dataCurta(x.data)} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span> · ${detalhe(x)}</small>
-          <span class="dif">${x.id === atual.id ? '<strong>escolhida</strong>' : `<strong class="${d < 0 ? 'menos' : ''}">${d < 0 ? '−' : '+'} ${fmt.brl(Math.abs(d))}</strong>`}<span>${valorOp(x)}</span></span></button>`; }).join('') : '<div class="faint" style="padding:12px 2px">Nenhuma opção com esse filtro.</div>'}</div></div>`;
-    dlg.querySelectorAll('[data-ft]').forEach((b) => b.onclick = () => { filtroTroca = b.dataset.ft; painelTroca(c, ti); KVShell.icones(); });
-    dlg.querySelectorAll('[data-escolher]').forEach((b) => b.onclick = () => {
-      const x = P.op(o, +b.dataset.escolher);
-      eqs.forEach((k) => { c.escolha[k] = null; }); c.escolha[x.trecho] = x.id;
-      // a numeração segue a ordem da mensagem (A, B..., misturadas)
-      o.combos.sort((a, b2) => P.ordemRot(o, a) - P.ordemRot(o, b2));
-      marcarSujo(); fechar(); render();
-    });
-  }
-  function janelaMilhas(c) {
-    dlg.className = 'janela';
-    dlg.innerHTML = cab('Valor das milhas', `${esc(c.nome)} · só nesta combinação`) + `<div class="corpo"><div class="milhas-j">${blocoMilhas(c)}</div>
-        <div class="preco-j"><span>Preço pro cliente</span><b data-pj>${fmt.brl(P.precoCalc(o, c))}</b>${c.livre != null ? '<small>Você digitou um preço livre nesta combinação; ele continua valendo.</small>' : ''}</div></div>
-      <footer><span></span><button class="btn primario" data-x><i data-lucide="check"></i>Pronto</button></footer>`;
-  }
   function sinc() {
     const j = KVShell.param('janela');
-    if (j === 'milhas' && editavel()) { const c = comboK(KVShell.param('c')); if (!c) return; janelaMilhas(c); }
-    else if (j === 'trocar' && editavel()) { const c = comboK(KVShell.param('c')); if (!c) return; painelTroca(c, +KVShell.param('t')); }
-    else if (j === 'perdeu' && o.etapa === 'enviado') {
+    if (j === 'perdeu' && o.etapa === 'enviado') {
       dlg.className = 'janela';
       dlg.innerHTML = cab('Ela desistiu?', 'O orçamento vai pro arquivo, mas fica guardado') + `<div class="corpo" style="display:grid;gap:8px;padding-bottom:14px">
         ${['Achou mais barato em outro lugar', 'Desistiu da viagem', 'Não respondeu mais', 'Mudou as datas'].map((m, i) => `<label class="item-op" style="grid-template-columns:auto 1fr;cursor:pointer"><input type="radio" name="motivo" value="${m}" ${i ? '' : 'checked'} style="width:18px;height:18px;accent-color:var(--orange)"><span style="font-weight:600">${m}</span></label>`).join('')}</div>
@@ -278,16 +219,25 @@ KVTelas['proposta'] = function () {
 
   // ---------- ações ----------
   function ligarEventos() {
-    KVSky.ligar(app, () => o, (e) => KVShell.aviso(e.message, { erro: true }), () => app.querySelectorAll('[data-res]').forEach((el) => { const c = comboK(el.dataset.res); if (c) el.innerHTML = resultado(c); }));
+    KVSky.ligar(app, () => o, (e) => KVShell.aviso(e.message, { erro: true }), () => app.querySelectorAll('[data-pp]').forEach((el) => { const c = comboK(el.dataset.pp); if (c) el.innerHTML = ppHtml(c); }));
     app.addEventListener('click', async (e) => {
       const m = e.target.closest('[data-menu]');
       if (m) { menuAberto = menuAberto === m.dataset.menu ? null : m.dataset.menu; confirmarApagar = null; render(); const p = app.querySelector('.menu-orc button'); if (p) p.focus(); return; }
       const b = e.target.closest('button');
       if (menuAberto && !e.target.closest('.menu-orc')) { menuAberto = confirmarApagar = null; render(); if (!b) return; }
       if (!b || b.disabled) return;
-      if (b.dataset.milhas) { KVShell.irPara({ janela: 'milhas', c: b.dataset.milhas }); sinc(); }
-      else if (b.dataset.livre) { livreAberto = b.dataset.livre; render(); app.querySelector(`[data-venda="${b.dataset.livre}"]`).focus(); }
-      else if (b.dataset.calc) { const c = comboK(b.dataset.calc); c.livre = null; livreAberto = null; marcarSujo(); render(); }
+      if (b.dataset.troca) { const k = b.dataset.troca;
+        if (trocaAberta() === k) KVShell.desfazer({ tr: 1 }, syncTroca);
+        else if (trocaAberta()) { const p = new URLSearchParams(location.search); p.set('tr', k); history.replaceState(history.state, '', '?' + p); syncTroca(); }
+        else { KVShell.irPara({ tr: k }); syncTroca(); } }
+      else if (b.dataset.escolher) { const [ck, oid] = b.dataset.escolher.split(':'), c = comboK(ck), x = P.op(o, +oid);
+        P.equivalentes(o, x.trecho).forEach((k) => { c.escolha[k] = null; }); c.escolha[x.trecho] = x.id;
+        // a numeração segue a ordem da mensagem (A, B..., misturadas)
+        o.combos.sort((a, b2) => P.ordemRot(o, a) - P.ordemRot(o, b2));
+        marcarSujo(); KVShell.desfazer({ tr: 1 }, () => {}); render(); }
+      else if (b.dataset.vm) { const c = comboDe(b.dataset.vm), p = progK(b.dataset.vm); c.milha[p] = Math.max(500, P.valorMilha(c, p) + +b.dataset.passo); if (c.milha[p] === O.valorMilhaPadrao(p)) delete c.milha[p]; milhasMudou(c, `[data-vm="${b.dataset.vm}"][data-passo="${b.dataset.passo}"]`); }
+      else if (b.dataset.vmPadrao) { const c = comboDe(b.dataset.vmPadrao); delete c.milha[progK(b.dataset.vmPadrao)]; milhasMudou(c, `[data-vmi="${b.dataset.vmPadrao}"]`); }
+      else if (b.dataset.calc) { const c = comboK(b.dataset.calc); c.livre = null; atualizarPreco(c); }
       else if (b.dataset.renomear) { renomeando = b.dataset.renomear; menuAberto = null; render(); }
       else if (b.dataset.dup) { const base = comboK(b.dataset.dup); o.combos.splice(o.combos.indexOf(base) + 1, 0, chavear(P.novaCombo({ nome: `${base.nome} (cópia)`.slice(0, 28), escolha: [...base.escolha], milha: { ...base.milha }, livre: base.livre, parcelado: base.parcelado, vezes: base.vezes }))); menuAberto = null; marcarSujo(); render(); }
       else if (b.dataset.pedeDel) { confirmarApagar = b.dataset.pedeDel; render(); }
@@ -300,7 +250,6 @@ KVTelas['proposta'] = function () {
         const depois = o.combos.reduce((k, x, i) => (P.ordemRot(o, x) <= r ? i + 1 : k), 0);
         o.combos.splice(depois, 0, c); renomeando = c._k; marcarSujo(); render();
       }
-      else if (b.dataset.trocar) { filtroTroca = 'todas'; KVShell.irPara({ janela: 'trocar', c: b.dataset.trocar, t: b.dataset.t }); sinc(); }
       else if (b.hasAttribute('data-copiar')) { const txt = P.texto(o); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => {}); copiado = true; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); }
       else if (b.hasAttribute('data-msg-editar')) { editandoMsg = true; redesenharMsg(); const t = app.querySelector('[data-msg-edit]'); t.focus(); t.setSelectionRange(0, 0); }
       else if (b.hasAttribute('data-msg-pronto')) { editandoMsg = false; if (timerMsg) await salvarMsg(); redesenharMsg(); }
@@ -320,20 +269,31 @@ KVTelas['proposta'] = function () {
         copiado = false; app.querySelector('[data-lado]').innerHTML = lado(); KVShell.icones(); return;
       }
       if (e.target.dataset.parc) { const c = comboK(e.target.dataset.parc); c.parcelado = O.lerReais(e.target.value); atualizarPreco(c); return; }
+      if (e.target.dataset.vmi) { const k = e.target.dataset.vmi, c = comboDe(k), n = lerNum(e.target.value.replace('.', ','));
+        if (!(n && n < 1)) return;
+        c.milha[progK(k)] = Math.round(n * 1e6);
+        const g = P.porPrograma(o, c).find((x) => x.programa === progK(k)); app.querySelector(`[data-eq="${k}"]`).textContent = fmt.brl(g.reais);
+        atualizarPreco(c); return; }
       const k = e.target.dataset.venda; if (!k) return;
-      const c = comboK(k); c.livre = O.lerReais(e.target.value); atualizarPreco(c);
+      // digitou o mesmo do calculado = não é preço livre
+      const c = comboK(k), v = O.lerReais(e.target.value); c.livre = v == null || v === P.precoCalc(o, c) ? null : v; atualizarPreco(c, { campo: false });
     });
     app.addEventListener('focusout', (e) => {
-      if (e.target.dataset.venda) { const c = comboK(e.target.dataset.venda); if (c.livre == null && livreAberto === c._k) { livreAberto = null; setTimeout(render); } else e.target.value = numCampo(c.livre); }
+      if (e.target.dataset.venda) { const c = comboK(e.target.dataset.venda); e.target.value = numCampo(venda(c)); }
+      if (e.target.dataset.vmi) { const k = e.target.dataset.vmi; e.target.value = vm(P.valorMilha(comboDe(k), progK(k))); }
       if (e.target.dataset.parc) { const c = comboK(e.target.dataset.parc); e.target.value = numCampo(c.parcelado); }
       if (e.target.dataset.nome) { const c = comboK(e.target.dataset.nome); const n = e.target.value.trim(); if (n && n !== c.nome) { c.nome = n; marcarSujo(); } renomeando = null; setTimeout(render); }
     });
     app.addEventListener('keydown', (e) => {
       if (e.target.dataset.nome && (e.key === 'Enter' || e.key === 'Escape')) { if (e.key === 'Escape') e.target.value = comboK(e.target.dataset.nome).nome; e.target.blur(); }
       // Enter no preço vai pro preço da próxima combinação
+      if (e.target.dataset.vmi && e.key === 'Enter') { e.preventDefault(); milhasMudou(comboDe(e.target.dataset.vmi), `[data-vmi="${e.target.dataset.vmi}"]`); }
       if (e.target.dataset.venda && e.key === 'Enter') { const l = [...app.querySelectorAll('[data-venda]')]; const n = l[l.indexOf(e.target) + 1]; if (n) n.focus(); else e.target.blur(); }
     });
-    addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuAberto && !dlg.open) { menuAberto = confirmarApagar = null; render(); } });
+    // Esc fecha o menu ou a troca aberta antes de fechar a janela
+    addEventListener('keydown', (e) => { if (e.key !== 'Escape' || dlg.open) return;
+      if (menuAberto) { e.preventDefault(); menuAberto = confirmarApagar = null; render(); }
+      else if (trocaAberta()) { e.preventDefault(); KVShell.desfazer({ tr: 1 }, syncTroca); } });
   }
 
   (async function iniciar() {
@@ -348,7 +308,7 @@ KVTelas['proposta'] = function () {
       // primeira vez na proposta: o sistema já sugere 2 combinações e guarda
       if (o.etapa === 'pesquisado' && !o.combos.length) { o.combos = P.sugerir(o, 2).map(chavear); if (o.combos.length) marcarSujo(); }
       render(); sinc();
-      KVShell.aoVoltar(() => { render(); sinc(); });
+      KVShell.aoVoltar(() => { if (semTr() === desenhado) syncTroca(); else render(); sinc(); });
     } catch (e) {
       const c = document.querySelector('.carregando');
       if (c) c.innerHTML = `${esc(e.message)} <a href="orcamentos.html" style="color:var(--orange)">Voltar pros orçamentos</a>`;
