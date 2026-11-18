@@ -102,3 +102,109 @@ body { background: var(--bg); }
 .b-editando span { flex: 1; min-width: 0; } .b-editando b { color: var(--text); }
 .b-form.em-edicao { outline: 2px solid var(--orange); outline-offset: -2px; }
 .b-conf footer { justify-content: flex-end; }
+
+/* ---------- redesign v2, versão A (rascunho _rascunhos/v2/extensao.html?ver=a) ---------- */
+html, body { height: 100%; }
+body { overflow: hidden; }
+.pesq { --eo: cubic-bezier(0.23, 1, 0.32, 1); position: relative; height: 100dvh; max-width: none; padding: 0; display: block; overflow: hidden; }
+.pesq > .rolo { height: 100%; overflow: auto; padding: 12px 14px 28px; display: flex; flex-direction: column; gap: 12px; }
+.rolo > * { min-width: 0; flex: none; }
+.pesq svg.lucide { width: 16px; height: 16px; }
+.b-topo .avatar { --tam: 34px; }
+.ico { width: 34px; height: 34px; flex: none; border-radius: 10px; border: 0; background: none; color: var(--text-2); display: grid; place-items: center; cursor: pointer; text-decoration: none; }
+.ico:hover { background: var(--surface-2); color: var(--text); }
+/* cronômetro em pílula (o mesmo do topo do quadro), com o anel girando enquanto está ligado */
+.cron { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 4px 0 12px; border-radius: var(--r-pill); background: var(--surface-1); border: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cron b { font-size: 14px; } .cron small { font-size: 12px; color: var(--text-3); }
+.cron.lig { border-color: rgb(60 203 139 / .45); } .cron.lig b { color: var(--ok); }
+.cron button { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: var(--orange); color: var(--orange-ink); }
+.cron.lig button { background: var(--ok-bg); color: var(--ok); }
+.cron.lig button::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--ok); animation: b-gira 2.8s linear infinite; }
+.cron button svg.lucide { width: 14px; height: 14px; }
+.cron button:disabled { opacity: .5; }
+@keyframes b-gira { to { rotate: 360deg; } }
+.b-topo .quem { flex: 0 1 auto; }
+
+.b-busca { position: relative; display: block; } .b-busca svg { position: absolute; left: 12px; top: 50%; translate: 0 -50%; color: var(--text-3); pointer-events: none; }
+.b-busca input { appearance: none; box-shadow: none; margin: 0; width: 100%; height: 38px; padding: 0 12px 0 36px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-1); color: var(--text); font: inherit; }
+.b-busca input:focus { outline: none; border-color: var(--orange); }
+.grupo-t { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-2); margin: 4px 0 0; }
+.grupo-t .n { font-size: 12px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-2); font-variant-numeric: tabular-nums; }
+.grupo-t .ic { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; background: var(--orange-soft); color: var(--orange); }
+.grupo-t .ic.teal { background: var(--teal-bg); color: var(--teal-soft); }
+.grupo-t .ic svg.lucide { width: 14px; height: 14px; }
+/* cartão do quadro (versão C), mais justo pra caber na barra */
+.ca { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 7px; padding: 12px 14px; border-radius: 18px; background: var(--surface-1); cursor: pointer; transition: background-color .15s, transform .12s var(--eo); }
+@media (hover: hover) and (pointer: fine) { .ca:hover { background: var(--surface-2); } }
+.ca:active { transform: scale(.985); } .ca:focus-visible { outline: 2px solid var(--orange); }
+.ca .l1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; } .ca .l1 b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ca .l1 small { margin-left: auto; flex: none; color: var(--text-3); font-size: 12px; }
+.ca .rota { font: 700 17px/1.2 var(--font); letter-spacing: -.01em; }
+.ca .sub { color: var(--text-2); font-size: 12.5px; }
+.trilho { display: flex; gap: 4px; } .trilho i { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-3); } .trilho i.ok { background: var(--teal-soft); }
+.trilho-t { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-2); }
+
+/* orçamento aberto */
+.o-cab { display: flex; align-items: flex-start; gap: 8px; }
+.o-cab .t { flex: 1; min-width: 0; } .o-cab .id { display: block; color: var(--text-3); font-size: 12px; font-weight: 700; }
+.o-cab h2 { font-size: 18px; letter-spacing: -.01em; margin: 0; }
+.faixas { display: flex; flex-direction: column; gap: 6px; }
+.faixas .sky { margin: 0; }
+.faixas .sky-l { padding: 8px 10px; }
+.faixas .sky-rot { min-width: 0; font-size: 13px; }
+.faixas .sky-v, .faixas .sky-t { height: 36px; font-size: 14px; }
+.faixas .sky-v input { font-size: 14px; }
+/* trechos numa pílula que desliza */
+.trs { position: relative; display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-1); overflow-x: auto; scrollbar-width: none; }
+.trs .ind { position: absolute; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 10px; background: var(--orange-soft); transition: transform .3s var(--eo), width .3s var(--eo); pointer-events: none; }
+.tr { all: unset; position: relative; flex: 1 0 auto; display: grid; gap: 1px; padding: 7px 10px; border-radius: 10px; cursor: pointer; text-align: center; }
+.tr b { font-size: 13.5px; white-space: nowrap; } .tr small { font-size: 11.5px; color: var(--text-3); font-weight: 700; white-space: nowrap; }
+.tr small .ok { color: var(--ok); } .tr[aria-selected="true"] b { color: var(--orange); }
+.tr:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+.tr-cab { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; } .tr-cab b { font-size: 15px; } .tr-cab small { color: var(--text-2); font-size: 12.5px; }
+/* voos do trecho: abrem embaixo deles mesmos */
+.voos { display: flex; flex-direction: column; gap: 8px; }
+.v4c { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); overflow: hidden; transition: border-color .2s ease, box-shadow .3s var(--eo); }
+.v4c.aberto { border-color: var(--orange); box-shadow: 0 10px 24px rgb(0 0 0 / .3); }
+.v4 { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 2px 10px; align-items: center; padding: 10px 12px; cursor: pointer; }
+.v4:focus-visible { outline: 2px solid var(--orange); outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) { .v4c:not(.aberto):hover { border-color: var(--text-3); } }
+.sitec { grid-row: span 2; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--surface-3); }
+.v4 .h { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; } .v4 .m { color: var(--text-2); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v4 .p { grid-row: 1 / span 2; grid-column: 3; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; } .v4 .p small { display: block; font-size: 12px; color: var(--text-2); font-weight: 600; }
+.v4 .chev { grid-row: 1 / span 2; grid-column: 4; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--text-3); transition: transform .3s var(--eo), color .2s, background-color .2s; }
+.v4c.aberto .chev { transform: rotate(180deg); color: var(--orange); background: var(--orange-soft); }
+.v4c.novo { animation: b-pisca-voo 1.4s var(--eo); }
+@keyframes b-pisca-voo { from { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); } }
+.det-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s var(--eo); }
+.aberto > .det-wrap { grid-template-rows: 1fr; } .det-wrap > div { min-height: 0; overflow: hidden; }
+.det { padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+.det dl { display: grid; grid-template-columns: 96px 1fr; gap: 6px 10px; margin: 0 0 10px; font-size: 13px; }
+.det dt { color: var(--text-3); font-weight: 700; } .det dd { margin: 0; font-variant-numeric: tabular-nums; }
+.det dt, .det dd, .det .acoes { opacity: 0; transform: translateY(-5px); transition: opacity .12s, transform .2s var(--eo); }
+.aberto .det dt, .aberto .det dd, .aberto .det .acoes { opacity: 1; transform: none; transition: opacity .25s ease calc(.05s + var(--i, 0) * .03s), transform .3s var(--eo) calc(.05s + var(--i, 0) * .03s); }
+.det .acoes { display: flex; gap: 6px; align-items: center; } .det .acoes .fim { margin-left: auto; } .det .acoes .perigo { color: var(--danger); } .det .acoes .pergunta { font-weight: 700; font-size: 13px; }
+.bt { height: 32px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.bt:hover { background: var(--surface-3); } .bt.pri { background: var(--orange); color: var(--orange-ink); border-color: transparent; } .bt.pri:hover { filter: brightness(1.06); } .bt:disabled { opacity: .55; }
+.lancar { all: unset; box-sizing: border-box; height: 40px; border-radius: 12px; border: 1px dashed var(--line); color: var(--text-2); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.lancar:hover { color: var(--orange); border-color: var(--orange); } .lancar:focus-visible { outline: 2px solid var(--orange); }
+.falta { color: var(--warn); font-size: 13px; padding: 2px; margin: 0; }
+@keyframes b-sobe { from { opacity: 0; transform: translateY(calc(var(--dir, 1) * 10px)); } }
+.voos.entra > * { animation: b-sobe .3s var(--eo) both; } .voos.entra > :nth-child(2) { animation-delay: .04s; } .voos.entra > :nth-child(n+3) { animation-delay: .08s; }
+/* o formulário sobe numa folha de baixo */
+.veu-p { position: absolute; inset: 0; z-index: 20; background: rgb(1 8 18 / .55); opacity: 0; pointer-events: none; transition: opacity .25s; }
+.veu-p.on { opacity: 1; pointer-events: auto; }
+.folha { position: absolute; left: 0; right: 0; bottom: 0; z-index: 21; max-height: 92%; display: flex; flex-direction: column; background: var(--surface-1); border-radius: 22px 22px 0 0; box-shadow: 0 -12px 32px rgb(0 0 0 / .4); translate: 0 104%; transition: translate .38s var(--eo); }
+.folha.on { translate: 0 0; }
+.folha .puxa { width: 40px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 8px auto 0; }
+.folha header { display: flex; align-items: center; gap: 8px; padding: 10px 14px 10px 16px; border-bottom: 1px solid var(--line); }
+.folha header .t { flex: 1; min-width: 0; } .folha header b { display: block; font-size: 15px; } .folha header small { color: var(--text-2); font-size: 12.5px; }
+.folha .corpo { overflow: auto; padding: 12px 16px 16px; border-radius: 0; background: none; }
+.folha .corpo.em-edicao { outline: 0; }
+.folha footer { padding: 10px 16px 14px; border-top: 1px solid var(--line); display: flex; gap: 8px; }
+.folha footer .bt { height: 42px; flex: 1; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .voos.entra > * { animation: none; }
+  .det dt, .det dd, .det .acoes { transform: none; }
+  .det-wrap, .folha, .trs .ind, .v4 .chev { transition: none; }
+  .cron.lig button::after { animation: none; border-color: var(--ok); }
+}

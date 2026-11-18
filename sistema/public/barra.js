@@ -1,5 +1,7 @@
 /* Barra da pesquisa (dentro da extensão do Chrome): quem está usando, o cronômetro, os orçamentos em pesquisa com a pessoa
    e o formulário da opção de voo, preenchido à mão (o mesmo da tela de pesquisa: shared/opcao-form.js).
+   Redesign v2, versão A (rascunho _rascunhos/v2/extensao.html?ver=a): lista com o cartão do quadro (trilho dos trechos),
+   trechos numa pílula que desliza, voos abrindo embaixo deles mesmos e o formulário numa folha que sobe de baixo.
    Da aba aberta ao lado, a barra só usa o endereço: escolhe o site sozinha e oferece o endereço como link do preço. */
 (function () {
   const O = KVOrc, esc = O.esc;
@@ -14,6 +16,7 @@
   let aba = { url: '', titulo: '', versao: null };
   let form = null, recado = null, salvando = false;
   let editando = null, editBase = null; // id da opção já lançada que está aberta no formulário
+  let folha = false, vooAberto = null, apagando = null, busca = ''; // folha = o formulário aberto (sobe de baixo)
   const lembrar = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
   const lembrado = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 
@@ -127,11 +130,10 @@
     }
     return { ms, rod, ganho: Math.round(ms / 36e5 * ponto.valor), ligadoMs: rod ? agora - Date.parse(rod.inicio) : 0 };
   }
-  const relogio = (ms) => { const s = Math.floor(ms / 1000); return `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
   setInterval(() => {
     if (!ponto) return;
     const c = contas();
-    app.querySelectorAll('[data-cron-t]').forEach((el) => { el.textContent = relogio(c.ms); });
+    app.querySelectorAll('[data-cron-t]').forEach((el) => { el.textContent = relogioCurto(c.ms); });
     app.querySelectorAll('[data-cron-g]').forEach((el) => { el.textContent = O.fmt.brl(c.ganho); });
   }, 1000);
   async function alternarPonto() {
@@ -141,13 +143,18 @@
     catch (e) { recado = { erro: true, texto: 'O cronômetro não mudou: ' + e.message }; try { await carregarPonto(); } catch (_) {} }
     mexendoPonto = false; desenhar();
   }
+  const relogioCurto = (ms) => { const m = Math.floor(ms / 60000); return `${Math.floor(m / 60)}h ${pad(m % 60)}min`; };
   function cron() {
     if (!ponto) return '';
-    const c = contas(), lig = !!c.rod, esqueceu = c.ligadoMs > 10 * 36e5;
-    const aviso = esqueceu ? `<a class="cron-esq" href="/ponto.html" target="_blank">${icone('alarm-clock')}Ligado há ${Math.floor(c.ligadoMs / 36e5)}h. Esqueceu? Corrigir</a>` : '';
-    return `<section class="cron-cartao ${lig ? 'lig' : ''}"><div class="cron-info"><span class="cron-est"><i class="pulso"></i>${lig ? 'Trabalhando' : 'Pausado'}</span>
-        <b class="cron-t" data-cron-t>${relogio(c.ms)}</b><span class="cron-sub">hoje · <b data-cron-g>${O.fmt.brl(c.ganho)}</b></span></div>
-      <button type="button" class="cron-bt" data-ponto ${mexendoPonto ? 'disabled' : ''} aria-label="${lig ? 'Pausar' : 'Começar'} o cronômetro">${icone(lig ? 'pause' : 'play')}</button></section>${aviso}`;
+    const c = contas(), lig = !!c.rod;
+    return `<div class="cron ${lig ? 'lig' : ''}" title="Hoje: ${O.fmt.brl(c.ganho)}"><span><b data-cron-t>${relogioCurto(c.ms)}</b> <small>hoje</small></span>
+      <button type="button" data-ponto ${mexendoPonto ? 'disabled' : ''} aria-label="${lig ? 'Pausar' : 'Começar'} o cronômetro">${icone(lig ? 'pause' : 'play')}</button></div>`;
+  }
+  // esqueceu o cronômetro ligado: aviso embaixo do topo
+  function cronEsqueceu() {
+    if (!ponto) return '';
+    const c = contas();
+    return c.ligadoMs > 10 * 36e5 ? `<a class="cron-esq" href="/ponto.html" target="_blank">${icone('alarm-clock')}Ligado há ${Math.floor(c.ligadoMs / 36e5)}h. Esqueceu? Corrigir</a>` : '';
   }
 
   // só o admin: usar a barra como outra pessoa da equipe (igual ao "ver como" do sistema; esta escolha fica só na barra)
@@ -171,51 +178,71 @@
 `;
   }
   const quem = () => `<div class="quem"><b>${esc(eu.nome)}</b><span>${PAPEL[eu.papel] || ''}</span></div>`;
+  const topo = () => `<header class="b-topo">${avatar(eu)}${quem()}${cron()}${recarregar()}</header>${cronEsqueceu()}${avisos()}`;
   const recarregar = () => `<button class="btn icone fantasma" type="button" data-recarregar aria-label="Atualizar">${icone('refresh-cw')}</button>`;
   const recadoHtml = () => (recado ? `<p class="b-recado ${recado.erro ? 'erro' : recado.ok ? 'ok' : ''}" role="status">${esc(recado.texto)}</p>` : '');
-  const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
-  const trechos = () => (orc.trechos.length > 1 ? `<div class="b-trechos" role="tablist">${orc.trechos.map((x, i) => `<button type="button" role="tab" aria-selected="${i === trecho}" data-trecho="${i}">${x.de} → ${x.para}<small>${O.roteiros(orc).length > 1 ? `Roteiro ${O.letra(x.roteiro || 0)}` : `Trecho ${i + 1}`}</small></button>`).join('')}</div>` : '');
-  const campos = () => KVOpcao.html(orc.trechos[trecho], form)
-    + (naExtensao && aba.url && /^https:/.test(aba.url) && form.link !== aba.url ? `<button type="button" class="b-usar" data-usar-aba>Usar o endereço da aba aberta como link</button>` : '');
   const opResumo = (x) => `${esc(x.site)} ${O.dataCurta(x.data)} · ${esc(x.sai)} → ${esc(x.chega)}`;
-  function lancadas() {
-    const ops = (orc.opcoes || []).filter((x) => x.trecho === trecho);
-    return { n: ops.length, html: ops.length ? `<ul class="b-ops">${ops.slice().reverse().map((x) => `<li ${x.id === editando ? 'class="editando"' : ''}>
-        <div class="op-txt"><b>${esc(x.site)}</b><span class="q">${O.dataCurta(x.data)} · ${esc(x.sai)} → ${esc(x.chega)}${x.escalas ? ` · ${x.escalas} esc.` : ''}</span>
-          <span class="v">${x.milhas ? `${O.fmt.pts(x.milhas)} mi + ${O.fmt.brl(x.taxa)}` : O.fmt.brl(x.preco)}</span></div>
-        ${x.id === editando ? '<span class="op-ed">editando</span>' : `<button type="button" class="btn pequeno" data-editar="${x.id}">${icone('pencil')}Editar</button>`}</li>`).join('')}</ul>` : '<p class="b-vazio">Nenhuma ainda.</p>' };
-  }
-  const abrirNoSistema = () => `<a class="btn pequeno" href="/orcamento.html?id=${orc.id}" target="_blank">${icone('external-link')}Abrir no sistema</a>`;
-  const voltar = () => `<button class="btn icone fantasma" type="button" data-voltar aria-label="Voltar pra lista">${icone('arrow-left')}</button>`;
-  const rotaTxt = () => { const t = orc.trechos[trecho]; return `${t.de} → ${t.para}`; };
+  const opsDo = (ti) => (orc.opcoes || []).filter((x) => x.trecho === ti);
+  const nomeDe = (email) => ((est.usuarios || []).find((u) => u.email === email) || {}).nome || email || '';
 
-  // ---------- lista de orçamentos ----------
+  // ---------- lista: o cartão do quadro (trilho = um traço por trecho; azul = já tem voo) ----------
+  const tira = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const casa = (o) => { const q = tira(busca.trim()); return !q || tira(`${o.contato.nome} ${O.destino(o)} ${O.rota(o)}`).includes(q) || String(o.id) === q; };
+  function cartao(o) {
+    const n = o.trechos.length, com = o.trechos.filter((t) => t.nVoos).length, d1 = o.trechos[0].data, d2 = o.trechos[n - 1].data;
+    return `<button type="button" class="ca" data-abrir="${o.id}"><span class="l1"><b>${esc(o.contato.nome || 'sem nome')}</b><small>#${o.id} · ${O.idade(o.criadoEm)}</small></span>
+      <span class="rota">${esc(O.rota(o))}</span><span class="sub">${esc(O.destino(o))} · ${O.dataCurta(d1)}${d1 !== d2 ? ` – ${O.dataCurta(d2)}` : ''} · ${esc(O.fmtPax(o.passageiros))}</span>
+      <span class="trilho">${o.trechos.map((t) => `<i class="${t.nVoos ? 'ok' : ''}"></i>`).join('')}</span>
+      <span class="trilho-t"><span>${com} de ${n} ${n > 1 ? 'trechos' : 'trecho'} com voo</span><span>${o.responsavel === eu.email ? 'com você' : `com ${esc(nomeDe(o.responsavel).split(' ')[0])}`}</span></span></button>`;
+  }
   function telaLista() {
-    const com = lista.filter((o) => o.responsavel === eu.email), outros = lista.filter((o) => o.responsavel !== eu.email);
-    const item = (o, extra = '') => `<li><button type="button" class="b-orc" data-abrir="${o.id}">
-        <span class="rota">${esc(O.rota(o))}</span>
-        <span class="sub">#${o.id} · ${esc(o.contato.nome || 'sem nome')} · ${esc(O.fmtPax(o.passageiros))}</span>
-        <span class="sub">${o.trechos.map((t) => O.diasTexto([t.data, ...(t.outrasDatas || [])])).join(' · ')} · ${o.nOpcoes} ${o.nOpcoes === 1 ? 'opção' : 'opções'}${extra}</span></button></li>`;
-    const nomeDe = (email) => ((est.usuarios || []).find((u) => u.email === email) || {}).nome || email;
-    return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}${recadoHtml()}
-      <h2 class="b-tit">Em pesquisa com você <span class="n">${com.length}</span></h2>
-      ${com.length ? `<ul class="b-lista">${com.map((o) => item(o)).join('')}</ul>` : `<p class="b-vazio">Nada em pesquisa com você. Pegue um orçamento na fila do sistema.</p>
-        <a class="btn" href="/orcamentos.html" target="_blank">${icone('external-link')}Abrir a fila</a>`}
-      ${dono && outros.length ? `<h2 class="b-tit">Com a equipe <span class="n">${outros.length}</span></h2><ul class="b-lista">${outros.map((o) => item(o, ` · com ${esc(nomeDe(o.responsavel).split(' ')[0])}`)).join('')}</ul>` : ''}`;
+    const l = lista.filter(casa), com = l.filter((o) => o.responsavel === eu.email), outros = l.filter((o) => o.responsavel !== eu.email);
+    return `${topo()}${recadoHtml()}<label class="b-busca">${icone("search")}<input type="search" data-busca placeholder="Buscar nome, cidade ou nº" aria-label="Buscar orçamento" value="${esc(busca)}"></label>
+      <h2 class="grupo-t"><span class="ic">${icone('search')}</span>Em pesquisa com você <span class="n">${com.length}</span></h2>
+      ${com.length ? com.map(cartao).join('') : `<p class="b-vazio">Nada em pesquisa com você. Pegue um orçamento na fila do sistema.</p><a class="btn" href="/orcamentos.html" target="_blank">${icone('external-link')}Abrir a fila</a>`}
+      ${dono && outros.length ? `<h2 class="grupo-t"><span class="ic teal">${icone('users')}</span>Com a equipe <span class="n">${outros.length}</span></h2>${outros.map(cartao).join('')}` : ''}`;
   }
 
-  // ---------- um orçamento: cronômetro, formulário e as opções já lançadas (com Editar) ----------
+  // ---------- um orçamento: trechos em pílula, voos em acordeão; o formulário sobe numa folha ----------
+  const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
+  const trechosA = () => (orc.trechos.length > 1 ? `<div class="trs" role="tablist" aria-label="Trechos"><span class="ind" data-ind></span>${orc.trechos.map((x, i) => { const n = opsDo(i).length;
+    return `<button type="button" class="tr" role="tab" aria-selected="${i === trecho}" data-trecho="${i}"><b>${esc(x.de)} → ${esc(x.para)}</b><small>${n ? `<span class="ok">${n} ${n > 1 ? 'voos' : 'voo'}</span>` : 'sem voo'}${O.roteiros(orc).length > 1 ? ` · ${O.letra(x.roteiro || 0)}` : ''}</small></button>`; }).join('')}</div>` : '');
+  const valor = (x) => (x.milhas ? `${O.fmt.pts(x.milhas)} mi<small>+ ${O.fmt.brl(x.taxa)}</small>` : `${O.fmt.brl(x.preco)}<small>dinheiro</small>`);
+  function vooHtml(x) {
+    const on = vooAberto === x.id, malas = x.bagagem ? `${x.bagagem} mala${x.bagagem > 1 ? 's' : ''}` : 'sem mala';
+    const linhas = [['Dia', `${O.diaCurto(x.data)} ${O.dataCurta(x.data)}`], ['Voo', [x.voo, x.cia].filter(Boolean).map(esc).join(' · ') || '—'], ['Horário', `${esc(x.sai)} → ${esc(x.chega)}`], ['Tempo', esc(x.duracao || '—')],
+      ['Escalas e malas', `${x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto'} · ${malas}`], ['Por pessoa', x.milhas ? `${O.fmt.pts(x.milhas)} milhas + ${O.fmt.brl(x.taxa)}` : O.fmt.brl(x.preco)]];
+    const acoes = apagando === x.id
+      ? `<span class="pergunta">Apagar este voo?</span><button type="button" class="bt perigo" data-apagar-sim="${x.id}">${icone('trash-2')}Apagar</button><button type="button" class="bt" data-apagar-nao>Não</button>`
+      : `<button type="button" class="bt" data-editar="${x.id}">${icone('pencil')}Editar</button><button type="button" class="bt" data-dup="${x.id}">${icone('copy')}Repetir</button><button type="button" class="bt perigo fim" data-apagar="${x.id}" aria-label="Apagar">${icone('trash-2')}</button>`;
+    return `<div class="v4c ${on ? 'aberto' : ''} ${x.id === novoId ? 'novo' : ''}" data-v="${x.id}">
+      <button type="button" class="v4" data-voo="${x.id}" aria-expanded="${on}"><span class="sitec" data-s="${esc(x.site)}">${esc(x.site.slice(0, 2).toUpperCase())}</span><span class="h">${esc(x.sai)} → ${esc(x.chega)}</span><span class="m">${esc(x.site)} · ${O.dataCurta(x.data)} · ${x.escalas ? `${x.escalas} esc.` : 'direto'} · ${malas}</span><span class="p">${valor(x)}</span><span class="chev">${icone('chevron-down')}</span></button>
+      <div class="det-wrap" ${on ? '' : 'inert'}><div><div class="det"><dl>${linhas.map(([a, b], i) => `<dt style="--i:${i}">${a}</dt><dd style="--i:${i}">${b}</dd>`).join('')}</dl>
+        <div class="acoes" style="--i:6">${acoes}</div></div></div></div></div>`;
+  }
+  function voosHtml() {
+    const t = orc.trechos[trecho], ops = opsDo(trecho).slice().sort((a, b) => a.data.localeCompare(b.data) || a.sai.localeCompare(b.sai));
+    return `<div class="tr-cab"><b>${esc(t.de)} → ${esc(t.para)}</b><small>${[t.data, ...(t.outrasDatas || [])].map((x) => `${O.diaCurto(x)} ${O.dataCurta(x)}`).join(' e ')}${t.outrasDatas && t.outrasDatas.length ? ' · olhar esses dias' : t.janela ? ' · janela de 14 dias' : ''}</small></div>
+      ${ops.length ? ops.map(vooHtml).join('') : '<p class="falta">Nenhum voo neste trecho ainda.</p>'}
+      <button type="button" class="lancar" data-nova>${icone('plus')}Lançar voo neste trecho</button>`;
+  }
+  const campos = () => KVOpcao.html(orc.trechos[trecho], form)
+    + (naExtensao && aba.url && /^https:/.test(aba.url) && form.link !== aba.url ? `<button type="button" class="b-usar" data-usar-aba>${icone('link')}Usar o endereço da aba aberta como link</button>` : '');
+  function folhaHtml() {
+    const t = orc.trechos[trecho], ed = editando && (orc.opcoes || []).find((x) => x.id === editando);
+    return `<div class="veu-p ${folha ? 'on' : ''}" data-fechar-folha></div>
+      <section class="folha ${folha ? 'on' : ''}" role="dialog" aria-modal="true" aria-labelledby="folha-t" ${folha ? '' : 'inert'}><div class="puxa"></div>
+        <header><div class="t"><b id="folha-t">${ed ? 'Editar voo' : 'Lançar voo'}</b><small>#${orc.id} · ${esc(t.de)} → ${esc(t.para)}${ed ? ` · ${opResumo(ed)}` : ''}</small></div><button type="button" class="ico" data-fechar-folha aria-label="Fechar">${icone('x')}</button></header>
+        <form class="corpo b-form form-op ${ed ? 'em-edicao' : ''}" id="b-form" autocomplete="off">${folha ? recadoHtml() + campos() : ''}<button type="submit" hidden></button></form>
+        <footer><button type="button" class="bt" data-fechar-folha>Cancelar</button><button type="button" class="bt pri" data-lancar ${salvando ? 'disabled' : ''}>${icone(salvando ? 'loader' : ed ? 'check' : 'plus')}${salvando ? 'Salvando…' : ed ? 'Salvar alteração' : `Lançar no #${orc.id}`}</button></footer></section>`;
+  }
   function telaOrc() {
-    const l = lancadas(), t = orc.trechos[trecho], ed = editando && (orc.opcoes || []).find((x) => x.id === editando);
-    return `<header class="b-topo">${avatar(eu)}${quem()}${recarregar()}</header>${cron()}${avisos()}
-      <div class="a-orc">${voltar()}<div><span class="a-id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span>
-        <b class="a-rota">${rotaTxt()}</b><span class="a-dia">${[t.data, ...(t.outrasDatas || [])].map((x) => `${O.diaCurto(x)} ${O.dataCurta(x)}`).join(' e ')}${t.outrasDatas && t.outrasDatas.length ? ' · olhar esses dias' : t.janela ? ' · janela de 14 dias' : ''}</span></div></div>
-      ${KVSky.html(orc)}${trechos()}${nota()}
-      ${recadoHtml()}
-      ${ed ? `<div class="b-editando">${icone('pencil')}<span>Editando <b>${opResumo(ed)}</b></span><button type="button" class="btn pequeno fantasma" data-cancelar-edicao>Cancelar</button></div>` : ''}
-      <form class="b-form form-op ${ed ? 'em-edicao' : ''}" id="b-form" autocomplete="off">${campos()}
-        <button class="btn primario largo" type="submit" data-lancar ${salvando ? 'disabled' : ''}>${icone(salvando ? 'loader' : ed ? 'check' : 'plus')}${salvando ? 'Salvando…' : ed ? 'Salvar alteração' : `Lançar no #${orc.id}`}</button></form>
-      <section class="b-bloco"><h3>Já lançadas neste trecho · ${l.n}</h3>${l.html}${abrirNoSistema()}</section>`;
+    return `<div class="rolo">${topo()}
+      <div class="o-cab"><button type="button" class="ico" data-voltar aria-label="Voltar pra lista">${icone('arrow-left')}</button>
+        <div class="t"><span class="id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span><h2>${esc(O.rota(orc))}</h2></div>
+        <a class="ico" href="/orcamento.html?id=${orc.id}" target="_blank" aria-label="Abrir no sistema" title="Abrir no sistema">${icone('external-link')}</a></div>
+      <div class="faixas">${nota()}${KVSky.html(orc)}</div>${trechosA()}
+      ${folha ? '' : recadoHtml()}<div class="voos" data-voos>${voosHtml()}</div></div>${folhaHtml()}`;
   }
 
   // guarda o que a pessoa digitou antes de mexer no estado (a tela é redesenhada inteira)
@@ -226,10 +253,51 @@
   function desenhar() {
     if (!eu) return;
     const foco = document.activeElement && document.activeElement.id, ini = foco && document.activeElement.selectionStart;
-    app.innerHTML = verComo() + (orc ? telaOrc() : telaLista());
+    const rolo = app.querySelector('.rolo'), st = rolo ? rolo.scrollTop : 0;
+    app.innerHTML = orc ? telaOrc().replace('<div class="rolo">', `<div class="rolo">${verComo()}`) : `<div class="rolo">${verComo()}${telaLista()}</div>`;
+    const novo = app.querySelector('.rolo'); if (novo) novo.scrollTop = st;
     if (window.lucide) lucide.createIcons();
+    moverInd(false); novoId = null;
     // redesenhar não tira o cursor do campo em que a pessoa estava
     if (foco) { const el = document.getElementById(foco); if (el) { el.focus(); try { if (ini != null) el.setSelectionRange(ini, ini); } catch (e) {} } }
+  }
+
+  // ---------- A: a pílula laranja vai até o trecho escolhido; os voos entram vindo do lado pra onde a pessoa foi ----------
+  let novoId = null;
+  function moverInd(animar = true) {
+    const ind = app.querySelector('[data-ind]'), b = app.querySelector('.tr[aria-selected="true"]'); if (!ind || !b) return;
+    if (!animar) ind.style.transition = 'none';
+    ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft}px)`;
+    if (!animar) { void ind.offsetWidth; ind.style.transition = ''; }
+  }
+  function trocarTrecho(n) {
+    const dir = n > trecho ? 1 : -1;
+    trecho = n; lembrar('kv-barra-trecho', trecho); vooAberto = null; apagando = null; recado = null;
+    app.querySelectorAll('.tr').forEach((b) => b.setAttribute('aria-selected', +b.dataset.trecho === n));
+    moverInd();
+    const vs = app.querySelector('[data-voos]'); vs.innerHTML = voosHtml(); vs.style.setProperty('--dir', dir);
+    vs.classList.remove('entra'); void vs.offsetWidth; vs.classList.add('entra');
+    if (window.lucide) lucide.createIcons();
+  }
+  // abre/fecha o detalhe do voo sem redesenhar, pra animação correr
+  function syncVoo() {
+    app.querySelectorAll('.v4c').forEach((c) => { const on = +c.dataset.v === vooAberto; c.classList.toggle('aberto', on); c.querySelector('.v4').setAttribute('aria-expanded', on); c.querySelector('.det-wrap').inert = !on; });
+    const c = vooAberto && app.querySelector(`.v4c[data-v="${vooAberto}"]`);
+    if (c) setTimeout(() => c.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 300);
+  }
+  // a folha sobe animada; trocar o que tem dentro dela (site, dia) redesenha sem animar de novo
+  function abrirFolha() {
+    recado = null; folha = true; desenhar();
+    const fl = app.querySelector('.folha'), veu = app.querySelector('.veu-p');
+    fl.classList.remove('on'); veu.classList.remove('on'); void fl.offsetWidth;
+    requestAnimationFrame(() => { fl.classList.add('on'); veu.classList.add('on'); setTimeout(() => { const el = fl.querySelector('[data-f="sai"]'); if (el) el.focus(); }, 300); });
+  }
+  function fecharFolha() {
+    sincronizar(); salvarRascunho();
+    const fl = app.querySelector('.folha'), veu = app.querySelector('.veu-p');
+    folha = false;
+    if (fl) { fl.classList.remove('on'); veu.classList.remove('on'); fl.inert = true; }
+    setTimeout(() => { if (!folha) desenhar(); }, 380);
   }
 
   // ---------- editar uma opção já lançada ----------
@@ -255,12 +323,11 @@
     const op = (orc.opcoes || []).find((x) => x.id === id); if (!op) return;
     apagarRascunho();
     form = { ...KVOpcao.deOpcao(op), travadoSite: true }; editando = id; editBase = assinatura(form);
-    recado = null; salvarRascunho(); desenhar();
-    const alvo = app.querySelector('.b-editando'); if (alvo) alvo.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    salvarRascunho(); abrirFolha();
   }
   function voltarPraNova() {
     const manter = { site: form.site, data: form.data, malaMao: form.malaMao };
-    apagarRascunho(); form = null; novoForm(manter); recado = null; desenhar();
+    apagarRascunho(); form = null; novoForm(manter); recado = null; fecharFolha();
   }
 
   // ---------- cliques ----------
@@ -268,11 +335,23 @@
     const b = e.target.closest('button, a'); if (!b) return;
     if (b.dataset.ponto != null) return alternarPonto();
     if (b.dataset.recarregar != null) { sincronizar(); KVApi.esquecer(); recado = null; return carregar().catch(erro); }
-    if (b.dataset.abrir) { recado = null; return abrir(+b.dataset.abrir).catch(erro); }
-    if (b.dataset.voltar != null) { sincronizar(); salvarRascunho(); orc = null; form = null; recado = null; lembrar('kv-barra-orc', null); return desenhar(); }
-    if (b.dataset.trecho) { sincronizar(); salvarRascunho(); trecho = +b.dataset.trecho; lembrar('kv-barra-trecho', trecho); recado = null; novoForm({ site: form.site }); restaurarRascunho(); return desenhar(); }
+    if (b.dataset.abrir) { recado = null; vooAberto = null; folha = false; return abrir(+b.dataset.abrir).catch(erro); }
+    if (b.dataset.voltar != null) { sincronizar(); salvarRascunho(); orc = null; form = null; recado = null; folha = false; vooAberto = null; lembrar('kv-barra-orc', null); return desenhar(); }
+    if (b.dataset.trecho) { const n = +b.dataset.trecho; if (n === trecho) return; sincronizar(); salvarRascunho(); trocarTrecho(n); novoForm({ site: form.site }); restaurarRascunho(); recado = null; return; }
+    if (b.dataset.voo) { const k = +b.dataset.voo; vooAberto = vooAberto === k ? null : k; apagando = null; return syncVoo(); }
+    if (b.dataset.nova != null) { sincronizar(); if (editando && !sujo()) voltarPraNovaQuieto(); return abrirFolha(); }
+    if (b.dataset.fecharFolha != null) { sincronizar(); if (editando) return perguntar(voltarPraNova, { oQue: 'Quer salvar antes de sair da edição?' }); return fecharFolha(); }
+    if (b.dataset.lancar != null) return gravar();
     if (b.dataset.editar) { sincronizar(); const id = +b.dataset.editar; return perguntar(() => editar(id), { oQue: 'Quer salvar antes de abrir a outra?' }); }
-    if (b.dataset.cancelarEdicao != null) { sincronizar(); return perguntar(voltarPraNova, { oQue: 'Quer salvar antes de sair da edição?' }); }
+    if (b.dataset.dup) { sincronizar(); const op = (orc.opcoes || []).find((x) => x.id === +b.dataset.dup); return perguntar(() => { apagarRascunho(); form = { ...KVOpcao.deOpcao(op), travadoSite: true }; editando = null; editBase = null; salvarRascunho(); abrirFolha(); }, { oQue: 'Quer salvar antes de repetir o outro voo?' }); }
+    if (b.dataset.apagar) { apagando = +b.dataset.apagar; desenhar(); return; }
+    if (b.dataset.apagarNao != null) { apagando = null; desenhar(); return; }
+    if (b.dataset.apagarSim) {
+      const id = +b.dataset.apagarSim; b.disabled = true;
+      try { await KVApi.acao('op.apagar', { orcamento: orc.id, id }); orc = await KVApi.orcamento(orc.id); recado = { ok: true, texto: 'Voo apagado.' }; }
+      catch (err) { recado = { erro: true, texto: 'Não apagou: ' + err.message }; }
+      apagando = null; vooAberto = null; return desenhar();
+    }
     if (b.dataset.usarAba != null) { sincronizar(); form.link = aba.url; salvarRascunho(); return desenhar(); }
     if (b.dataset.poeEsc != null) {
       sincronizar(); form.escalasOnde = [...(form.escalasOnde || []), ['', '']]; salvarRascunho(); desenhar();
@@ -294,6 +373,7 @@
     if (f === 'data') desenhar(); // o "Chega no dia" acompanha o dia escolhido
   });
   app.addEventListener('input', (e) => {
+    if (e.target.dataset && e.target.dataset.busca != null) { busca = e.target.value; const pos = e.target.selectionStart; desenhar(); const n = app.querySelector('[data-busca]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
     if (!e.target.dataset || (e.target.dataset.f == null && e.target.dataset.esc == null)) return;
     sincronizar(); salvarRascunho();
   });
@@ -313,17 +393,29 @@
       recado = { ok: true, texto: eraEdicao ? `Alteração salva: ${dados.site} ${dados.sai} → ${dados.chega}.` : `Lançada: ${dados.site} ${dados.sai} → ${dados.chega}. Site e dia continuam pra próxima.` };
       const manter = { site: form.site, data: form.data, malaMao: form.malaMao };
       apagarRascunho();
+      const antes = new Set((orc.opcoes || []).map((x) => x.id));
       orc = await KVApi.orcamento(orc.id);
+      const nova = (orc.opcoes || []).find((x) => !antes.has(x.id));
+      novoId = eraEdicao || (nova && nova.id); if (eraEdicao) { vooAberto = eraEdicao; folha = false; }
       form = null; novoForm(manter);
       ok = true;
     } catch (err) { recado = { erro: true, texto: `Não ${eraEdicao ? 'salvou' : 'lançou'} (${err.message}). Os campos continuam salvos aqui: é só tentar de novo.` }; }
     salvando = false;
     desenhar();
-    const prim = app.querySelector('[data-f="sai"]'); if (prim && ok) prim.focus();
+    const prim = folha && app.querySelector('[data-f="sai"]'); if (prim && ok) prim.focus();
     return ok;
   }
   KVSky.ligar(app, () => orc, (e) => { recado = { erro: true, texto: e.message }; desenhar(); });
   app.addEventListener('submit', (e) => { e.preventDefault(); gravar(); });
+
+  addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || (conf && conf.open)) return;
+    if (folha) { e.preventDefault(); sincronizar(); if (editando) perguntar(voltarPraNova, { oQue: 'Quer salvar antes de sair da edição?' }); else fecharFolha(); }
+    else if (vooAberto) { e.preventDefault(); vooAberto = null; syncVoo(); }
+  });
+  // Enter no formulário lança (no campo de observações, pula linha)
+  app.addEventListener('keydown', (e) => { if (e.key === 'Enter' && folha && e.target.closest('#b-form') && !['BUTTON', 'TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); gravar(); } });
+  const voltarPraNovaQuieto = () => { const manter = { site: form.site, data: form.data, malaMao: form.malaMao }; apagarRascunho(); form = null; novoForm(manter); };
 
   function erro(e) { app.innerHTML = `<p class="b-recado erro">${esc(e.message || 'Erro ao carregar.')}</p><button class="btn" type="button" data-recarregar>Tentar de novo</button>`; }
 
