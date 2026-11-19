@@ -22,6 +22,7 @@ KVTelas['empresa'] = function () {
             <span class="faint">PNG ou JPG; fica com 256 px no recibo</span></div></div>
         <div class="duas">${campo('cnpj', 'CNPJ', '00.000.000/0001-00', 'inputmode="numeric"')}${campo('tel', 'Telefone', '(00) 9 0000-0000', 'inputmode="tel"')}</div>
         <div class="duas">${campo('ig', 'Instagram', '@perfil')}${campo('gmail', 'E-mail', 'contato@exemplo.com', 'inputmode="email"')}</div>
+        <label class="check"><input type="checkbox" id="e-pesquisaCria" ${dados.pesquisaCria ? 'checked' : ''}><span>Quem pesquisa pode criar orçamentos<small>Ligado, os pesquisadores também veem o botão "Novo orçamento".</small></span></label>
         <div class="emp-pe"><span class="faint" data-estado></span><button class="btn primario" data-salvar><i data-lucide="check"></i>Salvar</button></div>
       </section>`;
     KVShell.icones();
@@ -37,13 +38,15 @@ KVTelas['empresa'] = function () {
     img.src = url;
   });
 
+  const ler = () => { app.querySelectorAll('[data-e]').forEach((i) => { dados[i.dataset.e] = i.value; }); dados.pesquisaCria = app.querySelector('#e-pesquisaCria').checked; };
+
   function ligarEventos() {
     app.addEventListener('click', async (e) => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.ir) KVRota.ir(b.dataset.ir);
       else if (b.hasAttribute('data-tira-logo')) { logoNova = null; render(); }
       else if (b.hasAttribute('data-salvar')) {
-        app.querySelectorAll('[data-e]').forEach((i) => { dados[i.dataset.e] = i.value; });
+        ler();
         b.disabled = true;
         try {
           await KVApi.acao('empresa.salvar', { ...dados, logo: logoNova });
@@ -54,7 +57,7 @@ KVTelas['empresa'] = function () {
     });
     app.addEventListener('change', async (e) => {
       if (!e.target.hasAttribute('data-logo') || !e.target.files[0]) return;
-      app.querySelectorAll('[data-e]').forEach((i) => { dados[i.dataset.e] = i.value; });
+      ler();
       try { logoNova = await reduzir(e.target.files[0]); render(); app.querySelector('[data-estado]').textContent = 'Logo nova: falta salvar'; }
       catch (err) { KVShell.aviso(err.message, { erro: true }); }
     });

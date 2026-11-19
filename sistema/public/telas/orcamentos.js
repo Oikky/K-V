@@ -5,7 +5,7 @@
    O estilo desta tela está em telas/orcamentos.css. */
 KVTelas['orcamentos'] = function () {
   const O = KVOrc, { esc } = KVOrc;
-  let eu = null, dono = false, nomes = {}, lista = [], app = null, equipe = [], ligados = {};
+  let eu = null, dono = false, podeCriar = false, nomes = {}, lista = [], app = null, equipe = [], ligados = {};
   let textoBusca = '', menuAberto = null, confirmarApagar = null, mudarEtapa = null;
 
   const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -71,7 +71,7 @@ KVTelas['orcamentos'] = function () {
 
   function vista() {
     app.innerHTML = `<div class="topo"><h1>Orçamentos</h1><div class="time" id="equipe">${equipeHtml()}</div>
-        ${dono ? '<a class="btn primario novo" href="novo-orcamento.html"><i data-lucide="plus"></i>Novo orçamento</a>' : ''}</div>
+        ${podeCriar ? '<a class="btn primario novo" href="novo-orcamento.html"><i data-lucide="plus"></i>Novo orçamento</a>' : ''}</div>
       <label class="busca-g"><i data-lucide="search"></i><input class="busca" type="search" placeholder="Buscar por nome, cidade, sigla ou nº do orçamento" aria-label="Buscar orçamento" value="${esc(textoBusca)}"></label>
       ${lista.length ? '' : '<p class="vazio">Nenhum orçamento ainda. Os pedidos mandados pro bot do Telegram aparecem aqui.</p>'}
       <div class="colunas">${COLS().map((c) => {
@@ -172,7 +172,7 @@ KVTelas['orcamentos'] = function () {
     document.body.insertAdjacentHTML('afterbegin', '<p class="carregando area">Carregando…</p>');
     try {
       const est = await KVApi.estado();
-      eu = est.eu; dono = eu.papel === 'dono' || eu.papel === 'admin';
+      eu = est.eu; dono = eu.papel === 'dono' || eu.papel === 'admin'; podeCriar = est.podeCriar;
       est.usuarios.forEach((u) => { nomes[u.email] = u.nome; });
       document.querySelector('.carregando').remove();
       app = KVShell.montar('orcamentos', { dono });

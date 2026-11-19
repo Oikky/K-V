@@ -5,7 +5,7 @@ import { ehDono } from './acoes.js';
 export async function estado(env, usuario) {
   const db = env.DB, dono = ehDono(usuario);
   // as três leituras vão num lote só: uma ida ao banco em vez de três
-  const [usuarios, programas, categorias, equipe, cartoes] = (await db.batch([
+  const [usuarios, programas, categorias, equipe, cartoes, [empresa]] = (await db.batch([
     // o dono vê a equipe toda; quem pesquisa vê só os colegas de pesquisa (pra saber quem pegou o quê)
     db.prepare(dono
       ? 'SELECT email, nome, papel, pesquisa, ativo, foto FROM usuarios ORDER BY nome'
@@ -18,6 +18,9 @@ export async function estado(env, usuario) {
     db.prepare(usuario.real === 'admin' ? 'SELECT email, nome, papel, pesquisa, foto FROM usuarios WHERE ativo = 1 ORDER BY nome' : 'SELECT 1 WHERE 0'),
     // cartões de crédito da K&V (só o dono)
     db.prepare(dono ? 'SELECT id, nome, final, fecha, vence, limite, ativo FROM cartoes ORDER BY ativo DESC, nome' : 'SELECT 1 WHERE 0'),
+    // a chave que libera quem pesquisa a criar orçamento
+    db.prepare("SELECT json_extract(dados, '$.pesquisaCria') AS sim FROM empresa WHERE id = 1"),
   ])).map((r) => r.results);
-  return { eu: usuario, usuarios, programas, categorias, ...(dono ? { cartoes } : {}), ...(usuario.real === 'admin' ? { equipe } : {}) };
+  const podeCriar = dono || !!(empresa && empresa.sim);
+  return { eu: usuario, usuarios, programas, categorias, podeCriar,...(dono ? { cartoes } : {}), ...(usuario.real === 'admin' ? { equipe } : {}) };
 }

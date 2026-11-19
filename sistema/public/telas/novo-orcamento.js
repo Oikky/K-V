@@ -1,7 +1,7 @@
 /* Tela: Novo orçamento. Endereço: /novo-orcamento.html (e /novo-orcamento.html?editar=12 pra mudar o pedido de um orçamento)
    Novo orçamento (rodada 8 dos rascunhos), gravando no banco: o dono anota o pedido que chegou pelo WhatsApp.
      Quem pediu (acha o cadastro e pedidos antigos pelo WhatsApp), trechos com janela de 14 dias, passageiros,
-     pedido especial (vira item da lista de conferência) e quem pesquisa. Criar: só o dono. Editar: todos
+     pedido especial (vira item da lista de conferência) e quem pesquisa. Criar: o dono (e quem pesquisa, se liberado em Configurações › Empresa). Editar: todos
      (o mesmo formulário, sem conferência e quem pesquisa, com o "falta perguntar").
    O estilo desta tela está em telas/novo-orcamento.css. */
 KVTelas['novo-orcamento'] = function () {
@@ -210,7 +210,7 @@ ${editar ? '' : `
     try {
       est = await KVApi.estado();
       const dono = est.eu.papel === 'dono' || est.eu.papel === 'admin';
-      if (!dono && !editar) { KVRota.trocar('orcamentos.html'); return; }
+      if (!est.podeCriar && !editar) { KVRota.trocar('orcamentos.html'); return; }
       [pessoas, orcs] = await Promise.all([dono ? KVApi.pessoas().catch(() => []) : [], KVApi.orcamentos().catch(() => [])]);
       if (editar) { const o = await KVApi.orcamento(editar); if (!o) throw new Error('Orçamento não encontrado'); carregar(o); }
       document.querySelector('.carregando').remove();

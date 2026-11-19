@@ -11,7 +11,12 @@ const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 
 // dados: { contato: {nome, whatsapp}, trechos: [{de, para, data, janela, outrasDatas, roteiro}], passageiros: {adultos, criancas, bebes},
 //          especiais: [], observacao, faltando: [], origem, textoOriginal, audio, chat }
-acao('orc.criar', ['dono'], (ctx, d) => criar(ctx, d));
+// quem pesquisa só cria se o dono ligou isso em Configurações › Empresa
+acao('orc.criar', ['dono', 'pesquisa'], async (ctx, d) => {
+  if (!ehDono(ctx.usuario) && !(await pesquisaCria(ctx.db))) throw new Recusa('Só o dono cria orçamentos', 403);
+  return criar(ctx, d);
+});
+export const pesquisaCria = async (db) => { const e = await db.prepare('SELECT dados FROM empresa WHERE id = 1').first(); return !!(e && JSON.parse(e.dados).pesquisaCria); };
 
 // o pedido validado (o mesmo pra criar e pra editar)
 function lerPedido(d) {

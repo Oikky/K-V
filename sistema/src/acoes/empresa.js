@@ -7,6 +7,7 @@ const LOGO_MAX = 400_000; // ~300 KB de imagem: a tela reduz pra 256 px antes de
 acao('empresa.salvar', ['dono'], async ({ db, quando }, d) => {
   const dados = {};
   for (const [k, max] of Object.entries(CAMPOS)) dados[k] = String(d[k] || '').trim().slice(0, max);
+  dados.pesquisaCria = d.pesquisaCria === true; // quem pesquisa pode criar orçamento
   // logo: undefined = não mexe; null = tira; texto = troca
   let logo;
   if (d.logo !== undefined) {
