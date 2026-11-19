@@ -2,6 +2,7 @@
    Redesign do PC (rascunho _rascunhos/v2/quadro.html, versão D): título + quem está com o ponto ligado + "Novo orçamento",
    busca larga e 3 colunas por etapa (Novos, Em pesquisa, e a 3ª com tudo que já passou da pesquisa).
      O dono vê tudo; quem pesquisa vê a fila de novos, o que está em pesquisa e os que ele já pesquisou. A lista se atualiza sozinha (pedidos do bot).
+     Não tem "pegar" (2026-11-19): qualquer um pesquisa qualquer um; o cartão mostra o último voo lançado, quem está nele agora e há quanto tempo está parado.
    O estilo desta tela está em telas/orcamentos.css. */
 KVTelas['orcamentos'] = function () {
   const O = KVOrc, { esc } = KVOrc;
@@ -40,8 +41,13 @@ KVTelas['orcamentos'] = function () {
   const siglas = (o) => porRoteiro(o).map((r) => idaEVolta(r) ? `${r.trechos[0].de} → ${r.trechos[0].para}` : O.rota(r)).join(' ou ');
   const pes = (o) => `${pessoas(o)} ${pessoas(o) > 1 ? 'pessoas' : 'pessoa'}`;
   const datas = (o) => { const d1 = o.trechos[0].data, d2 = o.trechos[o.trechos.length - 1].data; return O.dataCurta(d1) + (d1 !== d2 ? ` – ${O.dataCurta(d2)}` : ''); };
-  const comQuem = (o) => !o.responsavel ? 'sem ninguém' : o.responsavel === eu.email ? 'com você' : `com ${esc(nomeCurto(o.responsavel))}`;
+  // não tem mais "pegar": o cartão mostra quem lançou o último voo e quando (sem voo, a quem o dono passou)
+  // parado há dias: o tempo já está na etiqueta de baixo, então aqui vai só o nome
+  const quemE = (email) => (email === eu.email ? 'você' : esc(nomeCurto(email)));
+  const comQuem = (o) => o.ultimoVooEm ? `<span title="Último voo lançado ${O.idade(o.ultimoVooEm)}">último: ${o.ultimoVooPor === eu.email ? 'você' : esc(primeiro(o.ultimoVooNome || ''))}${O.parado(o) ? '' : ` · ${O.idade(o.ultimoVooEm)}`}</span>` : o.responsavel ? `pra ${quemE(o.responsavel)}` : '';
   const falta = (o) => o.faltando.length ? `<span class="etiqueta warn" title="${esc(o.faltando.join(' · '))}"><i data-lucide="message-circle-question"></i>${o.faltando.length === 1 ? 'falta 1 resposta' : `faltam ${o.faltando.length} respostas`}</span>` : '';
+  const parado = (o) => { const p = O.parado(o); return p ? `<span class="etiqueta ${p.cor}"><i data-lucide="hourglass"></i>${p.texto}</span>` : ''; };
+  const aqui = (o) => o.agora.length ? `<span class="etiqueta ok"><i data-lucide="eye"></i>${esc(o.agora.map(primeiro).join(' e '))} ${o.agora.length > 1 ? 'estão' : 'está'} aqui agora</span>` : '';
 
   // cartão da versão C: quem pediu, siglas, e o trilho (um traço por trecho; azul = já tem voo).
   // Na 3ª coluna o trilho vira a etapa (pesquisado, enviado, fechado…). O cartão inteiro é o link.
@@ -55,13 +61,14 @@ KVTelas['orcamentos'] = function () {
       <div class="ca-quem"><span class="avc">${esc(iniciais(o.contato.nome))}</span><span><b>${realce(doisNomes(o.contato.nome))}</b><small>#${o.id} · ${O.idade(o.criadoEm)}</small></span></div>
       <a class="cobre" href="${link(o)}" aria-label="Abrir orçamento #${o.id}: ${esc(siglas(o))}"></a>
       <div class="titulo-op"><div class="rolo" data-link="${link(o)}" title="${esc(O.destino(o))}"><span class="nome">${realce(siglas(o))}</span></div><span class="sub">${realce(O.destino(o))} · ${datas(o)} · ${pes(o)}</span></div>
-      ${pe}${falta(o) ? `<div class="rodape">${falta(o)}</div>` : ''}</article>`;
+      ${pe}${(() => { const r = aqui(o) + parado(o) + falta(o); return r ? `<div class="rodape">${r}</div>` : ''; })()}</article>`;
   }
 
   const antigo = (a, b) => a.criadoEm.localeCompare(b.criadoEm);
   const COLS = () => [
-    { nome: 'Novos', ic: 'inbox', cor: 'warn', passa: (o) => o.etapa === 'novo' && (dono || !o.responsavel || o.responsavel === eu.email) },
-    { nome: 'Em pesquisa', ic: 'search', cor: 'orange', passa: (o) => o.etapa === 'pesquisa', ordem: (a, b) => (b.responsavel === eu.email) - (a.responsavel === eu.email) || antigo(a, b) },
+    { nome: 'Novos', ic: 'inbox', cor: 'warn', passa: (o) => o.etapa === 'novo' },
+    // o que está parado há mais tempo fica em cima
+    { nome: 'Em pesquisa', ic: 'search', cor: 'orange', passa: (o) => o.etapa === 'pesquisa', ordem: (a, b) => (a.ultimoVooEm || a.criadoEm).localeCompare(b.ultimoVooEm || b.criadoEm) },
     { nome: dono ? 'Pesquisados em diante' : 'Pesquisados', ic: 'check', cor: 'ok', depois: true, passa: (o) => !['novo', 'pesquisa'].includes(o.etapa), ordem: (a, b) => ordemFase(a) - ordemFase(b) || antigo(a, b) },
   ];
 

@@ -208,3 +208,6 @@ body { overflow: hidden; }
   .det-wrap, .folha, .trs .ind, .v4 .chev { transition: none; }
   .cron.lig button::after { animation: none; border-color: var(--ok); }
 }
+/* cartão: quem está nele agora e há quanto tempo está parado */
+.ca .rodape { display: flex; gap: 6px; flex-wrap: wrap; }
+[data-aqui]:empty { display: none; }

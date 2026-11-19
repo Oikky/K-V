@@ -13,7 +13,11 @@ KVTelas['orcamento'] = function () {
   const opsDo = (ti) => o.opcoes.filter((x) => x.trecho === ti);
   const eDinheiro = (s) => O.site(s).forma === 'dinheiro';
   const pessoas = () => O.total(o);
-  const podeLancar = () => dono || (o.responsavel === eu.email && o.etapa === 'pesquisa');
+  // sem "pegar" (2026-11-19): quem pesquisa lança em qualquer orçamento que ainda está na pesquisa
+  const podeLancar = () => dono || ['novo', 'pesquisa'].includes(o.etapa);
+  // quem mais está com este orçamento aberto agora (a tela avisa o servidor a cada 30 s)
+  let outrosAqui = [];
+  const aquiHtml = () => (outrosAqui.length ? `<span class="etiqueta ok"><i data-lucide="eye"></i>${esc(outrosAqui.map((n) => n.split(' ')[0]).join(' e '))} ${outrosAqui.length > 1 ? 'estão' : 'está'} aqui agora</span>` : '');
   // quem pode pegar orçamento; quem já está com ele aparece mesmo que não pesquise (ex.: o dono pegou)
   const nomeDe = (email) => { const u = est.usuarios.find((x) => x.email === email); return u ? u.nome.split(' ')[0] : 'outra pessoa'; };
   const pesquisadores = () => est.usuarios.filter((u) => ((u.papel === 'pesquisador' || u.pesquisa) && u.ativo !== 0) || u.email === o.responsavel);
@@ -42,11 +46,9 @@ KVTelas['orcamento'] = function () {
     let acoes = '';
     if (dono) acoes = `<label class="sel-pilula solta"><span class="escondido">Pesquisador</span><select id="passar">${[['', 'Na fila'], ...pesquisadores().map((u) => [u.email, `${u.nome.split(' ')[0]} pesquisa`])].map(([v, t]) => `<option value="${esc(v)}" ${(o.responsavel || '') === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
         <label class="sel-pilula solta"><span class="escondido">Etapa</span><select id="etapa">${O.etapas.map((e) => `<option value="${e.id}" ${e.id === o.etapa ? 'selected' : ''}>${e.nome}</option>`).join('')}</select></label>
-        ${o.etapa === 'novo' && eu.pesquisa ? '<button class="btn" data-pegar><i data-lucide="hand"></i>Pegar</button>' : ''}
-        ${o.etapa === 'pesquisa' && o.responsavel === eu.email ? '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>' : ''}`;
-    else if (o.etapa === 'novo') acoes = '<button class="btn primario" data-pegar><i data-lucide="hand"></i>Pegar pra mim</button>';
-    else if (o.etapa === 'pesquisa' && o.responsavel === eu.email) acoes = '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>';
-    else if (o.etapa === 'pesquisa' && o.responsavel) acoes = `<span class="etiqueta">com ${esc(nomeDe(o.responsavel))}</span><button class="btn primario" data-assumir><i data-lucide="hand"></i>Assumir</button>`;
+        ${o.etapa === 'pesquisa' && eu.pesquisa ? '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>' : ''}`;
+    else if (o.etapa === 'pesquisa') acoes = '<button class="btn primario" data-pesquisado><i data-lucide="check-check"></i>Marcar como pesquisado</button>';
+    acoes = `<span data-aqui>${aquiHtml()}</span>${acoes}`;
     // todos editam o pedido e falam com o cliente (2026-11-14)
     return `<div class="pq-barra">
         <button class="btn" data-conf><i data-lucide="list-checks"></i>Conferência ${feitos}/${o.conferencia.length}</button>
@@ -63,7 +65,7 @@ KVTelas['orcamento'] = function () {
       <div class="trs" role="tablist" aria-label="Trechos" aria-orientation="vertical"><span class="ind" aria-hidden="true"></span>${o.trechos.map((t, i) => { const n = opsDo(i).length;
         return `<button class="tr4" role="tab" aria-selected="${i === ti}" data-t="${i}"><span class="i ${n ? 'ok' : ''}">${i + 1}</span><b>${esc(t.de)} → ${esc(t.para)}</b><span class="n">${n || '—'}</span>
           <small>${varios ? esc(KVProp.nomeTrecho(o, i, true)) + ' · ' : ''}${O.diaCurto(t.data)} ${O.dataCurta(t.data)}${t.outrasDatas.length ? ` · também ${esc(O.diasTexto(t.outrasDatas))}` : ''}</small></button>`; }).join('')}</div>
-      <p class="pq-info">${O.etapa(o.etapa).nome} · ${o.responsavel ? `com ${esc(o.responsavel === eu.email ? 'você' : nomeDe(o.responsavel))}` : 'sem ninguém'} · ${O.fmtPax(o.passageiros)} · ${O.idade(o.criadoEm)}${dono && o.pessoaId ? ' · <span style="color:var(--orange)">é cliente</span>' : ''}</p>
+      <p class="pq-info">${O.etapa(o.etapa).nome} · ${!o.responsavel ? 'sem voo' : `${o.opcoes.length ? 'último voo' : 'pra'} ${esc(o.responsavel === eu.email ? 'você' : nomeDe(o.responsavel))}`} · ${O.fmtPax(o.passageiros)} · ${O.idade(o.criadoEm)}${dono && o.pessoaId ? ' · <span style="color:var(--orange)">é cliente</span>' : ''}</p>
       ${o.pedido ? `<div class="ped"><b>Pedido especial</b>${esc(o.pedido)}</div>` : ''}
       ${doBot()}
       <div class="pq-sky">${KVSky.html(o, podeLancar())}</div></aside>`;
@@ -407,12 +409,6 @@ KVTelas['orcamento'] = function () {
       else if (b.hasAttribute('data-resumo')) { KVShell.irPara({ janela: 'resumo' }); sincJanela(); }
       else if (b.hasAttribute('data-conf')) { KVShell.irPara({ janela: 'conf' }); sincJanela(); }
       else if (b.hasAttribute('data-pesquisado')) { KVShell.irPara({ janela: 'pesquisado' }); sincJanela(); }
-      else if (b.hasAttribute('data-pegar')) { b.disabled = true; await fazer('orc.pegar', { id: o.id }); render(); KVShell.janelaCab(o); }
-      else if (b.hasAttribute('data-assumir')) {
-        const quem = esc(nomeDe(o.responsavel));
-        if (!await KVShell.confirmar({ titulo: `Assumir o #${o.id}?`, texto: `Esse orçamento está com ${quem}. Se você assumir, ele passa pra você e sai da lista de ${quem}. As opções que já foram lançadas continuam.`, sim: 'Assumir', icone: 'hand' })) return;
-        b.disabled = true; await fazer('orc.pegar', { id: o.id, assumir: true }); render(); KVShell.janelaCab(o);
-      }
     });
     app.addEventListener('change', async (e) => {
       if (e.target.id === 'passar') { await fazer('orc.passar', { id: o.id, email: e.target.value || null }); render(); }
@@ -435,6 +431,12 @@ KVTelas['orcamento'] = function () {
       KVShell.aoVoltar(() => { if (semVoo() === desenhado) syncVoo(); else render(); sincJanela(); });
       // quando volta pra aba, traz o que outra pessoa pode ter lançado
       document.addEventListener('visibilitychange', async () => { if (!document.hidden && !dlg.open && !ocupado) { try { o = await KVApi.orcamento(id); render(); } catch (_) {} } });
+      // avisa que está aqui (só na pesquisa e com a aba visível) e mostra quem mais está
+      const avisar = async () => {
+        if (document.hidden || !['novo', 'pesquisa'].includes(o.etapa)) return;
+        try { outrosAqui = (await KVApi.presenca(o.id)).outros; const el = app.querySelector('[data-aqui]'); if (el) { el.innerHTML = aquiHtml(); KVShell.icones(); } } catch (_) {}
+      };
+      avisar(); setInterval(avisar, 30000);
     } catch (e) {
       const c = document.querySelector('.carregando');
       if (c) c.innerHTML = `${esc(e.message)} <a href="orcamentos.html" style="color:var(--orange)">Voltar pros orçamentos</a>`;

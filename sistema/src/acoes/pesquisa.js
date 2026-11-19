@@ -9,10 +9,10 @@ async function orcamento(db, id) {
   if (!o) throw new Recusa('Orçamento não encontrado', 404);
   return o;
 }
-// o dono lança sempre; quem pesquisa, só no orçamento que está com ele e em pesquisa
+// o dono lança sempre; quem pesquisa, em qualquer orçamento que ainda está na pesquisa (não tem mais "pegar")
 function podeLancar(u, o) {
   if (ehDono(u)) return;
-  if (o.responsavel !== u.email || o.etapa !== 'pesquisa') throw new Recusa('Esse orçamento não está em pesquisa com você', 403);
+  if (!['novo', 'pesquisa'].includes(o.etapa)) throw new Recusa('Esse orçamento já saiu da pesquisa', 403);
 }
 
 const ehHora = (s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
@@ -79,7 +79,10 @@ acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
   const id = ult + 1;
   return {
     resultado: { id },
-    comandos: [db.prepare(`INSERT INTO opcoes (id, orcamento_id, trecho, site, data, sai, chega, cia, voo, escalas, bagagem, milhas, taxa, preco, link,
+    comandos: [
+      // quem lança o voo vira o "último que pesquisou" e o novo passa pra Em pesquisa
+      db.prepare("UPDATE orcamentos SET responsavel = ?, etapa = 'pesquisa' WHERE id = ? AND etapa IN ('novo', 'pesquisa')").bind(usuario.email, o.id),
+      db.prepare(`INSERT INTO opcoes (id, orcamento_id, trecho, site, data, sai, chega, cia, voo, escalas, bagagem, milhas, taxa, preco, link,
       criada_em, criada_por${colsExtra.map((c) => `, ${c}`).join('')}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${colsExtra.map(() => ', ?').join('')})`)
       .bind(id, o.id, ...campos, quando, usuario.email, ...valsExtra)],
     eventos: [{ entidade: 'orcamento', id: o.id, texto: `Lançou a opção ${d.site} das ${d.sai}` }],
@@ -181,7 +184,7 @@ acao('orc.pesquisado', ['dono', 'pesquisa'], async ({ db, usuario }, { id }) => 
   if (!['novo', 'pesquisa'].includes(o.etapa)) throw new Recusa('Esse orçamento já saiu da pesquisa', 409);
   return {
     resultado: { id },
-    comandos: [db.prepare("UPDATE orcamentos SET etapa = 'pesquisado' WHERE id = ?").bind(id)],
+    comandos: [db.prepare("UPDATE orcamentos SET etapa = 'pesquisado', responsavel = COALESCE(responsavel, ?) WHERE id = ?").bind(usuario.email, id)],
     eventos: [{ entidade: 'orcamento', id, texto: 'Marcou como pesquisado', antes: { etapa: o.etapa } }],
   };
 });

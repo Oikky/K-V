@@ -37,6 +37,15 @@
     const h = Math.round(m / 60); if (h < 24) return `há ${h}h`;
     const d = Math.round(h / 24); return d === 1 ? 'ontem' : `há ${d} dias`;
   };
+  // orçamento que não anda: conta desde o último voo lançado (ou desde que foi criado, se ainda não tem voo).
+  // Amarelo a partir de 2 dias, vermelho a partir de 7. Viagem a mais de 60 dias: só o texto, sem cor (pode esperar).
+  const parado = (o) => {
+    if (!['novo', 'pesquisa'].includes(o.etapa)) return null;
+    const dias = Math.round((Date.now() - new Date(o.ultimoVooEm || o.criadoEm)) / 864e5); // arredonda igual ao "há N dias"
+    if (dias < 2) return null;
+    const longe = (new Date(o.trechos[0].data + 'T12:00') - Date.now()) / 864e5 > 60;
+    return { texto: o.ultimoVooEm ? `parado há ${dias} dias` : `${dias} dias sem voo`, cor: longe ? '' : dias >= 7 ? 'danger' : 'warn' };
+  };
   // dd/mm; de outro ano, dd/mm/aa
   const dataCurta = (s) => { const [a, m, d] = s.split('-'); return a === String(new Date().getFullYear()) ? `${d}/${m}` : `${d}/${m}/${a.slice(2)}`; };
   // dias pra olhar em texto curto: seguidos viram faixa e o mês vai uma vez só ("26 a 30/11", "26 e 28/11", "30/11 a 02/12")
@@ -133,7 +142,7 @@
     }).join('<i class="liga" aria-hidden="true"></i>')}</nav>`;
   }
 
-  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, dataCurta, rota, destino, esc, roteiros, letra, cidades, diasTexto,
+  window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, parado, dataCurta, rota, destino, esc, roteiros, letra, cidades, diasTexto,
     sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
     usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, passos, telaDa };
 })();

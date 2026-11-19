@@ -3,6 +3,22 @@
 import { ehDono } from './acoes.js';
 
 const todos = async (db, sql, ...args) => (await db.prepare(sql).bind(...args).all()).results;
+const PRESENTE_MS = 90e3; // a tela avisa a cada 30 s: sem aviso em 90 s, a pessoa saiu
+const antes = (ms) => new Date(Date.now() - ms).toISOString();
+
+// "estou com esse orçamento aberto": grava o aviso e devolve quem mais está nele agora
+export async function presenca(env, usuario, id) {
+  if (!Number.isInteger(id)) return { outros: [] };
+  const db = env.DB;
+  const [, , outros] = await db.batch([
+    db.prepare('DELETE FROM presenca WHERE em < ?').bind(antes(864e5)),
+    db.prepare('INSERT INTO presenca (orcamento_id, email, em) VALUES (?, ?, ?) ON CONFLICT(orcamento_id, email) DO UPDATE SET em = excluded.em')
+      .bind(id, usuario.email, new Date().toISOString()),
+    db.prepare(`SELECT u.nome FROM presenca p JOIN usuarios u ON u.email = p.email
+      WHERE p.orcamento_id = ? AND p.email <> ? AND p.em >= ? ORDER BY u.nome`).bind(id, usuario.email, antes(PRESENTE_MS)),
+  ]);
+  return { outros: outros.results.map((x) => x.nome) };
+}
 
 export async function listarOrcamentos(env, usuario) {
   const db = env.DB, dono = ehDono(usuario);
@@ -10,10 +26,14 @@ export async function listarOrcamentos(env, usuario) {
   const filtro = dono ? '' : "WHERE o.etapa IN ('novo', 'pesquisa') OR (o.etapa = 'pesquisado' AND o.responsavel = ?)";
   const args = dono ? [] : [usuario.email];
   // as leituras saem juntas
-  const [linhas, trechos, porTrecho] = await Promise.all([todos(db, `
+  const [linhas, trechos, porTrecho, aqui] = await Promise.all([todos(db, `
     SELECT o.id, o.contato_nome, o.contato_whatsapp, o.etapa, o.responsavel, o.adultos, o.criancas, o.bebes,
            o.pedido, o.observacao, o.faltando, o.origem, o.audio, o.criado_em,
            (SELECT COUNT(*) FROM opcoes p WHERE p.orcamento_id = o.id) AS n_opcoes,
+           (SELECT MAX(p.criada_em) FROM opcoes p WHERE p.orcamento_id = o.id) AS ultimo_voo_em,
+           (SELECT p.criada_por FROM opcoes p WHERE p.orcamento_id = o.id ORDER BY p.criada_em DESC LIMIT 1) AS ultimo_voo_por,
+           (SELECT COALESCE(u.nome, p.criada_por) FROM opcoes p LEFT JOIN usuarios u ON u.email = p.criada_por
+              WHERE p.orcamento_id = o.id ORDER BY p.criada_em DESC LIMIT 1) AS ultimo_voo_nome,
            (SELECT COUNT(*) FROM conferencia c WHERE c.orcamento_id = o.id) AS n_conf,
            (SELECT COUNT(*) FROM conferencia c WHERE c.orcamento_id = o.id AND c.feito = 1) AS n_feitos,
            (SELECT MAX(e.quando) FROM eventos e WHERE e.entidade = 'orcamento' AND e.entidade_id = CAST(o.id AS TEXT)
@@ -23,7 +43,12 @@ export async function listarOrcamentos(env, usuario) {
     JOIN orcamentos o ON o.id = t.orcamento_id ${filtro} ORDER BY t.orcamento_id, t.ordem`, ...args),
   // quantos voos cada trecho tem (o trilho do cartão); opcoes.trecho é a posição do trecho no orçamento
   todos(db, `SELECT p.orcamento_id, p.trecho, COUNT(*) AS n FROM opcoes p
-    JOIN orcamentos o ON o.id = p.orcamento_id ${filtro} GROUP BY p.orcamento_id, p.trecho`, ...args)]);
+    JOIN orcamentos o ON o.id = p.orcamento_id ${filtro} GROUP BY p.orcamento_id, p.trecho`, ...args),
+  // quem está com cada orçamento aberto agora (fora a própria pessoa)
+  todos(db, `SELECT p.orcamento_id, u.nome FROM presenca p JOIN usuarios u ON u.email = p.email
+    WHERE p.em >= ? AND p.email <> ? ORDER BY u.nome`, antes(PRESENTE_MS), usuario.email)]);
+  const agora = {};
+  for (const x of aqui) (agora[x.orcamento_id] ||= []).push(x.nome);
   const nVoos = {};
   for (const x of porTrecho) nVoos[x.orcamento_id + ':' + x.trecho] = x.n;
   const porOrc = {};
@@ -44,13 +69,17 @@ export async function listarOrcamentos(env, usuario) {
     criadoEm: o.criado_em,
     pesquisadoEm: o.pesquisado_em,
     nOpcoes: o.n_opcoes,
+    ultimoVooEm: o.ultimo_voo_em,
+    ultimoVooPor: o.ultimo_voo_por,
+    ultimoVooNome: o.ultimo_voo_nome,
+    agora: agora[o.id] || [],
     conferencia: { feitos: o.n_feitos, total: o.n_conf },
     trechos: porOrc[o.id] || [],
   }));
 }
 
 // Um orçamento inteiro (tela de pesquisa, proposta, fechamento e emissão).
-// Quem pesquisa abre o que está na fila, em pesquisa (dele ou de outra pessoa, pra poder assumir) ou com ele; nunca recebe combinações nem recebimento.
+// Quem pesquisa abre o que está na fila ou em pesquisa (qualquer um pesquisa qualquer um) ou o que ele pesquisou por último; nunca recebe combinações nem recebimento.
 export async function abrirOrcamento(env, usuario, id) {
   const db = env.DB, dono = ehDono(usuario);
   const o = Number.isInteger(id) ? await db.prepare('SELECT * FROM orcamentos WHERE id = ?').bind(id).first() : null;

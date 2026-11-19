@@ -101,10 +101,10 @@ async function orcamento(db, id) {
 }
 
 // muda o pedido: quem pediu, WhatsApp, trechos, passageiros, pedido especial, observação e o que falta perguntar.
-// Todos editam (decisão de 2026-11-14); quem pesquisa, só o que ele consegue abrir (na fila ou com ele).
+// Todos editam (decisão de 2026-11-14); quem pesquisa, qualquer um ainda na pesquisa (2026-11-19) ou o que ele pesquisou.
 acao('orc.editar', ['dono', 'pesquisa'], async ({ db, usuario }, d) => {
   const o = await orcamento(db, d.id);
-  if (!ehDono(usuario) && o.responsavel !== usuario.email && !(o.etapa === 'novo' && !o.responsavel)) throw new Recusa('Esse orçamento não está com você', 403);
+  if (!ehDono(usuario) && !['novo', 'pesquisa'].includes(o.etapa) && o.responsavel !== usuario.email) throw new Recusa('Esse orçamento já saiu da pesquisa', 403);
   const n = lerPedido(d);
   const id = o.id;
   const antigos = (await db.prepare('SELECT de, para, data, janela, outras_datas, roteiro FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(id).all()).results;
@@ -139,22 +139,6 @@ acao('orc.editar', ['dono', 'pesquisa'], async ({ db, usuario }, d) => {
       ...entram.map((t, i) => db.prepare('INSERT INTO conferencia (orcamento_id, ordem, texto) VALUES (?, ?, ?)').bind(id, m + 1 + i, t)),
     ],
     eventos: [{ entidade: 'orcamento', id, texto: d.texto || 'Editou o pedido', antes, depois: n }],
-  };
-});
-
-// quem pesquisa pega um orçamento novo da fila (ou um que o dono passou pra ele).
-// Com assumir: true, continua o que está com outra pessoa (a tela pergunta antes de mandar).
-acao('orc.pegar', ['dono', 'pesquisa'], async ({ db, usuario }, { id, assumir = false }) => {
-  const o = await orcamento(db, id);
-  if (!['novo', 'pesquisa'].includes(o.etapa)) throw new Recusa('Esse orçamento já saiu da pesquisa', 409);
-  const outro = o.responsavel && o.responsavel !== usuario.email;
-  const quem = outro ? await db.prepare('SELECT nome FROM usuarios WHERE email = ?').bind(o.responsavel).first() : null;
-  if (outro && !assumir) throw new Recusa(`${quem ? quem.nome : 'Outra pessoa'} já pegou esse orçamento`, 409);
-  return {
-    resultado: { id },
-    // o "AND" protege de duas pessoas pegarem no mesmo instante: só vale se ainda estiver com quem a tela viu
-    comandos: [db.prepare("UPDATE orcamentos SET responsavel = ?1, etapa = 'pesquisa' WHERE id = ?2 AND responsavel IS ?3").bind(usuario.email, id, o.responsavel)],
-    eventos: [{ entidade: 'orcamento', id, texto: outro ? `Assumiu o orçamento de ${quem ? quem.nome : o.responsavel}` : 'Pegou o orçamento', antes: { etapa: o.etapa, responsavel: o.responsavel } }],
   };
 });
 

@@ -1,5 +1,5 @@
 // Toda mudança no banco passa por aqui. A tela manda { acao, dados, chave }:
-// - acao: nome registrado em ACOES (ex.: 'orc.pegar');
+// - acao: nome registrado em ACOES (ex.: 'orc.etapa');
 // - chave: única por clique; se chegar repetida, devolve o resultado da primeira vez;
 // - cada ação diz quais papéis podem usá-la e devolve { resultado, eventos }.
 // Os eventos (histórico: quem, o quê, quando, antes) são gravados junto, no mesmo lote.

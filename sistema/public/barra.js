@@ -51,13 +51,21 @@
   async function carregar() {
     est = await KVApi.estado(); eu = est.eu; dono = eu.papel === 'dono' || eu.papel === 'admin';
     await carregarPonto().catch(() => { ponto = null; });
-    lista = (await KVApi.orcamentos()).filter((o) => o.etapa === 'pesquisa' && (dono || o.responsavel === eu.email));
+    // sem "pegar" (2026-11-19): todo mundo vê tudo que ainda está na pesquisa (novos e em pesquisa)
+    lista = (await KVApi.orcamentos()).filter((o) => ['novo', 'pesquisa'].includes(o.etapa));
     const lemb = +lembrado('kv-barra-orc');
     if (lemb && lista.some((o) => o.id === lemb)) await abrir(lemb, { manterForm: true });
     else { orc = null; desenhar(); }
   }
+  // com um orçamento aberto, avisa o servidor a cada 30 s e mostra quem mais está nele
+  let outrosAqui = [];
+  async function avisarPresenca() {
+    if (!orc || document.hidden) return;
+    try { outrosAqui = (await KVApi.presenca(orc.id)).outros; const el = app.querySelector('[data-aqui]'); if (el) { el.innerHTML = aquiHtml(outrosAqui); if (window.lucide) lucide.createIcons(); } } catch (e) {}
+  }
+  setInterval(avisarPresenca, 30000);
   async function abrir(id, { manterForm = false } = {}) {
-    orc = await KVApi.orcamento(id);
+    orc = await KVApi.orcamento(id); outrosAqui = []; avisarPresenca();
     lembrar('kv-barra-orc', id);
     if (!manterForm || !form) { trecho = Math.min(+lembrado('kv-barra-trecho') || 0, orc.trechos.length - 1); novoForm(); restaurarRascunho(); }
     desenhar();
@@ -193,14 +201,24 @@
     return `<button type="button" class="ca" data-abrir="${o.id}"><span class="l1"><b>${esc(o.contato.nome || 'sem nome')}</b><small>#${o.id} · ${O.idade(o.criadoEm)}</small></span>
       <span class="rota">${esc(O.rota(o))}</span><span class="sub">${esc(O.destino(o))} · ${O.dataCurta(d1)}${d1 !== d2 ? ` – ${O.dataCurta(d2)}` : ''} · ${esc(O.fmtPax(o.passageiros))}</span>
       <span class="trilho">${o.trechos.map((t) => `<i class="${t.nVoos ? 'ok' : ''}"></i>`).join('')}</span>
-      <span class="trilho-t"><span>${com} de ${n} ${n > 1 ? 'trechos' : 'trecho'} com voo</span><span>${o.responsavel === eu.email ? 'com você' : `com ${esc(nomeDe(o.responsavel).split(' ')[0])}`}</span></span></button>`;
+      <span class="trilho-t"><span>${com} de ${n} ${n > 1 ? 'trechos' : 'trecho'} com voo</span><span>${ultimo(o)}</span></span>${rodapeLista(o)}</button>`;
+  }
+  const quemE = (email) => (email === eu.email ? 'você' : esc(nomeDe(email).split(' ')[0]));
+  // parado há dias: o tempo já está na etiqueta de baixo, então aqui vai só o nome
+  const ultimo = (o) => (o.ultimoVooEm ? `último: ${o.ultimoVooPor === eu.email ? 'você' : esc(String(o.ultimoVooNome || '').split(' ')[0])}${O.parado(o) ? '' : ` · ${O.idade(o.ultimoVooEm)}`}` : o.responsavel ? `pra ${quemE(o.responsavel)}` : '');
+  const aquiHtml = (nomes) => (nomes.length ? `<span class="etiqueta ok">${icone('eye')}${esc(nomes.map((x) => x.split(' ')[0]).join(' e '))} ${nomes.length > 1 ? 'estão' : 'está'} aqui agora</span>` : '');
+  function rodapeLista(o) {
+    const p = O.parado(o), r = aquiHtml(o.agora) + (p ? `<span class="etiqueta ${p.cor}">${icone('hourglass')}${p.texto}</span>` : '');
+    return r ? `<span class="rodape">${r}</span>` : '';
   }
   function telaLista() {
-    const l = lista.filter(casa), com = l.filter((o) => o.responsavel === eu.email), outros = l.filter((o) => o.responsavel !== eu.email);
+    // "seus": os que você lançou o último voo (ou que o dono passou pra você); o resto, parados há mais tempo primeiro
+    const l = lista.filter(casa), meu = (o) => (o.ultimoVooEm ? o.ultimoVooPor : o.responsavel) === eu.email, desde = (o) => o.ultimoVooEm || o.criadoEm;
+    const com = l.filter(meu), outros = l.filter((o) => !meu(o)).sort((a, b) => desde(a).localeCompare(desde(b)));
     return `${topo()}${recadoHtml()}<label class="b-busca">${icone("search")}<input type="search" data-busca placeholder="Buscar nome, cidade ou nº" aria-label="Buscar orçamento" value="${esc(busca)}"></label>
-      <h2 class="grupo-t"><span class="ic">${icone('search')}</span>Em pesquisa com você <span class="n">${com.length}</span></h2>
-      ${com.length ? com.map(cartao).join('') : `<p class="b-vazio">Nada em pesquisa com você. Pegue um orçamento na fila do sistema.</p><a class="btn" href="/orcamentos.html" target="_blank">${icone('external-link')}Abrir a fila</a>`}
-      ${dono && outros.length ? `<h2 class="grupo-t"><span class="ic teal">${icone('users')}</span>Com a equipe <span class="n">${outros.length}</span></h2>${outros.map(cartao).join('')}` : ''}`;
+      ${com.length ? `<h2 class="grupo-t"><span class="ic">${icone('search')}</span>Você pesquisou por último <span class="n">${com.length}</span></h2>${com.map(cartao).join('')}` : ''}
+      <h2 class="grupo-t"><span class="ic teal">${icone('inbox')}</span>Pra pesquisar <span class="n">${outros.length}</span></h2>
+      ${outros.length ? outros.map(cartao).join('') : '<p class="b-vazio">Nada esperando pesquisa agora.</p>'}`;
   }
 
   // ---------- um orçamento: trechos em pílula, voos em acordeão; o formulário sobe numa folha ----------
@@ -241,7 +259,7 @@
       <div class="o-cab"><button type="button" class="ico" data-voltar aria-label="Voltar pra lista">${icone('arrow-left')}</button>
         <div class="t"><span class="id">#${orc.id} · ${esc(orc.contato.nome || 'sem nome')} · ${esc(O.fmtPax(orc.passageiros))}</span><h2>${esc(O.rota(orc))}</h2></div>
         <a class="ico" href="/orcamento.html?id=${orc.id}" target="_blank" aria-label="Abrir no sistema" title="Abrir no sistema">${icone('external-link')}</a></div>
-      <div class="faixas">${nota()}${KVSky.html(orc)}</div>${trechosA()}
+      <div class="faixas"><div data-aqui>${aquiHtml(outrosAqui)}</div>${nota()}${KVSky.html(orc)}</div>${trechosA()}
       ${folha ? '' : recadoHtml()}<div class="voos" data-voos>${voosHtml()}</div></div>${folhaHtml()}`;
   }
 

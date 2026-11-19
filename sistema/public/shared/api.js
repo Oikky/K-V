@@ -119,6 +119,8 @@
     conta: (id) => obter('/api/conta?id=' + encodeURIComponent(id)),
     movimento: (id) => obter('/api/movimento?id=' + encodeURIComponent(id)),
     orcamento: (id) => obter('/api/orcamento?id=' + encodeURIComponent(id)),
+    // "estou com esse orçamento aberto": devolve { outros: [nomes] } de quem mais está nele agora (nunca guardado)
+    presenca: (id) => pedir('/api/presenca', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) }),
     // { quieto: true } = gravação automática (salvar sozinho): não marca botão nenhum como ocupado
     acao: async (acao, dados = {}, { quieto = false } = {}) => {
       const soltar = quieto ? () => {} : ocupar();

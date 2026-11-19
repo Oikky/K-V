@@ -3,7 +3,7 @@
 import { usuarioDa } from './auth.js';
 import { executar, Recusa, ehDono } from './acoes.js';
 import { estado } from './estado.js';
-import { listarOrcamentos, abrirOrcamento } from './orcamentos.js';
+import { listarOrcamentos, abrirOrcamento, presenca } from './orcamentos.js';
 import './acoes/pesquisa.js';
 import './acoes/proposta.js';
 import './acoes/pessoas.js';
@@ -37,6 +37,7 @@ export default {
           const o = await abrirOrcamento(env, usuario, Number(url.searchParams.get('id')));
           return o ? json(o) : json({ erro: 'Orçamento não encontrado (ou já saiu da sua fila).' }, 404);
         }
+        if (url.pathname === '/api/presenca' && req.method === 'POST') return json(await presenca(env, usuario, Number((await req.json().catch(() => ({}))).id)));
         if (url.pathname === '/api/ponto' && req.method === 'GET') return json(await lerPonto(env, usuario));
         // só o dono: cadastro de pessoas e contas de pontos
         if (['/api/pessoas', '/api/pessoas/juntos', '/api/contas', '/api/conta', '/api/movimento', '/api/clientes', '/api/financeiro', '/api/empresa'].includes(url.pathname) && !ehDono(usuario)) return json({ erro: 'Só o dono vê isso' }, 403);
