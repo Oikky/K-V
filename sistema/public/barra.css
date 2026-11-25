@@ -149,11 +149,8 @@ body { overflow: hidden; }
 .o-cab h2 { font-size: 18px; letter-spacing: -.01em; margin: 0; }
 .faixas { display: flex; flex-direction: column; gap: 6px; }
 .faixas .sky { margin: 0; }
-.faixas .sky-l { padding: 8px 10px; }
-.faixas .sky-rot { min-width: 0; font-size: 13px; }
-.faixas .sky-v { height: 36px; font-size: 14px; }
-.faixas .sky-t { min-height: 36px; padding: 7px 10px; font-size: 14px; }
-.faixas .sky-v input { font-size: 14px; }
+.faixas .sky-res { padding: 8px 10px; }
+.faixas .sky-rot { font-size: 13px; }
 /* trechos numa pílula que desliza */
 .trs { position: relative; display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-1); overflow-x: auto; scrollbar-width: none; }
 .trs .ind { position: absolute; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 10px; background: var(--orange-soft); transition: transform .3s var(--eo), width .3s var(--eo); pointer-events: none; }

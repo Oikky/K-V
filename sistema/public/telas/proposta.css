@@ -118,7 +118,7 @@
 .prop .resumo b { color: var(--text); font-size: 15px; } .prop .resumo .salvo { margin-left: auto; color: var(--text-3); }
 .prop .sky-wrap { grid-column: 1 / -1; }
 .prop .sky { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; background: none; border: 0; }
-.prop .sky .sky-l { flex: 1 1 380px; }
+.prop .sky .sky-res { flex: 1 1 300px; width: auto; }
 .prop-combos { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
 .grupo { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .grupo .rot-cab { margin: 0; }

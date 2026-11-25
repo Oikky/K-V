@@ -399,13 +399,20 @@ body.vendo-como .area { padding-top: 64px; }
 
 /* Skyscanner: base de preço do orçamento, um por roteiro (pesquisa e barra da extensão) */
 .sky { display: grid; gap: 8px; margin: 0 0 14px; }
-.sky-l { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--line); }
-.sky-rot { font-weight: 700; font-size: 14px; flex: 0 0 auto; min-width: 190px; }
+.sky-res { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 10px; width: 100%; padding: 10px 12px; border-radius: 16px; background: var(--surface-1); border: 1px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.sky-res:hover { border-color: var(--text-3); background: var(--surface-2); }
+.sky-res:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.sky-rot { font-weight: 700; font-size: 14px; min-width: 0; }
 .sky-rot small { display: block; font-weight: 500; color: var(--text-2); font-size: 12px; }
-.sky-v { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); flex: 0 1 160px; min-width: 120px; color: var(--text-2); font-weight: 600; }
+.sky-val { font-weight: 700; font-size: 15px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sky-val small { font-weight: 500; font-size: 12px; color: var(--text-2); }
+.sky-val.vazio { color: var(--orange); font-weight: 600; font-size: 13px; }
+.sky-obs { grid-column: 1 / -1; font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sky-form { display: grid; gap: 14px; padding-bottom: 16px; }
+.sky-v { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); font-weight: 600; }
 .sky-v input { border: 0; background: none; color: var(--text); font: inherit; font-weight: 700; font-size: 16px; width: 100%; min-width: 0; outline: none; }
-.sky-t { min-height: 44px; padding: 10px 12px; line-height: 1.35; resize: vertical; field-sizing: content; max-height: 160px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 16px; flex: 1 1 200px; min-width: 0; }
-.sky-v:focus-within, .sky-t:focus { border-color: var(--orange); outline: none; }
+.sky-form textarea { width: 100%; min-height: 150px; padding: 10px 12px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 16px; line-height: 1.4; resize: vertical; }
+.sky-v:focus-within, .sky-form textarea:focus { border-color: var(--orange); outline: none; }
 
 /* ---------- janela do orçamento (redesign v2): por cima do quadro, com as abas das etapas ---------- */
 .area.fundo { pointer-events: none; }
