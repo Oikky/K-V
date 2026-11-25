@@ -1,5 +1,6 @@
 // Ações da pesquisa de voos: opções, lista de conferência, quem pesquisa e "marcar como pesquisado".
 import { acao, Recusa, ehDono } from '../acoes.js';
+import { pesquisaCria } from './orcamentos.js';
 
 // site → como paga e de qual programa sai a milha (igual a public/shared/orc.js)
 export const SITES = { Smiles: 'smiles', Latam: 'latam', TudoAzul: 'azul', Interline: 'azul', Skyscanner: null };
@@ -10,9 +11,11 @@ async function orcamento(db, id) {
   return o;
 }
 // o dono lança sempre; quem pesquisa, em qualquer orçamento que ainda está na pesquisa (não tem mais "pegar")
-function podeLancar(u, o) {
-  if (ehDono(u)) return;
-  if (!['novo', 'pesquisa'].includes(o.etapa)) throw new Recusa('Esse orçamento já saiu da pesquisa', 403);
+// e na pesquisa pronta dele, se o dono ligou isso em Configurações › Empresa (a mesma opção que libera criar orçamento)
+async function podeLancar(db, u, o) {
+  if (ehDono(u) || ['novo', 'pesquisa'].includes(o.etapa)) return;
+  if (o.etapa === 'pesquisado' && o.responsavel === u.email && await pesquisaCria(db)) return;
+  throw new Recusa('Esse orçamento já saiu da pesquisa', 403);
 }
 
 const ehHora = (s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
@@ -42,7 +45,7 @@ function detalhes(d) {
 // cria (sem id) ou altera uma opção de voo. Milhas por pessoa; taxa e preço em centavos, por pessoa.
 acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
   const o = await orcamento(db, d.orcamento);
-  podeLancar(usuario, o);
+  await podeLancar(db, usuario, o);
   const n = await db.prepare('SELECT COUNT(*) AS n FROM trechos WHERE orcamento_id = ?').bind(o.id).first();
   if (!inteiro(d.trecho, 0, n.n - 1)) throw new Recusa('Trecho inválido');
   if (!(d.site in SITES)) throw new Recusa('Site inválido');
@@ -91,7 +94,7 @@ acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
 
 acao('op.apagar', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, id }) => {
   const o = await orcamento(db, oid);
-  podeLancar(usuario, o);
+  await podeLancar(db, usuario, o);
   const antes = await db.prepare('SELECT * FROM opcoes WHERE id = ? AND orcamento_id = ?').bind(id, o.id).first();
   if (!antes) throw new Recusa('Opção não encontrada', 404);
   const combos = (await db.prepare('SELECT escolha FROM combos WHERE orcamento_id = ?').bind(o.id).all()).results;
@@ -106,7 +109,7 @@ acao('op.apagar', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid
 // muda a opção de trecho (lançou na ida o que era da volta, ou no roteiro errado)
 acao('op.mover', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, id, trecho }) => {
   const o = await orcamento(db, oid);
-  podeLancar(usuario, o);
+  await podeLancar(db, usuario, o);
   const antes = await db.prepare('SELECT * FROM opcoes WHERE id = ? AND orcamento_id = ?').bind(id, o.id).first();
   if (!antes) throw new Recusa('Opção não encontrada', 404);
   const t = Number.isInteger(trecho) ? await db.prepare('SELECT de, para FROM trechos WHERE orcamento_id = ? AND ordem = ?').bind(o.id, trecho).first() : null;
@@ -125,7 +128,7 @@ acao('op.mover', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid,
 // Skyscanner de um roteiro: preço por pessoa em centavos (ou vazio) e uma observação
 acao('orc.sky', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, roteiro, valor, texto: obs }) => {
   const o = await orcamento(db, oid);
-  podeLancar(usuario, o);
+  await podeLancar(db, usuario, o);
   const { n } = await db.prepare('SELECT MAX(roteiro) + 1 AS n FROM trechos WHERE orcamento_id = ?').bind(o.id).first();
   if (!inteiro(roteiro, 0, (n || 1) - 1)) throw new Recusa('Roteiro não encontrado', 404);
   if (valor != null && !inteiro(valor, 1, 1_000_000_00)) throw new Recusa('Valor do Skyscanner inválido');
@@ -138,7 +141,7 @@ acao('orc.sky', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, 
 // marca ou desmarca um item da lista de conferência
 acao('conf.marcar', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, ordem, feito }) => {
   const o = await orcamento(db, oid);
-  podeLancar(usuario, o);
+  await podeLancar(db, usuario, o);
   const c = await db.prepare('SELECT texto FROM conferencia WHERE orcamento_id = ? AND ordem = ?').bind(o.id, ordem).first();
   if (!c) throw new Recusa('Item não encontrado', 404);
   return {
@@ -180,7 +183,7 @@ acao('orc.passar', ['dono'], async ({ db }, { id, email }) => {
 // quem pesquisou entrega pro dono revisar
 acao('orc.pesquisado', ['dono', 'pesquisa'], async ({ db, usuario }, { id }) => {
   const o = await orcamento(db, id);
-  podeLancar(usuario, o);
+  await podeLancar(db, usuario, o);
   if (!['novo', 'pesquisa'].includes(o.etapa)) throw new Recusa('Esse orçamento já saiu da pesquisa', 409);
   return {
     resultado: { id },

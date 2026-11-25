@@ -14,7 +14,8 @@ KVTelas['orcamento'] = function () {
   const eDinheiro = (s) => O.site(s).forma === 'dinheiro';
   const pessoas = () => O.total(o);
   // sem "pegar" (2026-11-19): quem pesquisa lança em qualquer orçamento que ainda está na pesquisa
-  const podeLancar = () => dono || ['novo', 'pesquisa'].includes(o.etapa);
+  // a pesquisa pronta também, pra quem está com ela, se o dono liberou em Configurações › Empresa
+  const podeLancar = () => dono || ['novo', 'pesquisa'].includes(o.etapa) || (o.etapa === 'pesquisado' && o.responsavel === eu.email && est.podeCriar);
   // quem mais está com este orçamento aberto agora (a tela avisa o servidor a cada 30 s)
   let outrosAqui = [];
   const aquiHtml = () => (outrosAqui.length ? `<span class="etiqueta ok"><i data-lucide="eye"></i>${esc(outrosAqui.map((n) => n.split(' ')[0]).join(' e '))} ${outrosAqui.length > 1 ? 'estão' : 'está'} aqui agora</span>` : '');
