@@ -12,7 +12,7 @@ export async function estado(env, usuario) {
       : "SELECT email, nome, papel, pesquisa, foto FROM usuarios WHERE ativo = 1 AND (papel = 'pesquisador' OR pesquisa = 1) ORDER BY nome"),
     db.prepare(dono
       ? 'SELECT id, nome, valor_milha, limite, regra, renovacao FROM programas ORDER BY rowid'
-      : 'SELECT id, nome FROM programas ORDER BY rowid'),
+      : 'SELECT id, nome, valor_milha FROM programas ORDER BY rowid'),
     db.prepare(dono ? 'SELECT programa_id, nome, limite FROM categorias ORDER BY limite' : 'SELECT 1 WHERE 0'),
     // o admin troca de pessoa pelo menu do perfil, então recebe a equipe toda mesmo vendo como pesquisador
     db.prepare(usuario.real === 'admin' ? 'SELECT email, nome, papel, pesquisa, foto FROM usuarios WHERE ativo = 1 ORDER BY nome' : 'SELECT 1 WHERE 0'),
@@ -22,5 +22,7 @@ export async function estado(env, usuario) {
     db.prepare("SELECT json_extract(dados, '$.pesquisaCria') AS sim FROM empresa WHERE id = 1"),
   ])).map((r) => r.results);
   const podeCriar = dono || !!(empresa && empresa.sim);
+  // sem a opção ligada, quem pesquisa não recebe o valor da milha
+  if (!podeCriar) programas.forEach((p) => { delete p.valor_milha; });
   return { eu: usuario, usuarios, programas, categorias, podeCriar,...(dono ? { cartoes } : {}), ...(usuario.real === 'admin' ? { equipe } : {}) };
 }

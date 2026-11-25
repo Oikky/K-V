@@ -1,6 +1,7 @@
 // Lista da fila de orçamentos. O dono vê todos; quem pesquisa vê só o que está na fila ou em pesquisa
 // (o corte é feito aqui, antes de sair do servidor). O WhatsApp todos veem (2026-11-14: todos editam o pedido).
 import { ehDono } from './acoes.js';
+import { pesquisaCria } from './acoes/orcamentos.js';
 
 const todos = async (db, sql, ...args) => (await db.prepare(sql).bind(...args).all()).results;
 const PRESENTE_MS = 90e3; // a tela avisa a cada 30 s: sem aviso em 90 s, a pessoa saiu
@@ -23,7 +24,8 @@ export async function presenca(env, usuario, id) {
 export async function listarOrcamentos(env, usuario) {
   const db = env.DB, dono = ehDono(usuario);
   // quem pesquisa também vê os que ele já marcou como pesquisados (3ª coluna do quadro)
-  const filtro = dono ? '' : "WHERE o.etapa IN ('novo', 'pesquisa') OR (o.etapa = 'pesquisado' AND o.responsavel = ?)";
+  const prop = !dono && await pesquisaCria(db);
+  const filtro = dono ? '' : `WHERE o.etapa IN ('novo', 'pesquisa') OR (o.etapa IN (${prop ? "'pesquisado', 'enviado'" : "'pesquisado'"}) AND o.responsavel = ?)`;
   const args = dono ? [] : [usuario.email];
   // as leituras saem juntas
   const [linhas, trechos, porTrecho, aqui] = await Promise.all([todos(db, `
@@ -103,7 +105,12 @@ export async function abrirOrcamento(env, usuario, id) {
     conferencia: conferencia.map((c) => ({ ...c, feito: !!c.feito })),
     opcoes: opcoes.map((p) => ({ ...p, escalasOnde: p.escalas_onde ? JSON.parse(p.escalas_onde) : null, escalas_onde: undefined })),
   };
-  if (!dono) return base;
+  if (!dono) {
+    if (o.responsavel !== usuario.email || !['pesquisado', 'enviado'].includes(o.etapa) || !(await pesquisaCria(db))) return base;
+    const combos = await todos(db, 'SELECT id, ordem, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE orcamento_id = ? ORDER BY ordem', id);
+    return { ...base, enviadaEm: o.enviada_em, aceita: o.combo_aceita, mensagem: o.mensagem || null,
+      combos: combos.map((c) => ({ ...c, escolha: JSON.parse(c.escolha), milha: JSON.parse(c.milha || '{}') })) };
+  }
 
   const [combos, pax, emissoes, emPax, historico] = await Promise.all([
     todos(db, 'SELECT id, ordem, nome, escolha, milha, livre, parcelado, vezes FROM combos WHERE orcamento_id = ? ORDER BY ordem', id),

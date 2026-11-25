@@ -1,6 +1,14 @@
 // Ações da proposta: as combinações que vão pro cliente, enviar, desistiu e reabrir.
 // Dinheiro em centavos; valor da milha em milionésimos de real (R$ 0,0160 = 16000).
-import { acao, Recusa } from '../acoes.js';
+import { acao, Recusa, ehDono } from '../acoes.js';
+import { pesquisaCria } from './orcamentos.js';
+
+// o dono mexe sempre; quem pesquisa, só na proposta da pesquisa dele, antes de fechar, e se o dono ligou isso em Configurações › Empresa
+async function podeProposta(db, u, o) {
+  if (ehDono(u)) return;
+  if (o.responsavel === u.email && ['pesquisado', 'enviado'].includes(o.etapa) && await pesquisaCria(db)) return;
+  throw new Recusa('Só o dono mexe nessa proposta', 403);
+}
 
 const inteiro = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
 
@@ -12,8 +20,9 @@ async function orcamento(db, id) {
 
 // grava a proposta inteira (de 1 a 3 combinações por roteiro). Combinação com id é alterada; sem id, criada; a que sumiu da lista, apagada.
 // A tela manda isso sozinha, um instante depois de cada mudança.
-acao('prop.salvar', ['dono'], async ({ db }, { orcamento: oid, combos }) => {
+acao('prop.salvar', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, combos }) => {
   const o = await orcamento(db, oid);
+  await podeProposta(db, usuario, o);
   if (!['pesquisado', 'enviado'].includes(o.etapa)) throw new Recusa('A proposta só muda antes de fechar', 409);
   // a combinação escolhe um voo por posição (1º trecho, 2º...), de qualquer roteiro: dá pra misturar a ida de um com a volta de outro (null nos que não usa)
   const roteiroDe = (await db.prepare('SELECT roteiro FROM trechos WHERE orcamento_id = ? ORDER BY ordem').bind(o.id).all()).results.map((t) => t.roteiro);
@@ -59,8 +68,9 @@ acao('prop.salvar', ['dono'], async ({ db }, { orcamento: oid, combos }) => {
   return { resultado: { ids: limpos.map((c) => c.id) }, comandos, eventos };
 });
 
-acao('prop.enviar', ['dono'], async ({ db, quando }, { id }) => {
+acao('prop.enviar', ['dono', 'pesquisa'], async ({ db, quando, usuario }, { id }) => {
   const o = await orcamento(db, id);
+  await podeProposta(db, usuario, o);
   if (o.etapa !== 'pesquisado') throw new Recusa('A proposta já foi enviada', 409);
   const { n } = await db.prepare('SELECT COUNT(*) AS n FROM combos WHERE orcamento_id = ?').bind(id).first();
   if (!n) throw new Recusa('Monte pelo menos uma combinação antes');
@@ -72,14 +82,16 @@ acao('prop.enviar', ['dono'], async ({ db, quando }, { id }) => {
 });
 
 // texto da mensagem mudado à mão (null volta pro automático)
-acao('prop.mensagem', ['dono'], async ({ db }, { id, texto }) => {
+acao('prop.mensagem', ['dono', 'pesquisa'], async ({ db, usuario }, { id, texto }) => {
   const o = await orcamento(db, id);
+  await podeProposta(db, usuario, o);
   const t = texto == null ? null : String(texto).slice(0, 8000).trim() || null;
   return { resultado: { id }, comandos: [db.prepare('UPDATE orcamentos SET mensagem = ? WHERE id = ?').bind(t, o.id)] };
 });
 
-acao('orc.perder', ['dono'], async ({ db }, { id, motivo }) => {
+acao('orc.perder', ['dono', 'pesquisa'], async ({ db, usuario }, { id, motivo }) => {
   const o = await orcamento(db, id);
+  await podeProposta(db, usuario, o);
   motivo = String(motivo || '').trim().slice(0, 200);
   if (!motivo) throw new Recusa('Falta o motivo');
   if (['perdido', 'cancelado', 'emitido'].includes(o.etapa)) throw new Recusa('Esse orçamento já está fechado de outro jeito', 409);

@@ -300,10 +300,12 @@ KVTelas['proposta'] = function () {
     document.body.insertAdjacentHTML('afterbegin', '<p class="carregando area">Carregando…</p>');
     try {
       const [est] = await Promise.all([KVApi.estado(), recarregar()]);
-      if (!(est.eu.papel === 'dono' || est.eu.papel === 'admin')) { KVRota.trocar(`orcamento.html?id=${id}`); return; }
+      const ehDono = est.eu.papel === 'dono' || est.eu.papel === 'admin';
+      // quem pesquisa entra na proposta da pesquisa dele se o dono ligou isso em Configurações › Empresa
+      if (!ehDono && !(est.podeCriar && o.combos)) { KVRota.trocar(`orcamento.html?id=${id}`); return; }
       P.usarProgramas(est.programas);
       document.querySelector('.carregando').remove();
-      app = KVShell.montar('orcamentos', { dono: true, janela: { o, aba: 'proposta' } });
+      app = KVShell.montar('orcamentos', { dono: ehDono, janela: { o, aba: 'proposta', proposta: true } });
       ligarEventos();
       // primeira vez na proposta: o sistema já sugere 2 combinações e guarda
       if (o.etapa === 'pesquisado' && !o.combos.length) { o.combos = P.sugerir(o, 2).map(chavear); if (o.combos.length) marcarSujo(); }

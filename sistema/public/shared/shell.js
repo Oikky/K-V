@@ -88,7 +88,7 @@
   // Cada aba continua sendo uma tela (orcamento.html, proposta.html…); trocar de aba troca a tela sem virar passo do voltar.
   // O quadro que estava aberto fica parado no fundo; fechar (X, Esc, clicar fora) volta pra ele.
   const ICONE_ABA = { pesquisa: 'search', proposta: 'send', fechamento: 'handshake', emissao: 'ticket' };
-  function montarJanela(shell, velho, { o, aba }, dono) {
+  function montarJanela(shell, velho, { o, aba, proposta }, dono) {
     let veu = shell.querySelector('.veu-orc');
     // o quadro aberto vira o fundo (só na primeira vez; trocando de aba ele continua lá)
     if (!veu) {
@@ -105,17 +105,18 @@
     document.documentElement.classList.add('com-janela');
     // a risca laranja sai de onde estava (trocar de aba faz ela deslizar até a nova)
     const riscaAntes = veu.querySelector('.abas .risca'), deOnde = riscaAntes ? riscaAntes.style.cssText : '';
-    veu.dataset.aba = aba; veu.dataset.dono = dono ? '1' : '';
-    veu.innerHTML = `<div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc"><div class="j-cab">${cabJanela(o, aba, dono)}</div><main class="j-corpo" id="app" data-aba="${aba}"></main></div>`;
+    veu.dataset.aba = aba; veu.dataset.dono = dono ? '1' : ''; veu.dataset.prop = proposta ? '1' : '';
+    veu.innerHTML = `<div class="jan" role="dialog" aria-modal="true" aria-labelledby="t-orc"><div class="j-cab">${cabJanela(o, aba, dono, proposta)}</div><main class="j-corpo" id="app" data-aba="${aba}"></main></div>`;
     veu.querySelector('[data-fechar-orc]').onclick = fecharJanela;
     const risca = veu.querySelector('.abas .risca'); if (risca && deOnde) risca.style.cssText = deOnde;
     moverRisca(veu);
     return veu.querySelector('#app');
   }
-  function cabJanela(o, aba, dono) {
+  // quem pesquisa vê a aba Pesquisa e, com a opção da Empresa ligada, a Proposta da pesquisa dele
+  function cabJanela(o, aba, dono, proposta) {
     const pessoas = o.passageiros.adultos + o.passageiros.criancas + o.passageiros.bebes;
     const ini = primeiro(o.contato.nome).slice(0, 1).toUpperCase() + (String(o.contato.nome).trim().split(/\s+/)[1] || '').slice(0, 1).toUpperCase();
-    const passos = KVOrc.passos(o).filter((p) => dono || p.id === 'pesquisa');
+    const passos = KVOrc.passos(o).filter((p) => dono || p.id === 'pesquisa' || (proposta && p.id === 'proposta'));
     return `      <div class="j-topo"><span class="avc">${esc(ini)}</span><div class="j-tit"><h2 id="t-orc">${esc(o.contato.nome)} <span>#${o.id}</span></h2>
         <div class="sub">${esc(KVOrc.rota(o))} · ${esc(KVOrc.destino(o))} · ${pessoas} ${pessoas > 1 ? 'pessoas' : 'pessoa'} · ${KVOrc.etapa(o.etapa).nome}</div></div>
         <button class="btn-x" type="button" data-fechar-orc aria-label="Fechar (Esc)" title="Fechar (Esc)"><i data-lucide="x"></i></button></div>
@@ -126,7 +127,7 @@
   // dado novo do orçamento (pegou, mudou a etapa): atualiza o nome, a etapa e as abas sem mexer na tela
   function janelaCab(o) {
     const veu = document.querySelector('.veu-orc'); if (!veu) return;
-    veu.querySelector('.j-cab').innerHTML = cabJanela(o, veu.dataset.aba, !!veu.dataset.dono);
+    veu.querySelector('.j-cab').innerHTML = cabJanela(o, veu.dataset.aba, !!veu.dataset.dono, !!veu.dataset.prop);
     veu.querySelector('[data-fechar-orc]').onclick = fecharJanela; moverRisca(veu);
     if (window.lucide) lucide.createIcons();
   }

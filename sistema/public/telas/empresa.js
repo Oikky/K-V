@@ -22,7 +22,7 @@ KVTelas['empresa'] = function () {
             <span class="faint">PNG ou JPG; fica com 256 px no recibo</span></div></div>
         <div class="duas">${campo('cnpj', 'CNPJ', '00.000.000/0001-00', 'inputmode="numeric"')}${campo('tel', 'Telefone', '(00) 9 0000-0000', 'inputmode="tel"')}</div>
         <div class="duas">${campo('ig', 'Instagram', '@perfil')}${campo('gmail', 'E-mail', 'contato@exemplo.com', 'inputmode="email"')}</div>
-        <label class="check"><input type="checkbox" id="e-pesquisaCria" ${dados.pesquisaCria ? 'checked' : ''}><span>Quem pesquisa pode criar orçamentos e editar as pesquisas prontas<small>Ligado, os pesquisadores também veem o botão "Novo orçamento" e podem mexer nos voos de uma pesquisa já marcada como pronta (a que é deles).</small></span></label>
+        <label class="check"><input type="checkbox" id="e-pesquisaCria" ${dados.pesquisaCria ? 'checked' : ''}><span>Quem pesquisa pode criar orçamentos, editar as pesquisas prontas e fazer a proposta<small>Ligado, os pesquisadores também veem o botão "Novo orçamento" e, nas pesquisas deles, podem mexer nos voos depois de prontas e montar e enviar a proposta (com valor da milha, custo e preço de venda).</small></span></label>
         <div class="emp-pe"><span class="faint" data-estado></span><button class="btn primario" data-salvar><i data-lucide="check"></i>Salvar</button></div>
       </section>`;
     KVShell.icones();
