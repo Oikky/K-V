@@ -339,11 +339,13 @@ KVTelas['orcamento'] = function () {
     } else if (j === 'resumo') {
       // resumo escrito: o texto pro WhatsApp, montado com o que está lançado; a prévia mostra o negrito como o WhatsApp mostra
       dlg.classList.add('resumo');
-      const txt = KVResumo.resumo(o, { comValor: dono });
+      // o valor em R$ dos pontos sai pro dono e, com a opção da Empresa ligada, pra quem pesquisa também
+      const comValor = dono || est.podeCriar;
+      const txt = KVResumo.resumo(o, { comValor });
       const previa = esc(txt).replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
       dlg.innerHTML = cab('Resumo escrito', 'Montado com as opções lançadas, pra colar no WhatsApp') + `<div class="corpo"><div class="resumo-txt">${previa}</div>
         ${o.opcoes.length ? '' : '<p class="resumo-nota">Ainda não tem nenhuma opção lançada; quando tiver, ela entra aqui.</p>'}</div>
-        <footer><span class="resumo-nota">${dono ? '' : 'Sem o valor em R$: ele sai no resumo do dono.'}</span><button class="btn primario" data-copiar><i data-lucide="copy"></i>Copiar</button></footer>`;
+        <footer><span class="resumo-nota">${comValor ? '' : 'Sem o valor em R$: ele sai no resumo do dono.'}</span><button class="btn primario" data-copiar><i data-lucide="copy"></i>Copiar</button></footer>`;
       dlg.querySelector('[data-copiar]').onclick = async (e) => {
         const b = e.currentTarget;
         try { await navigator.clipboard.writeText(txt); b.innerHTML = '<i data-lucide="check"></i>Copiado'; KVShell.icones(); }
