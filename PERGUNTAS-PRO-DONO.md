@@ -48,7 +48,7 @@ Dúvidas de negócio que só quem opera a K&V sabe responder. Enquanto não houv
    _Provisório:_ continua só com o dono.
 
 15. **Datas da viagem no pedido.** Hoje o pedido tem o dia exato, a janela de 14 dias (semana do dia e a seguinte) e "outros dias pra olhar" um por um. A equipe pediu mais liberdade. O que serve: escolher o tamanho da janela (só o dia, 3 dias pra cada lado, 7, 14, mês inteiro), ou um intervalo livre "de tal dia até tal dia"?
-   _Provisório:_ continua como está até decidir.
+   _Decidido (25/11/2026):_ intervalo livre. O trecho tem "Dia" e "Até o dia" (opcional, até 31 dias); a janela fixa de 14 dias saiu do formulário.
 
 ## Clientes e passageiros
 

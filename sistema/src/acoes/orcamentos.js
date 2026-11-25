@@ -1,7 +1,7 @@
 // Ações dos orçamentos: criar e editar (tela e bot), pegar, mudar a etapa, duplicar e apagar.
 import { acao, Recusa, ehDono } from '../acoes.js';
 
-export const CONFERENCIA_PADRAO = ['Janela de 14 dias pesquisada', 'Bagagem conferida', 'Link de cada preço', 'Pontos e dinheiro pesquisados'];
+export const CONFERENCIA_PADRAO = ['Todos os dias pedidos pesquisados', 'Bagagem conferida', 'Link de cada preço', 'Pontos e dinheiro pesquisados'];
 
 const soDigitos = (s) => String(s || '').replace(/\D/g, '');
 const ehData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
