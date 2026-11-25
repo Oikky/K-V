@@ -1,6 +1,6 @@
 /* Tela: Novo orçamento. Endereço: /novo-orcamento.html (e /novo-orcamento.html?editar=12 pra mudar o pedido de um orçamento)
    Novo orçamento (rodada 8 dos rascunhos), gravando no banco: o dono anota o pedido que chegou pelo WhatsApp.
-     Quem pediu (acha o cadastro e pedidos antigos pelo WhatsApp), trechos com intervalo de dias (de/até), passageiros,
+     Quem pediu (acha o cadastro e pedidos antigos pelo WhatsApp), trechos com os dias escolhidos num calendário (arrastar = período, tocar = dia solto), passageiros,
      pedido especial (vira item da lista de conferência) e quem pesquisa. Criar: o dono (e quem pesquisa, se liberado em Configurações › Empresa). Editar: todos
      (o mesmo formulário, sem conferência e quem pesquisa, com o "falta perguntar").
    O estilo desta tela está em telas/novo-orcamento.css. */
@@ -14,29 +14,22 @@ KVTelas['novo-orcamento'] = function () {
   const st = {
     nome: '', whatsapp: '', pessoaId: null,
     // roteiros alternativos (A, B...): cada um com o tipo de viagem e os trechos dele
-    rots: [{ tipo: 'ida-volta', trechos: [{ de: 'GRU', para: '', data: '', ate: '' }, { de: '', para: 'GRU', data: '', ate: '', espelho: true }] }],
+    rots: [{ tipo: 'ida-volta', trechos: [{ de: 'GRU', para: '', data: '' }, { de: '', para: 'GRU', data: '', espelho: true }] }],
     pax: { adultos: 1, criancas: 0, bebes: 0 }, especiais: [], obs: '',
     padrao: CONFERENCIA_PADRAO.map((t) => ({ texto: t, on: true })), extras: [], responsavel: '', faltando: '',
   };
   // edição: o formulário começa com o que está gravado
   const tipoDe = (ts) => ts.length === 1 ? 'ida' : ts.length === 2 && ts[1].de === ts[0].para && ts[1].para === ts[0].de ? 'ida-volta' : 'varios';
   function carregar(o) {
-    const rots = O.roteiros(o).map((idx) => { const trechos = idx.map((i) => { const { de, para, data, janela, outrasDatas } = o.trechos[i]; return { de, para, data, janela, ...separar(data, outrasDatas) }; }); return { tipo: tipoDe(trechos), trechos }; });
+    const rots = O.roteiros(o).map((idx) => { const trechos = idx.map((i) => { const { de, para, data, janela, outrasDatas } = o.trechos[i]; return { de, para, data, janela, outrasDatas: [...outrasDatas] }; }); return { tipo: tipoDe(trechos), trechos }; });
     Object.assign(st, { nome: o.contato.nome, whatsapp: (o.contato.whatsapp || '').length > 11 ? o.contato.whatsapp : mascaraFone(o.contato.whatsapp || ''), pessoaId: o.pessoaId || null, rots, pax: { ...o.passageiros },
       especiais: o.pedido ? o.pedido.split(' · ') : [], obs: o.observacao || '', faltando: (o.faltando || []).join('\n') });
   }
-  // intervalo de/até: os dias depois do dia pedido até o "até" viram outros dias do trecho (o servidor guarda tudo em outrasDatas)
-  const MAX_DIAS = 31;
-  const diaMais = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return O.isoDia(d); };
-  const intervalo = (data, ate) => { const l = []; if (!data || !ate) return l; for (let d = diaMais(data, 1); d <= ate && l.length <= MAX_DIAS; d = diaMais(d, 1)) l.push(d); return l; };
-  // edição: a sequência de dias colada no dia pedido volta a ser o "até"; o resto fica como dia solto
-  function separar(data, outras) {
-    const set = new Set(outras); let ate = '';
-    for (let d = diaMais(data, 1); set.has(d); d = diaMais(d, 1)) ate = d;
-    const corrida = new Set(intervalo(data, ate));
-    return { ate, outrasDatas: outras.filter((x) => !corrida.has(x)) };
-  }
-  const diasDo = (t) => [...new Set([...intervalo(t.data, t.ate), ...(t.outrasDatas || [])])].filter((x) => x !== t.data).sort();
+  // dias do trecho: escolhidos no calendário (shared/calendario.js); o primeiro é o "dia" e os outros vão em outrasDatas (até 31)
+  const diasDe = (t) => (t.data ? [t.data, ...(t.outrasDatas || [])] : []);
+  const diasBotao = (t, id, ri, i) => { const l = diasDe(t);
+    return `<button type="button" id="${id}" class="dias-bt ${l.length ? '' : 'vazio'}" data-dias="${ri}|${i}" aria-haspopup="dialog" ${l.length > 1 ? `title="${esc(O.diasTexto(l))}"` : ''}>
+      <span>${l.length ? `${O.diaCurto(l[0])} ${O.dataCurta(l[0])}` : 'Escolher'}</span>${l.length > 1 ? `<b>+${l.length - 1}</b>` : ''}<i data-lucide="calendar"></i></button>`; };
   let criado = null, erros = [];
   const mascaraFone = (v) => { const d = v.replace(/\D/g, '').slice(0, 11); if (d.length <= 2) return d.length ? `(${d}` : ''; if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`; return `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}`; };
   const tira = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -65,11 +58,9 @@ KVTelas['novo-orcamento'] = function () {
       <div>${r.trechos.map((t, i) => `<div class="trecho"><span class="n">${i + 1}</span>
         <div class="campo de ${err('de', i)}"><label for="${id('de', i)}">De</label><select id="${id('de', i)}" data-r="${ri}" data-tr="${i}" data-k="de" data-livre="sigla">${opAero(t.de)}</select></div>
         <div class="campo para ${err('para', i)}"><label for="${id('para', i)}">Para</label><select id="${id('para', i)}" data-r="${ri}" data-tr="${i}" data-k="para" data-livre="sigla">${opAero(t.para)}</select></div>
-        <div class="campo data ${err('data', i)}"><label for="${id('dt', i)}">${i === 0 ? 'Dia' : r.tipo === 'ida-volta' ? 'Volta' : 'Dia'}</label><input id="${id('dt', i)}" type="date" data-r="${ri}" data-tr="${i}" data-k="data" value="${t.data}" ${editar ? '' : `min="${hoje}"`}></div>
+        <div class="campo data ${err('data', i)}"><label for="${id('dt', i)}">${i === 0 ? 'Dias' : r.tipo === 'ida-volta' ? 'Volta' : 'Dias'}</label>${diasBotao(t, id('dt', i), ri, i)}</div>
         ${r.tipo === 'varios' && r.trechos.length > 2 ? `<button class="btn icone fantasma rem" data-rem="${ri}|${i}" aria-label="Tirar trecho ${i + 1}"><i data-lucide="x"></i></button>` : '<span></span>'}
-        <div class="ate ${err('ate', i)}"><label for="${id('ate', i)}">Até o dia</label><input id="${id('ate', i)}" type="date" data-r="${ri}" data-tr="${i}" data-k="ate" value="${t.ate || ''}" ${t.data ? `min="${diaMais(t.data, 1)}" max="${diaMais(t.data, MAX_DIAS)}"` : ''}>${t.ate ? `<button class="btn icone fantasma" data-tira-ate="${ri}|${i}" aria-label="Tirar o até"><i data-lucide="x"></i></button><span class="faint">${intervalo(t.data, t.ate).length + 1} dias</span>` : '<span class="faint">opcional; vazio é só o dia</span>'}</div>
-        <div class="outros-dias"><span class="faint">Outros dias pra olhar:</span>${(t.outrasDatas || []).map((x, k) => `<button class="pilula" data-tira-dia="${ri}|${i}|${k}" aria-label="Tirar ${O.dataCurta(x)}">${O.dataCurta(x)} <i data-lucide="x"></i></button>`).join('')}
-          <input type="date" data-outro-dia="${ri}|${i}" aria-label="Pôr outro dia no trecho ${i + 1}"></div></div>`).join('')}</div>
+        ${(t.outrasDatas || []).length ? `<div class="dias-tudo faint">${esc(O.diasTexto(diasDe(t)))} · ${diasDe(t).length} dias</div>` : ''}</div>`).join('')}</div>
       ${r.tipo === 'varios' ? `<button class="btn" data-add-trecho="${ri}" style="justify-self:start"><i data-lucide="plus"></i>Outro trecho</button>` : ''}`;
   }
 
@@ -127,15 +118,14 @@ ${editar ? '' : `
   function resumo() {
     const rotas = st.rots.map((r) => r.trechos.filter((x) => x.de && x.para)).filter((t) => t.length);
     const pax = O.fmtPax(st.pax);
-    if (erros.length) return `<span style="color:var(--danger)">${erros.some((x) => x.startsWith('ate')) && !erros.some((x) => /^(nome|de|para|data)/.test(x)) ? `O "até" tem que ser depois do dia, no máximo ${MAX_DIAS} dias.` : `Falta preencher ${erros.includes('nome') ? 'quem pediu' : 'os trechos'}.`}</span>`;
+    if (erros.length) return `<span style="color:var(--danger)">Falta preencher ${erros.includes('nome') ? 'quem pediu' : 'os trechos'}.</span>`;
     return rotas.length ? `<b>${rotas.map((t) => t.map((x, i) => (i ? '' : x.de) + ' → ' + x.para).join(' ')).map(esc).join(' ou ')}</b> · ${pax}` : `${pax} · escolha os trechos`;
   }
 
   function validar() {
     erros = [];
     if (st.nome.trim().length < 2) erros.push('nome');
-    st.rots.forEach((r, ri) => r.trechos.forEach((t, i) => { if (!t.de) erros.push(`de${ri}_${i}`); if (!t.para) erros.push(`para${ri}_${i}`); if (!t.data) erros.push(`data${ri}_${i}`);
-      if (t.ate && (!t.data || t.ate <= t.data || diasDo(t).length > MAX_DIAS)) erros.push(`ate${ri}_${i}`); }));
+    st.rots.forEach((r, ri) => r.trechos.forEach((t, i) => { if (!t.de) erros.push(`de${ri}_${i}`); if (!t.para) erros.push(`para${ri}_${i}`); if (!t.data) erros.push(`data${ri}_${i}`); }));
     return !erros.length;
   }
   function renderCriado() {
@@ -155,16 +145,13 @@ ${editar ? '' : `
       if (t.id === 'zap') { t.value = mascaraFone(t.value); st.whatsapp = t.value; st.pessoaId = null; app.querySelector('[data-achados]').innerHTML = achados(); KVShell.icones(); }
       if (t.id === 'obs') st.obs = t.value;
       if (t.id === 'faltando') st.faltando = t.value;
-      if (t.dataset.tr != null && t.dataset.k === 'data') { trechoDo(t).data = t.value; const at = app.querySelector(`[data-r="${t.dataset.r}"][data-tr="${t.dataset.tr}"][data-k="ate"]`); if (at && t.value) { at.min = diaMais(t.value, 1); at.max = diaMais(t.value, MAX_DIAS); } if (erros.length) validar(); app.querySelector('[data-res]').innerHTML = resumo(); }
     });
     app.addEventListener('change', (e) => {
       const t = e.target;
       if (t.dataset.tr != null) {
         const tr = trechoDo(t);
-        if (t.dataset.k === 'ate') { tr.ate = t.value; if (erros.length) validar(); render(); }
-        else if (t.dataset.k === 'de' || t.dataset.k === 'para') { tr[t.dataset.k] = t.value; guardarLugar(t.value); if (+t.dataset.tr === 1) tr.espelho = false; if (erros.length) validar(); render(); }
+        if (t.dataset.k === 'de' || t.dataset.k === 'para') { tr[t.dataset.k] = t.value; guardarLugar(t.value); if (+t.dataset.tr === 1) tr.espelho = false; if (erros.length) validar(); render(); }
       }
-      if (t.dataset.outroDia != null && t.value) { const [ri, i] = t.dataset.outroDia.split('|').map(Number), tr = st.rots[ri].trechos[i]; tr.outrasDatas = [...new Set([...(tr.outrasDatas || []), t.value])].sort(); render(); }
       if (t.dataset.padrao != null) { st.padrao[+t.dataset.padrao].on = t.checked; render(); }
       if (t.dataset.extra != null && !t.checked) { st.extras.splice(+t.dataset.extra, 1); render(); }
     });
@@ -175,15 +162,19 @@ ${editar ? '' : `
       else if (b.dataset.tipo) {
         const r = st.rots[+b.dataset.r]; r.tipo = b.dataset.tipo; const t0 = r.trechos[0];
         if (r.tipo === 'ida') r.trechos = [t0];
-        if (r.tipo === 'ida-volta') r.trechos = [t0, { de: t0.para, para: t0.de, data: (r.trechos[1] || {}).data || '', ate: (r.trechos[1] || {}).ate || '', espelho: true }];
-        if (r.tipo === 'varios' && r.trechos.length < 2) r.trechos.push({ de: t0.para, para: '', data: '', ate: '' });
+        if (r.tipo === 'ida-volta') r.trechos = [t0, { de: t0.para, para: t0.de, data: (r.trechos[1] || {}).data || '', outrasDatas: [...((r.trechos[1] || {}).outrasDatas || [])], espelho: true }];
+        if (r.tipo === 'varios' && r.trechos.length < 2) r.trechos.push({ de: t0.para, para: '', data: '' });
         r.trechos.forEach((t) => { if (r.tipo !== 'ida-volta') delete t.espelho; });
         render();
       }
-      else if (b.dataset.addTrecho != null) { const ts = st.rots[+b.dataset.addTrecho].trechos, ult = ts[ts.length - 1]; ts.push({ de: ult.para, para: '', data: '', ate: '' }); render(); }
+      else if (b.dataset.addTrecho != null) { const ts = st.rots[+b.dataset.addTrecho].trechos, ult = ts[ts.length - 1]; ts.push({ de: ult.para, para: '', data: '' }); render(); }
       else if (b.dataset.rem != null) { const [ri, i] = b.dataset.rem.split('|').map(Number); st.rots[ri].trechos.splice(i, 1); render(); }
-      else if (b.dataset.tiraAte) { const [ri, i] = b.dataset.tiraAte.split('|').map(Number); st.rots[ri].trechos[i].ate = ''; render(); }
-      else if (b.dataset.tiraDia) { const [ri, i, k] = b.dataset.tiraDia.split('|').map(Number); st.rots[ri].trechos[i].outrasDatas.splice(k, 1); render(); }
+      else if (b.dataset.dias) {
+        const [ri, i] = b.dataset.dias.split('|').map(Number), r = st.rots[ri], tr = r.trechos[i];
+        const nome = `${tr.de || '?'} → ${tr.para || '?'}`;
+        KVCalendario.abrir({ dias: diasDe(tr), min: editar ? '' : hoje, titulo: i && r.tipo === 'ida-volta' ? `Volta · ${nome}` : `Dias · ${nome}`,
+          aoPronto: (l) => { tr.data = l[0] || ''; tr.outrasDatas = l.slice(1); if (erros.length) validar(); render(); app.querySelector(`[data-dias="${ri}|${i}"]`).focus(); } });
+      }
       // outro roteiro começa igual ao A, só sem o destino da ida (a volta acompanha)
       else if (b.hasAttribute('data-add-rot')) {
         const a = st.rots[0], trechos = a.trechos.map((t) => ({ ...t, outrasDatas: [...(t.outrasDatas || [])] }));
@@ -202,7 +193,7 @@ ${editar ? '' : `
         enviando = true; b.disabled = true;
         const dados = {
           contato: { nome: st.nome.trim(), whatsapp: soDig(st.whatsapp) }, pessoaId: st.pessoaId, responsavel: st.responsavel || null,
-          trechos: st.rots.flatMap((r, ri) => r.trechos.map((t) => ({ de: t.de, para: t.para, data: t.data, janela: !!t.janela && !t.ate && !(t.outrasDatas || []).length, outrasDatas: diasDo(t), roteiro: ri }))), passageiros: { ...st.pax },
+          trechos: st.rots.flatMap((r, ri) => r.trechos.map((t) => ({ de: t.de, para: t.para, data: t.data, janela: !!t.janela && !(t.outrasDatas || []).length, outrasDatas: t.outrasDatas || [], roteiro: ri }))), passageiros: { ...st.pax },
           especiais: st.especiais, observacao: st.obs.trim(),
           conferencia: [...st.padrao.filter((c) => c.on).map((c) => c.texto), ...st.especiais, ...st.extras],
         };

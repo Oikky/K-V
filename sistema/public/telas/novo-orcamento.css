@@ -13,10 +13,15 @@
   .trecho { display: grid; grid-template-columns: 26px 1fr 1fr 150px auto; gap: 10px; align-items: end; padding: 12px 0; border-top: 1px solid var(--line); }
   .trecho:first-of-type { border-top: 0; padding-top: 0; }
   .trecho .n { width: 24px; height: 44px; display: grid; place-items: center; font-weight: 800; color: var(--text-3); }
-  .trecho .ate { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13.5px; color: var(--text-2); }
-  .trecho .ate label { font-weight: 600; color: var(--text-2); }
-  .trecho .ate input[type=date] { height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); padding: 0 10px; font-size: 16px; }
-  .trecho .ate.erro-campo input { border-color: var(--danger); }
+  .dias-bt { display: flex; align-items: center; gap: 6px; width: 100%; height: 44px; padding: 0 10px 0 12px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; text-align: left; }
+  .dias-bt span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dias-bt b { flex: 0 0 auto; padding: 1px 7px; border-radius: 999px; background: var(--orange-soft); color: var(--orange); font-size: 12.5px; }
+  .dias-bt svg.lucide { width: 17px; height: 17px; color: var(--text-2); flex: 0 0 auto; }
+  .dias-bt.vazio span { color: var(--text-3); font-weight: 500; }
+  .dias-bt:hover { border-color: var(--text-3); }
+  .dias-bt:focus-visible { outline: none; border-color: var(--orange); }
+  .erro-campo .dias-bt { border-color: var(--danger); }
+  .dias-tudo { grid-column: 2 / -1; font-size: 13px; margin-top: -2px; }
   .trecho .btn.icone { width: 44px; height: 44px; }
   .steppers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .step { background: var(--surface-2); border-radius: 16px; padding: 10px 12px; display: grid; gap: 6px; justify-items: center; }
@@ -52,11 +57,6 @@
     .step .r small { text-align: left; }
   }
 
-/* outros dias pra olhar no mesmo trecho ("dia 30 e 31") */
-.outros-dias { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
-.outros-dias .pilula { display: inline-flex; align-items: center; gap: 4px; }
-.outros-dias .pilula svg.lucide { width: 14px; height: 14px; }
-.outros-dias input[type=date] { height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: inherit; padding: 0 8px; font-size: 16px; }
 
 /* roteiros alternativos: o formulário alarga e cada roteiro vira uma coluna (no celular, um embaixo do outro) */
 .form:has(.roteiros), .form:has(.roteiros) + .barra-criar { max-width: 1180px; }
