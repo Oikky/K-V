@@ -57,7 +57,7 @@ acao('op.salvar', ['dono', 'pesquisa'], async ({ db, usuario, quando }, d) => {
   const malas = d.bagagem === true ? 1 : d.bagagem === false || d.bagagem == null ? 0 : d.bagagem;
   if (!inteiro(malas, 0, 9)) throw new Recusa('Malas inválidas');
   const milhas = pontos ? d.milhas : null, taxa = pontos ? d.taxa : null, preco = pontos ? null : d.preco;
-  if (pontos && (!inteiro(milhas, 1, 10_000_000) || !inteiro(taxa, 0, 100_000_00))) throw new Recusa('Milhas ou taxa inválidas');
+  if (pontos && (!inteiro(milhas, 1, 10_000_000) || !(taxa == null || inteiro(taxa, 0, 100_000_00)))) throw new Recusa('Milhas ou taxa inválidas');
   if (!pontos && !inteiro(preco, 1, 1_000_000_00)) throw new Recusa('Preço inválido');
   const voo = String(d.voo || '').trim().toUpperCase().slice(0, 20);
   const cia = String(d.cia || voo.split(' ')[0] || d.site).slice(0, 40);
@@ -131,7 +131,7 @@ acao('orc.sky', ['dono', 'pesquisa'], async ({ db, usuario }, { orcamento: oid, 
   if (valor != null && !inteiro(valor, 1, 1_000_000_00)) throw new Recusa('Valor do Skyscanner inválido');
   const sky = JSON.parse(o.sky || '[]');
   while (sky.length <= roteiro) sky.push(null);
-  sky[roteiro] = { valor: valor ?? null, texto: texto(obs, 200) || '' };
+  sky[roteiro] = { valor: valor ?? null, texto: texto(obs, 600) || '' };
   return { resultado: { sky }, comandos: [db.prepare('UPDATE orcamentos SET sky = ? WHERE id = ?').bind(JSON.stringify(sky), o.id)], eventos: [] };
 });
 

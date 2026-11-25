@@ -225,11 +225,11 @@
   const nota = () => { const n = [orc.pedido, orc.observacao].filter(Boolean).join(' · '); return n ? `<details class="b-nota"><summary>${icone('message-square-text')}<span>${esc(n)}</span></summary></details>` : ''; };
   const trechosA = () => (orc.trechos.length > 1 ? `<div class="trs" role="tablist" aria-label="Trechos"><span class="ind" data-ind></span>${orc.trechos.map((x, i) => { const n = opsDo(i).length;
     return `<button type="button" class="tr" role="tab" aria-selected="${i === trecho}" data-trecho="${i}"><b>${esc(x.de)} → ${esc(x.para)}</b><small>${n ? `<span class="ok">${n} ${n > 1 ? 'voos' : 'voo'}</span>` : 'sem voo'}${O.roteiros(orc).length > 1 ? ` · ${O.letra(x.roteiro || 0)}` : ''}</small></button>`; }).join('')}</div>` : '');
-  const valor = (x) => (x.milhas ? `${O.fmt.pts(x.milhas)} mi<small>+ ${O.fmt.brl(x.taxa)}</small>` : `${O.fmt.brl(x.preco)}<small>dinheiro</small>`);
+  const valor = (x) => (x.milhas ? `${O.fmt.pts(x.milhas)} mi<small>+ ${O.taxaTxt(x.taxa)}</small>` : `${O.fmt.brl(x.preco)}<small>dinheiro</small>`);
   function vooHtml(x) {
     const on = vooAberto === x.id, malas = x.bagagem ? `${x.bagagem} mala${x.bagagem > 1 ? 's' : ''}` : 'sem mala';
     const linhas = [['Dia', `${O.diaCurto(x.data)} ${O.dataCurta(x.data)}`], ['Voo', [x.voo, x.cia].filter(Boolean).map(esc).join(' · ') || '—'], ['Horário', `${esc(x.sai)} → ${esc(x.chega)}`], ['Tempo', esc(x.duracao || '—')],
-      ['Escalas e malas', `${x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto'} · ${malas}`], ['Por pessoa', x.milhas ? `${O.fmt.pts(x.milhas)} milhas + ${O.fmt.brl(x.taxa)}` : O.fmt.brl(x.preco)]];
+      ['Escalas e malas', `${x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto'} · ${malas}`], ['Por pessoa', x.milhas ? `${O.fmt.pts(x.milhas)} milhas + ${O.taxaTxt(x.taxa)}` : O.fmt.brl(x.preco)]];
     const acoes = apagando === x.id
       ? `<span class="pergunta">Apagar este voo?</span><button type="button" class="bt perigo" data-apagar-sim="${x.id}">${icone('trash-2')}Apagar</button><button type="button" class="bt" data-apagar-nao>Não</button>`
       : `<button type="button" class="bt" data-editar="${x.id}">${icone('pencil')}Editar</button><button type="button" class="bt" data-dup="${x.id}">${icone('copy')}Repetir</button><button type="button" class="bt perigo fim" data-apagar="${x.id}" aria-label="Apagar">${icone('trash-2')}</button>`;

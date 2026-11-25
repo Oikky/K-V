@@ -74,7 +74,7 @@ KVTelas['emissao'] = function () {
     const x = opDo(ti), t = o.trechos[ti], e = emissao(ti), es = escolha(ti), pts = emPontos(ti), pag = O.pagantes(o);
     const cab = `<div class="cab"><span class="pq">${P.nomeTrecho(o, ti)} · ${P.diaSem(x.data)} ${O.dataCurta(x.data)} · ${t.de} → ${t.para} · <span class="sitio" data-s="${esc(x.site)}">${esc(x.site)}</span></span>
       <span class="hora">${hora(x)}</span><span class="pq">${[x.voo, x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto', x.bagagem && 'com mala'].filter(Boolean).map(esc).join(' · ')}</span></div>`;
-    const gasto = pts ? `<div class="gasto"><b>${fmt.pts(x.milhas * pag)} pts</b><span>+ ${fmt.brl(x.taxa * pag)} de taxa · ${pag} ${pag > 1 ? 'pagantes' : 'pagante'}</span></div>`
+    const gasto = pts ? `<div class="gasto"><b>${fmt.pts(x.milhas * pag)} pts</b><span>+ ${x.taxa == null ? 'taxa a ver' : `${fmt.brl(x.taxa * pag)} de taxa`} · ${pag} ${pag > 1 ? 'pagantes' : 'pagante'}</span></div>`
       : `<div class="gasto"><b>${fmt.brl(x.preco * pag)}</b><span>em dinheiro · ${pag} ${pag > 1 ? 'pagantes' : 'pagante'}</span></div>`;
     if (e) {
       const c = e.conta_id && contaDe(e.conta_id);

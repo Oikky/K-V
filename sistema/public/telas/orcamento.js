@@ -136,7 +136,7 @@ KVTelas['orcamento'] = function () {
       ['Voo', [op.voo, op.cia, op.cabine].filter(Boolean).map(esc).join(' · ')],
       ['Escalas', `${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'}${onde ? ` · ${esc(onde)}` : ''}`],
       ['Bagagem', op.bagagem ? `${op.bagagem > 1 ? `${op.bagagem} malas` : '1 mala'}${op.milhas_mala ? ` (+ ${fmt.pts(op.milhas_mala)} pts)` : ''}` : 'sem mala despachada'],
-      eDinheiro(op.site) ? ['Preço', `${fmt.brl(op.preco)} por pessoa`] : ['Milhas e taxa', `${fmt.pts(op.milhas)} pts + ${fmt.brl(op.taxa)} por pessoa`],
+      eDinheiro(op.site) ? ['Preço', `${fmt.brl(op.preco)} por pessoa`] : ['Milhas e taxa', `${fmt.pts(op.milhas)} pts + ${O.taxaTxt(op.taxa)} por pessoa`],
       dono ? ['Custo total', fmt.brl(O.custo(op, o))] : null,
       fora.length ? ['Fora do pedido', `<span class="warn-t">${fora.join(' · ')}</span>`] : null,
       op.destaque ? ['Destaque', esc(op.destaque)] : null,
@@ -155,7 +155,7 @@ KVTelas['orcamento'] = function () {
       <button class="v4 ${melhor ? 'menor' : ''}" data-voo="${op.id}" aria-expanded="${on}">
         <span class="site" data-s="${esc(op.site)}">${esc(op.site)}</span>
         <span class="h">${O.diaCurto(op.data)} ${O.dataCurta(op.data)} · ${op.sai} → ${esc(op.chega.replace(/ \+\d$/, ''))}${/\+\d$/.test(op.chega) ? `<small>${op.chega.slice(-2)}</small>` : ''}</span>
-        <span class="p">${dinheiro ? fmt.brl(op.preco) : `${fmt.pts(op.milhas)} <small class="u">pts</small>`}<small>${dinheiro ? 'em dinheiro' : `+ ${fmt.brl(op.taxa)}`}</small></span>
+        <span class="p">${dinheiro ? fmt.brl(op.preco) : `${fmt.pts(op.milhas)} <small class="u">pts</small>`}<small>${dinheiro ? 'em dinheiro' : `+ ${O.taxaTxt(op.taxa)}`}</small></span>
         <span class="m">${op.escalas ? `${op.escalas} escala${op.escalas > 1 ? 's' : ''}` : 'direto'} · ${op.bagagem ? (op.bagagem > 1 ? `${op.bagagem} malas` : '1 mala') : 'sem mala'}${op.voo ? ` · ${esc(op.voo)}` : ''}${melhor ? `<span class="melhor">${dono ? 'menor custo' : 'menos milhas'}</span>` : ''}${foraDoPedido(op).length ? '<span class="fora">fora do pedido</span>' : ''}</span>
         <span class="chev"><i data-lucide="chevron-down"></i></span></button>
       <div class="det-wrap" ${on ? '' : 'inert'}><div><div class="det">${detalheOp(op)}</div></div></div></div>`;

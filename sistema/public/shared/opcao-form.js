@@ -37,7 +37,7 @@
         ${campo('f-bagagem', 'Mala despachada', `<select id="f-bagagem" data-f="bagagem">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${+(r.bagagem || 0) === n ? 'selected' : ''}>${n ? `${n} inclusa${n > 1 ? 's' : ''}` : 'Não inclusa'}</option>`).join('')}</select>`)}</div>
       <h3 class="form-grupo">Valores, por pessoa</h3>
       ${din ? campo('f-preco', 'Preço em dinheiro', entrada('preco', 'inputmode="decimal" placeholder="R$"', r.preco))
-        : `<div class="duas">${campo('f-milhas', 'Milhas', entrada('milhas', 'inputmode="numeric" placeholder="45.000"', r.milhas))}${campo('f-taxa', 'Taxa', entrada('taxa', 'inputmode="decimal" placeholder="R$"', r.taxa))}</div>
+        : `<div class="duas">${campo('f-milhas', 'Milhas', entrada('milhas', 'inputmode="numeric" placeholder="45.000"', r.milhas))}${campo('f-taxa', 'Taxa <span class="opc">pode pôr depois</span>', entrada('taxa', 'inputmode="decimal" placeholder="R$"', r.taxa))}</div>
         ${campo('f-mmala', 'Milhas com mala despachada', entrada('milhasMala', 'inputmode="numeric" placeholder="Se o site cobra a mala à parte"', r.milhasMala))}`}
       <h3 class="form-grupo">Anotações</h3>
       ${campo('f-destaque', 'Destaque', entrada('destaque', 'list="l-destaques" placeholder="‼️Opção mais barata‼️" autocomplete="off"', r.destaque))}
@@ -69,11 +69,11 @@
     const milhasMala = lerNum(v.milhasMala), milhas = lerNum(v.milhas);
     // nome livre ("São Paulo GRU"); sigla sozinha vira "Cidade SIGLA"
     const de = lugarEscala(v.de).slice(0, 60), para = lugarEscala(v.para).slice(0, 60);
-    // taxa pode ser zero (emissão sem taxa); só não pode ficar vazia
+    // taxa pode ser zero (emissão sem taxa) ou ficar vazia pra pôr depois (Azul e Smiles só mostram no fim)
     const taxa = String(v.taxa || '').trim() === '0' ? 0 : O.lerReais(v.taxa), preco = O.lerReais(v.preco);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v.data || '')) erros.push('data');
     if (!sai) erros.push('sai'); if (!chega) erros.push('chega');
-    if (din && !preco) erros.push('preco'); if (!din && !milhas) erros.push('milhas'); if (!din && taxa == null) erros.push('taxa');
+    if (din && !preco) erros.push('preco'); if (!din && !milhas) erros.push('milhas');
     if (erros.length) return { erros };
     const voo = String(v.voo || '').trim().toUpperCase();
     const escalasOnde = (v.escalasOnde || []).map(([l, tm]) => [lugarEscala(l), tempo(tm)]).filter(([l]) => l);

@@ -109,6 +109,8 @@
     data: (s) => s.split('-').reverse().join('/'),
     fone: (d) => !d ? '' : d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d,
   };
+  // taxa ainda não anotada (fica vazia até o pesquisador ver no fim da busca)
+  const taxaTxt = (t) => (t == null ? 'taxa a ver' : fmt.brl(t));
   // "1.234,56", "1234.5", "R$ 99" → centavos (ou null)
   const lerReais = (t) => { const n = +String(t ?? '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'); return isFinite(n) && n > 0 ? Math.round(n * 100) : null; };
 
@@ -117,7 +119,7 @@
   const usarProgramas = (lista) => { valoresMilha = Object.fromEntries((lista || []).filter((p) => p.valor_milha != null).map((p) => [p.id, p.valor_milha])); };
   const valorMilhaPadrao = (prog) => valoresMilha[prog] || 0;
   // custo pra K&V, em centavos, por pessoa: milhas × valor da milha + taxa, ou o preço em dinheiro
-  const custoPessoa = (op) => site(op.site).forma === 'pontos' ? Math.round(op.milhas * valorMilhaPadrao(site(op.site).programa) / 1e4) + op.taxa : op.preco;
+  const custoPessoa = (op) => site(op.site).forma === 'pontos' ? Math.round(op.milhas * valorMilhaPadrao(site(op.site).programa) / 1e4) + (op.taxa || 0) : op.preco;
   const custo = (op, o) => custoPessoa(op) * pagantes(o);
 
   // ---------- trilha: as quatro telas do atendimento, em ordem ----------
@@ -143,6 +145,6 @@
   }
 
   window.KVOrc = { aeroportos: AEROPORTOS, aeroporto, cidadeCurta, etapas: ETAPAS, etapa, idade, parado, dataCurta, rota, destino, esc, roteiros, letra, cidades, diasTexto,
-    sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, lerReais, isoDia,
+    sites: SITES, site, internacional: (o) => o.trechos.some((t) => aeroporto(t.de).int || aeroporto(t.para).int), janelaDias, diaCurto, pagantes, total, fmtPax, fmt, taxaTxt, lerReais, isoDia,
     usarProgramas, valorMilhaPadrao, custoPessoa, custo, trilha, passos, telaDa };
 })();

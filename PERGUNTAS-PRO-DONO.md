@@ -44,6 +44,12 @@ Dúvidas de negócio que só quem opera a K&V sabe responder. Enquanto não houv
 13. **O que vai pro cliente.** Quando o pesquisador acha várias idas e voltas, o que você manda pra pessoa no WhatsApp? Uma combinação só (a melhor), 2 ou 3 combinações com preços diferentes (ex.: "mais barata com escala" e "direto"), ou todas as opções pra ela escolher trecho por trecho? Varia, podem ser de 1 a mais
    _Provisório:_ 2 ou 3 combinações, cada uma com um preço de venda pela viagem inteira (todos os passageiros); no fechamento, marca-se a que a pessoa aceitou.
 
+14. **Quem pesquisa vê o valor em reais das milhas?** O pesquisador pediu pra ver quanto dá em reais uma opção em milhas (ex.: Smiles, 45.000 pts × R$ 0,016 = R$ 720 + taxa). Hoje só o dono vê o valor da milha e o custo; quem pesquisa vê só pontos e taxa. Libera pra quem pesquisa, ou continua só com o dono?
+   _Provisório:_ continua só com o dono.
+
+15. **Datas da viagem no pedido.** Hoje o pedido tem o dia exato, a janela de 14 dias (semana do dia e a seguinte) e "outros dias pra olhar" um por um. A equipe pediu mais liberdade. O que serve: escolher o tamanho da janela (só o dia, 3 dias pra cada lado, 7, 14, mês inteiro), ou um intervalo livre "de tal dia até tal dia"?
+   _Provisório:_ continua como está até decidir.
+
 ## Clientes e passageiros
 
 12. **Dados de cada pessoa.** Além de nome e CPF, o que vocês precisam guardar de quem voa e de quem paga? Data de nascimento? WhatsApp e e-mail? Passaporte e validade (pra voo internacional)? Observações (ex.: "prefere janela")? Sim, tudo correto

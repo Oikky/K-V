@@ -11,7 +11,7 @@
     return `<div class="sky">${rs.map((idx, r) => { const s = de(o, r);
       return `<div class="sky-l"><span class="sky-rot">Skyscanner${rs.length > 1 ? ` · roteiro ${O.letra(r)} <small>${O.cidades(o, idx).map(esc).join(' → ')}</small>` : ''}</span>
         <label class="sky-v"><span>R$</span><input data-sky-v="${r}" inputmode="decimal" autocomplete="off" placeholder="por pessoa" value="${reais(s.valor)}" aria-label="Preço no Skyscanner por pessoa${rs.length > 1 ? `, roteiro ${O.letra(r)}` : ''}" ${ro}></label>
-        <input class="sky-t" data-sky-t="${r}" autocomplete="off" maxlength="200" placeholder="observação (cia, escalas…)" value="${esc(s.texto)}" aria-label="Observação do Skyscanner" ${ro}></div>`; }).join('')}</div>`;
+        <textarea class="sky-t" data-sky-t="${r}" autocomplete="off" maxlength="600" rows="${Math.min(6, Math.max(1, String(s.texto || '').split('\n').length))}" placeholder="observação (cia, escalas…)" aria-label="Observação do Skyscanner" ${ro}>${esc(s.texto)}</textarea></div>`; }).join('')}</div>`;
   }
 
   // grava ao sair do campo (change); o objeto do orçamento já fica com o valor novo

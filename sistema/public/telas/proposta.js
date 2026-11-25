@@ -13,7 +13,7 @@ KVTelas['proposta'] = function () {
   const numCampo = (c) => c == null ? '' : (c / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
   const hora = (x) => `${x.sai} → ${x.chega.replace(/ \+\d$/, '')}${/\+\d$/.test(x.chega) ? `<sup>${x.chega.slice(-2)}</sup>` : ''}`;
   const detalhe = (x) => [x.escalas ? `${x.escalas} escala${x.escalas > 1 ? 's' : ''}` : 'direto', x.bagagem && 'mala'].filter(Boolean).join(' · ');
-  const valorOp = (x) => O.site(x.site).forma === 'dinheiro' ? fmt.brl(x.preco) : `${fmt.pts(x.milhas)} pts + ${fmt.brl(x.taxa)}`;
+  const valorOp = (x) => O.site(x.site).forma === 'dinheiro' ? fmt.brl(x.preco) : `${fmt.pts(x.milhas)} pts + ${O.taxaTxt(x.taxa)}`;
   const teto = () => P.teto(o);
   const venda = (c) => P.venda(o, c);
   // cada combinação tem uma chave na tela (a nova ainda não tem id no banco)

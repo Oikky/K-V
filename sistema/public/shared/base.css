@@ -404,7 +404,7 @@ body.vendo-como .area { padding-top: 64px; }
 .sky-rot small { display: block; font-weight: 500; color: var(--text-2); font-size: 12px; }
 .sky-v { display: flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); flex: 0 1 160px; min-width: 120px; color: var(--text-2); font-weight: 600; }
 .sky-v input { border: 0; background: none; color: var(--text); font: inherit; font-weight: 700; font-size: 16px; width: 100%; min-width: 0; outline: none; }
-.sky-t { height: 44px; padding: 0 12px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 16px; flex: 1 1 200px; min-width: 0; }
+.sky-t { min-height: 44px; padding: 10px 12px; line-height: 1.35; resize: vertical; field-sizing: content; max-height: 160px; border-radius: var(--r-field); background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 16px; flex: 1 1 200px; min-width: 0; }
 .sky-v:focus-within, .sky-t:focus { border-color: var(--orange); outline: none; }
 
 /* ---------- janela do orçamento (redesign v2): por cima do quadro, com as abas das etapas ---------- */

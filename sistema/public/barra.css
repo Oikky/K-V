@@ -151,7 +151,8 @@ body { overflow: hidden; }
 .faixas .sky { margin: 0; }
 .faixas .sky-l { padding: 8px 10px; }
 .faixas .sky-rot { min-width: 0; font-size: 13px; }
-.faixas .sky-v, .faixas .sky-t { height: 36px; font-size: 14px; }
+.faixas .sky-v { height: 36px; font-size: 14px; }
+.faixas .sky-t { min-height: 36px; padding: 7px 10px; font-size: 14px; }
 .faixas .sky-v input { font-size: 14px; }
 /* trechos numa pílula que desliza */
 .trs { position: relative; display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-1); overflow-x: auto; scrollbar-width: none; }

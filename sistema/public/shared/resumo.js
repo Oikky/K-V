@@ -57,7 +57,7 @@
   }
   function skyRoteiro(o, idx, rot, anotado, r) {
     const s = KVSky.de(o, r);
-    if (s.valor || s.texto) return [`${rot}: ${[s.valor ? `${brl(s.valor)} por pessoa` : '', s.texto].filter(Boolean).join(' · ')}`];
+    if (s.valor || s.texto) return [`${rot}: ${[s.valor ? `${brl(s.valor)} por pessoa` : '', s.texto].filter(Boolean).join(s.texto.includes('\n') ? '\n' : ' · ')}`];
     const din = idx.map((ti) => o.opcoes.filter((x) => x.trecho === ti && O.site(x.site).forma === 'dinheiro').sort((a, b) => a.preco - b.preco)[0]).filter(Boolean);
     // várias anotações (uma por trecho, "BOS a GRU:") começam na linha de baixo
     if (!din.length) return anotado ? [`${rot}:${/^[^\n]*:\n/.test(anotado) ? '\n' : ' '}${anotado}`] : [];
